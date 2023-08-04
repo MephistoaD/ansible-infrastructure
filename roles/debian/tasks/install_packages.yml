@@ -1,0 +1,25 @@
+---
+- name: Install packages needed by ansible
+  apt:
+    pkg:
+      - "{{ item }}"
+    state: present
+  loop:
+    - gpg # import of debian repos
+    - sudo # for become_user to get root
+    - debian-goodies # ansible find out if restart is needed (playbooks)
+
+- name: Install useful packages for administration
+  apt:
+    pkg: "{{ item }}"
+    state: present
+  loop: "{{ debian_global_packages }}"
+
+- name: install guest agent
+  apt:
+    pkg:
+      - qemu-guest-agent
+    state: present
+  when: "'vm' in group_names"
+  notify:
+    - Reboot

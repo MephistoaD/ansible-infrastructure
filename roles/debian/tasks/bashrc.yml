@@ -1,0 +1,8 @@
+---
+- name: Create bashrc
+  template:
+    src: bashrc.j2
+    dest: /root/.bashrc
+  vars:
+    color_prompt: "{{ color_codes[shell_color].prompt }}"  # get the corresponding color code from the map
+    color_tilde: "{{ color_codes[color_codes[shell_color].tilde].prompt }}"

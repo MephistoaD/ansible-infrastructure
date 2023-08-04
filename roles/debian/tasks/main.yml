@@ -1,0 +1,30 @@
+---
+- name: DEB debian update repos
+  block:
+  - name: Update all repos and cache
+    apt:
+      update_cache: yes
+      force_apt_get: yes
+    changed_when: false # does not count as change
+
+# INCLUDES
+- name: Run upgrades
+  include_tasks: upgrade.yml
+  when:
+    - upgrade
+
+- name: DEB debian necessary packages
+  include_tasks: install_packages.yml
+#  when: false
+
+- name: Import bashrc
+  include_tasks: bashrc.yml
+
+- name: Set time
+  include_tasks: set_time.yml
+
+- name: Install prometheus_node_exporter
+  include_tasks: install_prometheus_node_exporter.yml
+  when:
+    - install_prometheus_node_exporter
+    - not 'lxc' in group_names # lxc exportieren nur die Stats von ihrem host
