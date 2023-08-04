@@ -1,0 +1,8 @@
+---
+- include_tasks: setup_nginx.yml
+- include_tasks: place_snippets.yml
+
+- name: Setup nginx_node_exporter
+  include_tasks: setup_nginx_node_exporter.yml
+  when:
+    - nginx_node_exporter_enabled

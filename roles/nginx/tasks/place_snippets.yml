@@ -1,0 +1,15 @@
+---
+- name: Create snippets directory
+  file:
+    path: /etc/nginx/snippets
+    state: directory
+    mode: '0755'
+  ignore_errors: yes
+
+- name: Copy headers.conf
+  copy:
+    src: headers.conf
+    dest: /etc/nginx/snippets/headers.conf
+    owner: root
+    group: root
+    mode: '0644'
