@@ -1,0 +1,8 @@
+# all dirs are relative to /etc
+# proxmox config
+/pve/nodes
+/pve/local
+/pve/lxc
+/pve/qemu-server
+/pve/openvz
+/pve/.*
