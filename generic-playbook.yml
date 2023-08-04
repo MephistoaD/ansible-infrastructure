@@ -1,0 +1,10 @@
+---
+- hosts: "{{ role_name }}"
+  gather_facts: true
+  tasks:
+    - name: Include roles dynamically
+      include_role:
+        name: "{{ current_role }}"
+      loop: "{{ roles }}"
+      loop_control:
+        loop_var: current_role
