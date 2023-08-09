@@ -1,0 +1,32 @@
+---
+become: true
+become_user: root
+
+# file: group_vars/all
+debian_global_packages:
+  # cpu / mem
+  - htop
+
+  # network
+  - iftop
+  - iperf3
+  - net-tools
+
+  # disk
+  - fdisk
+  - parted
+
+  # http
+  - wget
+  - curl
+
+  # fs
+  - tree
+
+  # utility for other reasons
+  - jq
+
+  # delayed job execution
+  - at
+
+local_facts_path: /root/local_facts.json
