@@ -27,4 +27,4 @@
   include_tasks: install_prometheus_node_exporter.yml
   when:
     - install_prometheus_node_exporter
-    - not 'lxc' in group_names # lxc exportieren nur die Stats von ihrem host
+    - not (is_virtual and custom_fields.technology == 'lxc') # lxc exportieren nur die Stats von ihrem host
