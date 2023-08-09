@@ -20,6 +20,8 @@
     pkg:
       - qemu-guest-agent
     state: present
-  when: "'vm' in group_names"
+  when: 
+    - is_virtual
+    - custom_fields.technology == 'vm'
   notify:
     - Reboot
