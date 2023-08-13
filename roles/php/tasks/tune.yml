@@ -1,0 +1,26 @@
+---
+- name: Ensure fpm configuration is set
+  lineinfile:
+    path: /etc/php/{{ php_version }}/fpm/php.ini
+    regexp: '^;?\s*{{ item.key }}\s*=*'
+    line: "{{ item.key }} = {{ item.value }}"
+    state: present
+    backup: no
+  with_items: "{{ (php_fpm_default_settings | default([])) + (php_fpm_settings | default([])) }}"
+  register: fpm_config_changed
+
+- name: Ensure cli configuration is set
+  lineinfile:
+    path: /etc/php/{{ php_version }}/cli/php.ini
+    regexp: '^;?\s*{{ item.key }}\s*=*'
+    line: "{{ item.key }} = {{ item.value }}"
+    state: present
+    backup: no
+  with_items: "{{ (php_cli_default_settings | default([])) + (php_cli_settings | default([])) }}"
+  register: cli_config_changed
+
+- name: Restart php-fpm service
+  service:
+    name: "php{{ php_version }}-fpm"
+    state: restarted
+  when: fpm_config_changed.changed or cli_config_changed.changed

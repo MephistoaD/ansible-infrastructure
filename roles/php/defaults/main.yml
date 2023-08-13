@@ -1,0 +1,15 @@
+---
+php_cli_default_settings: # equivalent: php_cli_settings
+  - { key: "cgi.fix_pathinfo", value: "0" }
+  - { key: "opcache.enable_cli", value: "1" }
+
+php_fpm_default_settings: # equivalent: php_fpm_settings
+  - { key: "memory_limit", value: "{{ (ansible_memory_mb['real']['total'] * 0.9) | int }}M" }
+  - { key: "cgi.fix_pathinfo", value: "0" }
+  - { key: "opcache.enable", value: "1" }
+  - { key: "opcache.enable_cli", value: "1" }
+  - { key: "opcache.memory_consumption", value: "{{ (ansible_memory_mb['real']['total'] * 0.85) | int }}" }
+  - { key: "opcache.interned_strings_buffer", value: "8" }
+  - { key: "opcache.max_accelerated_files", value: "10000" }
+  - { key: "opcache.revalidate_freq", value: "1" }
+  - { key: "opcache.save_comments", value: "1" }
