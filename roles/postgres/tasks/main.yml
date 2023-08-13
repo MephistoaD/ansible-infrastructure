@@ -1,0 +1,6 @@
+---
+- include_tasks: install.yml
+- include_tasks: tune.yml
+- include_tasks: configure.yml
+
+- include_tasks: test.yml

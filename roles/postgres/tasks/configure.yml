@@ -1,0 +1,31 @@
+---
+- name: Disable root user access to PostgreSQL
+  lineinfile:
+    path: /etc/postgresql/{{ postgres_major_version }}/main/pg_hba.conf
+    regexp: "^local +all +postgres"
+    line: "local   all             postgres                                trust"
+    state: present
+  register: disable_root
+
+- name: Restart postgres
+  systemd:
+    name: postgresql
+    state: restarted
+  when: disable_root is defined and disable_root.changed
+
+- name: Create PostgreSQL users
+  become: true
+  become_user: postgres
+  postgresql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    state: present
+  with_items: "{{ postgres_users }}"
+
+- name: Create PostgreSQL databases
+  become: true
+  become_user: postgres
+  postgresql_db:
+    name: "{{ item.name }}"
+    owner: "{{ item.owner }}"
+  with_items: "{{ postgres_databases }}"
