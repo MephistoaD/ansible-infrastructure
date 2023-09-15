@@ -1,4 +1,11 @@
 ---
+- name: Reconfigure packages (particularly necessary after install of a fresh vm)
+  shell:
+    executable: /bin/bash
+    cmd: dpkg --configure -a
+  register: dpkg_reconfigure
+  changed_when: dpkg_reconfigure.stdout != ""
+
 - name: Update apt cache
   apt:
     update_cache: yes
@@ -17,6 +24,7 @@
   apt:
     upgrade: dist
     autoremove: yes
+  diff: true
   register: dist_upgrade_output
 
 - name: Reboot the system
