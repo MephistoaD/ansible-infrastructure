@@ -6,6 +6,8 @@
       update_cache: yes
       force_apt_get: yes
     changed_when: false # does not count as change
+    when:
+      - only_role is undefined or only_role == "debian"
 
 # INCLUDES
 - name: Run upgrades
@@ -13,18 +15,22 @@
   when:
     - upgrade
 
-- name: DEB debian necessary packages
-  include_tasks: install_packages.yml
-#  when: false
+- name: DEB debian packages
+  include_tasks: packages.yml
+  when:
+    - only_role is undefined or only_role == "debian"
 
-- name: Import bashrc
-  include_tasks: bashrc.yml
+- name: Files and directories
+  include_tasks: files_and_dirs.yml
 
 - name: Set time
   include_tasks: set_time.yml
+  when:
+    - only_role is undefined or only_role == "debian"
 
 - name: Install prometheus_node_exporter
   include_tasks: install_prometheus_node_exporter.yml
   when:
+    - only_role is undefined or only_role == "debian"
     - install_prometheus_node_exporter
     - not (is_virtual and custom_fields.technology == 'lxc') # lxc exportieren nur die Stats von ihrem host

@@ -25,3 +25,4 @@
     - custom_fields.technology == 'vm'
   notify:
     - Reboot
+
