@@ -1,5 +1,7 @@
 ---
-- include_tasks: setup_nginx.yml
+- name: Install nginx
+  include_tasks: install.yml
+  
 - include_tasks: place_snippets.yml
 
 - name: Setup nginx_node_exporter
