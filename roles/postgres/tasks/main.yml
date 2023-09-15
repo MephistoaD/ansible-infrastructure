@@ -1,6 +1,18 @@
 ---
-- include_tasks: install.yml
-- include_tasks: tune.yml
-- include_tasks: configure.yml
+- name: Install postgres
+  include_tasks: install.yml
+  when:
+    - only_role is undefined or only_role == "postgres"
 
-- include_tasks: test.yml
+- name: Tune postgres settings
+  include_tasks: tune.yml
+  when:
+    - only_role is undefined or only_role == "postgres"
+
+- name: Apply basic config
+  include_tasks: configure.yml
+
+- name: Test that postgres is correctly configured and running
+  include_tasks: test.yml
+  when:
+    - only_role is undefined or only_role == "postgres"
