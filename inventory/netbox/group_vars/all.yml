@@ -1,7 +1,4 @@
 ---
-become: true
-become_user: root
-
 # file: group_vars/all
 debian_global_packages:
   # cpu / mem
@@ -29,4 +26,16 @@ debian_global_packages:
   # delayed job execution
   - at
 
-local_facts_path: /root/local_facts.json
+available_platforms:
+  debian-12-bookworm:
+    name: Debian 12 bookworm
+    lxc_ostemplate: "local:vztmpl/debian-12-standard_12.0-1_amd64.tar.zst"
+    vm_template_id: 412
+  debian-11-bullseye:
+    name: Debian 11 bullseye
+    lxc_ostemplate: "local:vztmpl/debian-11-standard_11.7-1_amd64.tar.zst"
+    vm_template_id: 400
+
+quick: false # optionally allows to ignore tasks which are not necessary in every run
+deploy_guest: false # wether to deploy a new virtual guest for the system or not
+# a value of "only" terminates the playbook after the deployment and skipps the roles
