@@ -43,7 +43,8 @@
   systemd:
     name: nginx
     state: reloaded
-  when: remove_default_config.changed
+  when: 
+    - remove_default_config.changed
 
 - name: Create webroot
   file:
