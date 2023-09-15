@@ -6,3 +6,14 @@
   vars:
     color_prompt: "{{ color_codes[shell_color].prompt }}"  # get the corresponding color code from the map
     color_tilde: "{{ color_codes[color_codes[shell_color].tilde].prompt }}"
+
+
+- name: Ensure /etc/cron.d/popularity-contest is absent
+  file:
+    path: /etc/cron.d/popularity-contest
+    state: absent
+
+- name: Ensure /etc/ansible/facts.d/ directory exists (local facts)
+  ansible.builtin.file:
+    path: /etc/ansible/facts.d/
+    state: directory
