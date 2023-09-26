@@ -1,0 +1,25 @@
+# Makes sure the guest configs and everything backed up separately are ignored
+# The standard config of etckeeper commits changes once a day,
+# this should be sufficient for this purpose.
+---
+- name: Configure ignored directories
+  copy:
+    src: etckeeper_gitignore
+    dest: /etc/.gitignore
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Install etckeeper
+  apt:
+    pkg: "{{ item }}"
+    state: present
+  loop:
+    - etckeeper
+
+# else each nightly commit fails if no changes were made
+- name: Add || true to etckeeper daily autocommit
+  lineinfile:
+    path: /etc/etckeeper/daily
+    regexp: 'etckeeper commit "daily autocommit" >/dev/null$'
+    line: '			etckeeper commit "daily autocommit" >/dev/null || true'

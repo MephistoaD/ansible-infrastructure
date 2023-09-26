@@ -1,0 +1,52 @@
+---
+- name: Add Nginx signing key
+  apt_key:
+    url: https://nginx.org/keys/nginx_signing.key
+    state: present
+  register: nginx_key
+
+- name: Add Nginx repository
+  apt_repository:
+    repo: 'deb http://nginx.org/packages/debian {{ ansible_distribution_release }} nginx'
+    state: present
+
+- name: update apt cache
+  apt:
+    update_cache: yes
+  changed_when: false
+
+- name: Install Packages
+  apt:
+    name: "{{ item }}"
+    state: latest
+  loop:
+    - nginx
+    - python3-cryptography
+
+- name: Create private key (RSA, 4096 bits)
+  community.crypto.openssl_privatekey:
+    path: "{{ ssl_key_path }}"
+
+- name: Create simple self-signed certificate
+  community.crypto.x509_certificate:
+    path: "{{ ssl_cert_path }}"
+    privatekey_path: "{{ ssl_key_path }}"
+    provider: selfsigned
+
+- name: Remove default Nginx config file
+  file:
+    path: /etc/nginx/conf.d/default.conf
+    state: absent
+  register: remove_default_config
+
+- name: Reload Nginx service
+  systemd:
+    name: nginx
+    state: reloaded
+  when: 
+    - remove_default_config.changed
+
+- name: Create webroot
+  file:
+    path: /var/www
+    state: directory

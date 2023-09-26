@@ -1,0 +1,13 @@
+---
+- name: Postgres is listening on it's default port on localhost
+  block:
+    - name: Confirm Postgres is listening on 127.0.0.1:5432
+      shell: netstat -ltn | grep -q -E '^tcp.*127.0.0.1:5432\s+.*LISTEN\s*$'
+      register: postgres_listening
+      changed_when: false
+      failed_when: false
+
+    - name: "TEST: If postgres is listening on it's default port on localhost"
+      fail:
+        msg: "Postgres is{{ ' NOT' if postgres_listening.rc != 0 else '' }} listening on 127.0.0.1:5432"
+      when: postgres_listening.rc != 0

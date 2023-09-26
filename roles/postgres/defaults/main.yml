@@ -1,0 +1,13 @@
+postgres_users:
+  - name: user1
+    password: mypass1
+  - name: user2
+    password: mypass2
+postgres_databases:
+  - name: db1
+    owner: user1
+  - name: db2
+    owner: user2
+
+# don't touch below
+postgres_listen_address: "127.0.0.1" #"{{ ansible_default_ipv4.address }}"

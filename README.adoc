@@ -1,1 +1,23 @@
-# ansible-infrastructure
+# Ansible Infrastructure
+
+## Arguments:
+
+  device_role: str The role given to the host by the inventory
+  include_roles: [ device_role ] Overwrites the device_role by including a custom list of roles instead
+  upgrade: (false, true) runs all upgrades defined in the various roles
+  quick: (false, true) skipps installs, and most time costly operations (never interferes with upgrade)
+  deploy_guest: (false, true, "only") deploys the vm or ct from the stats given in the netbox instance, if set to "only" the roles are skipped
+  only_role: (undefined, role name) skipps non vital tasks from all other roles (useful for debugging)
+
+## PVE Nodes:
+
+  ansible-playbook playbooks/generic-playbook.yml -e "device_role=pve_node include_roles=['pve_node','debian','postfix','etckeeper']"
+
+## Semaphore
+
+  semaphore_add_local_ssh_key: (false, true) adds the local ssh key from ~/.ssh/id_rsa to the semaphore by the name "ansible-ssh-key"
+
+## examples:
+
+  ansible-playbook playbooks/generic-playbook.yml -e "device_role=semaphore"
+  ansible-playbook playbooks/generic-playbook.yml -e "device_role=semaphore upgrade=true"

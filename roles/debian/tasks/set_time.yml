@@ -1,0 +1,5 @@
+---
+- name: Set timezone
+  shell: timedatectl set-timezone {{ timezone }}
+  changed_when: false
+  when: timezone is defined

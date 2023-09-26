@@ -1,0 +1,16 @@
+---
+- name: Install Redis
+  become: true
+  apt:
+    name: redis-server
+    state: present
+
+- name: Check Redis Status
+  command: redis-cli ping
+  register: redis_status
+  ignore_errors: true
+  changed_when: false
+
+- name: Show Redis Status
+  debug:
+    msg: "Redis is {{ 'up and running' if redis_status.stdout == 'PONG' else 'not running' }}"

@@ -1,0 +1,13 @@
+---
+- name: Install prometheus-node-exporter
+  apt:
+    pkg: "{{ item }}"
+    state: present
+  loop:
+    - prometheus-node-exporter
+
+- name: Ensure the prometheus-node-exporter service is started and enabled
+  systemd:
+    name: prometheus-node-exporter
+    state: started
+    enabled: yes

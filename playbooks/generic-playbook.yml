@@ -1,0 +1,10 @@
+---
+- hosts: "{{ device_role }}"
+  gather_facts: true
+  tasks:
+    - name: Include roles dynamically
+      include_role:
+        name: "{{ current_role }}"
+      loop: "{{ include_roles | default([device_role]) }}"
+      loop_control:
+        loop_var: current_role

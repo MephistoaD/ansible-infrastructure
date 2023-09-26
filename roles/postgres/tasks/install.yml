@@ -1,0 +1,34 @@
+---
+- name: Add PostgreSQL repository key
+  shell: |
+    wget -O- https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | sudo tee /usr/share/keyrings/postgresql-archive-keyring.gpg >/dev/null
+  register: postgres_key
+  changed_when: false
+
+- name: Add PostgreSQL repository
+  apt_repository:
+    repo: "deb [signed-by=/usr/share/keyrings/postgresql-archive-keyring.gpg] http://apt.postgresql.org/pub/repos/apt {{ ansible_distribution_release }}-pgdg main"
+    state: present
+
+- name: update apt cache
+  apt:
+    update_cache: yes
+  changed_when: false
+
+- name: Install PostgreSQL and its dependencies
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - postgresql
+    - python3-psycopg2 # needed for ansible compatibility
+
+# for additional configuration
+- name: Get Postgres major version
+  shell: "psql --version | awk '{print $3}' | cut -d '.' -f1"
+  register: postgres_major_version_output
+  changed_when: false
+
+- name: Set fact postgres_major_version
+  set_fact:
+    postgres_major_version: "{{ postgres_major_version_output.stdout }}"
