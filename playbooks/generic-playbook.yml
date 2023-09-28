@@ -1,8 +1,19 @@
 ---
 - hosts: "{{ device_role }}"
-  gather_facts: true
+  gather_facts: false
   tasks:
-    - name: Include roles dynamically
+    - name: Deploy guest
+      include_tasks: "tasks/deploy_{{ custom_fields.technology }}.yml" # deploy_lxc.yml or deploy_vm.yml
+      when: 
+        - is_virtual
+        - custom_fields.technology is defined
+        - deploy_guest is defined
+        - deploy_guest
+
+    - name: Gather Facts
+      setup:
+
+    - name: Configure hosts
       include_role:
         name: "{{ current_role }}"
       loop: "{{ include_roles | default([device_role]) }}"

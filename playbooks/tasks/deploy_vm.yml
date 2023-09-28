@@ -1,0 +1,19 @@
+---
+- name: Deployment
+  vars:
+    name: deploy_vm
+  block:
+    - debug:
+        msg: deploy_vm
+
+    # TODO: implementation:
+    # Get node with vm template
+    # clone and apply settings
+
+    
+    # End of Deployment block
+
+- name: Finish play if deploy_guest == "only"
+  meta: end_play
+  when:
+  - deploy_guest == "only"

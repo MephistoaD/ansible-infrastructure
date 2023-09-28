@@ -1,0 +1,109 @@
+---
+- name: Deployment
+  vars:
+    delegate_to_pve_instance: "{{ groups['pve_node'][0] }}"
+    ostemplate: "{{ available_platforms[platforms[0]].lxc_ostemplate }}" # = The platform set in the netbox entry
+    guest_storage: "node-local"
+    rootfs_volume: "{{ guest_storage }}:{{ disk }}"
+    gateway: "192.168.2.1"
+    swap_default_size: 0
+  block:
+
+  # TODO: Remove
+  - debug:
+      msg: "deploy_lxc"
+
+  - name: Print host variables
+    debug:
+      var: hostvars[inventory_hostname]
+
+  - name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
+    delegate_to: "{{ delegate_to_pve_instance }}"
+    setup:
+      filter: ansible_local
+
+  - name: GUEST CREATION
+    when: 
+      - "custom_fields.vmid | string not in ansible_local.pve_node['guests_by_id']"
+    block:
+    - name: "Create lxc {{ custom_fields.vmid }}"
+      delegate_to: "{{ delegate_to_pve_instance }}"
+      shell:
+        executable: /usr/bin/bash
+        cmd: |
+          # Set just any random password
+          password=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | cut -c1-"${1:-12}")
+
+          pvesh create "/nodes/{{ delegate_to_pve_instance }}/lxc" \
+            -vmid "{{ custom_fields.vmid }}" \
+            -hostname "{{ inventory_hostname }}" \
+            -ostemplate "{{ ostemplate }}" \
+            -password "$password" \
+            -ssh-public-keys "{{ allowed_ssh_publickey }}" \
+            -cores "{{ vcpus | int }}" \
+            -memory "{{ memory }}" \
+            -swap "{{ swap_default_size  }}" \
+            -storage "{{ guest_storage }}" \
+            -rootfs "volume={{ rootfs_volume }}" \
+            -pool "{{ custom_fields.pool | upper }}" \
+            -net0 "name=eth0,bridge=vmbr0,firewall=1,ip={{ primary_ip4 }}/24,gw={{ gateway }}" \
+            -features "nesting=1" \
+            -unprivileged "1"
+      register: guest_creation
+
+  - name: GUEST MODIFICATION
+    vars:
+      vmid: '{{ custom_fields.vmid }}'
+      current_lxc_config: "{{ ansible_local.pve_node['guests_by_id'][vmid] }}"
+    block:
+    - debug:
+        var: current_lxc_config
+
+    - name: Overwrite the config
+      delegate_to: "{{ delegate_to_pve_instance }}"
+      template:
+        src: lxc.conf.j2
+        dest: "{{ current_lxc_config.config_path }}"
+      register: overwrite_config
+
+    - name: Reboot the guest in case changes were applied
+      delegate_to: "{{ delegate_to_pve_instance }}"
+      shell:
+        executable: /usr/bin/bash
+        cmd: |
+          pvesh create /nodes/{{ delegate_to_pve_instance }}/lxc/{{ custom_fields.vmid }}/status/reboot
+      register: guest_stop
+      when:
+        - current_lxc_config.status == "running"
+        - overwrite_config.changed
+
+    - name: Start the guest
+      delegate_to: "{{ delegate_to_pve_instance }}"
+      shell:
+        executable: /usr/bin/bash
+        cmd: |
+          pvesh create /nodes/{{ delegate_to_pve_instance }}/lxc/{{ custom_fields.vmid }}/status/start
+      register: guest_start
+      when:
+        - current_lxc_config.status != "running"
+
+    - debug:
+        var: guest_start
+
+  - name: NOTIFY ON NOT YET IMPLEMENTED CASES
+    vars:
+      vmid: '{{ custom_fields.vmid }}'
+      current_lxc_config: "{{ ansible_local.pve_node['guests_by_id'][vmid] }}"
+    block:
+    - name: Error on different rootfs sizes
+      fail:
+        msg: "The current guests rootfs size is {{ current_lxc_config.rootfs_size }} but the netbox defines it to be {{ disk }}. Automatic disk changes are not implemented yet."
+      when:
+        - current_lxc_config.rootfs_size != disk
+
+    # End of Deployment block
+
+- name: Finish play if deploy_guest == "only"
+  meta: end_play
+  when:
+  - deploy_guest == "only"
