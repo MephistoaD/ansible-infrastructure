@@ -1,18 +1,11 @@
 ---
 - name: Deployment
   vars:
-    delegate_to_pve_instance: "{{ groups['pve_node'][0] }}"
+    # do not touch below
     ostemplate: "{{ available_platforms[platforms[0]].lxc_ostemplate }}" # = The platform set in the netbox entry
-    guest_storage: "node-local"
     rootfs_volume: "{{ guest_storage }}:{{ disk }}"
-    gateway: "192.168.2.1"
-    swap_default_size: 0
   block:
-
-  # TODO: Remove
-  - debug:
-      msg: "deploy_lxc"
-
+  # TODO: Remove this
   - name: Print host variables
     debug:
       var: hostvars[inventory_hostname]

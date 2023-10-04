@@ -3,6 +3,13 @@
   gather_facts: false
   tasks:
     - name: Deploy guest
+      vars:
+        guest_storage: "node-local"
+        guest_default_user: "debian" # for vm only
+        gateway: "192.168.2.1"
+        nameserver: "192.168.2.250" # for vm only, lxc defaults to dns of host
+        swap_default_size: 0 # for lxc only
+        delegate_to_pve_instance: "{{ groups['pve_node'][0] }}" # the node where the lxc is created / the guest list is scraped
       include_tasks: "tasks/deploy_{{ custom_fields.technology }}.yml" # deploy_lxc.yml or deploy_vm.yml
       when: 
         - is_virtual

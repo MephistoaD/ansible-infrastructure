@@ -1,16 +1,11 @@
 ---
-- name: "Collect ansible_local on {{ groups['pve_node'][0] }}"
-  delegate_to: "{{ groups['pve_node'][0] }}"
+- name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
+  delegate_to: "{{ delegate_to_pve_instance }}"
   setup:
     filter: ansible_local
 
 - name: Deployment
   vars:
-    guest_storage: "node-local"
-    guest_default_user: "debian"
-    gateway: "192.168.2.1"
-    nameserver: "192.168.2.250"
-
     # do not touch below
     template_vmid: "{{ available_platforms[platforms[0]]['vm_template_id'] }}"
     template_vm: "{{ansible_local.pve_node['guests_by_id'][template_vmid]}}"
@@ -45,7 +40,7 @@
             --storage "{{ guest_storage }}"
 
           # Create cloudinit drive
-          qm set {{ custom_fields.vmid }} --ide2 node-local:cloudinit
+          qm set {{ custom_fields.vmid }} --ide2 {{ guest_storage }}:cloudinit
 
           # By some weird reason the ssh key needs to be passed as file:
           ansible_pubkey="/tmp/ansible_id_rsa.pub"
