@@ -1,0 +1,187 @@
+---
+- name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
+  delegate_to: "{{ delegate_to_pve_instance }}"
+  setup:
+    filter: ansible_local
+
+- name: Deployment
+  vars:
+    # do not touch below
+    template_vmid: "{{ available_platforms[platforms[0]]['vm_template_id'] }}"
+    template_vm: "{{ansible_local.pve_node['guests_by_id'][template_vmid]}}"
+    delegate_to_pve_instance: "{{ template_vm['node'] if template_vm['node'] in groups['pve_node'] else groups['pve_node'][0] }}"
+  block:
+  # TODO: Remove
+  - name: Print host variables
+    debug:
+      var: hostvars[inventory_hostname]
+
+  - debug:
+      var: template_vm
+
+    # Get node with vm template
+  - debug:
+      var: delegate_to_pve_instance
+
+  - name: CLONE TEMPLATE
+    when:
+      - "custom_fields.vmid | string not in ansible_local.pve_node['guests_by_id']"
+    block:
+    - name: "Clone template {{ template_vmid }} for platform {{ available_platforms[platforms[0]]['name'] }}"
+      delegate_to: "{{ delegate_to_pve_instance }}"
+      shell:
+        executable: /usr/bin/bash
+        cmd: |
+          # Creation from the template
+          qm clone {{ template_vmid }} {{ custom_fields.vmid }} \
+            --name "{{ inventory_hostname }}" \
+            --full true \
+            --pool "{{ custom_fields.pool | upper }}" \
+            --storage "{{ guest_storage }}"
+
+          # Create cloudinit drive
+          qm set {{ custom_fields.vmid }} --ide2 {{ guest_storage }}:cloudinit
+
+          # By some weird reason the ssh key needs to be passed as file:
+          ansible_pubkey="/tmp/ansible_id_rsa.pub"
+          echo {{ allowed_ssh_publickey }} > $ansible_pubkey
+          qm set {{ custom_fields.vmid }} \
+            --sshkeys $ansible_pubkey
+
+          # The cloudinit config must be passed before initial boot
+          qm set {{ custom_fields.vmid }} \
+            --ipconfig0 gw={{ gateway }},ip={{ primary_ip4 }}/24 \
+            --nameserver {{ nameserver }} \
+            --ciupgrade false
+
+          qm resize {{ custom_fields.vmid }} scsi0 {{ disk }}G
+      register: guest_creation
+    
+    - name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
+      delegate_to: "{{ delegate_to_pve_instance }}"
+      setup:
+        filter: ansible_local
+
+
+  - name: GUEST MODIFICATION
+    vars:
+      vmid: '{{ custom_fields.vmid }}'
+      current_vm_config: "{{ ansible_local.pve_node['guests_by_id'][vmid] }}"
+
+      # do not touch below
+      delegate_to_pve_instance: "{{ current_vm_config['node'] }}" # TODO: make obsolete
+    block:
+    - debug:
+        var: current_vm_config
+    
+    - name: Fail if netbox has a lower disk size than the current vm
+      fail:
+        msg: |
+         netbox_disk = {{ disk }}GB < vms_disk = {{ current_vm_config['scsi0']['size'] }}GB
+         Please increase the disksize in netbox to at least {{ current_vm_config['scsi0']['size'] }}GB
+      when: 
+        - disk < current_vm_config['scsi0']['size']
+
+    - name: Update vm properties
+      vars:
+        new_onboot: '{{ status.value == "active" }}'
+        iterations:
+          - label: "Update vCPUs {{ current_vm_config['maxcpu'] }} -> {{ vcpus | int }} cores"
+            action: "qm set {{ vmid }} --cores {{ vcpus | int }}"
+            condition: "{{ vcpus | int != current_vm_config['maxcpu'] }}"
+          - label: "Update memory {{ current_vm_config['memory'] }} -> {{ memory }} MB"
+            action: "qm set {{ vmid }} --memory {{ memory }}"
+            condition: "{{ memory | string != current_vm_config['memory'] }}"
+          - label: "Update onboot status {{ current_vm_config['onboot'] }} -> {{ new_onboot }}"
+            action: "qm set {{ vmid }} --onboot {{ new_onboot }}"
+            condition: "{{ new_onboot | bool != current_vm_config['onboot'] }}"
+          - label: "Update disk size {{ current_vm_config['scsi0']['size'] }} -> {{ disk }} GB"
+            action: "qm resize {{ vmid }} scsi0 {{ disk }}G"
+            condition: "{{ disk > current_vm_config['scsi0']['size'] }}"
+          - label: "Start vm if active"
+            action: "qm start {{ vmid }}"
+            condition: "{{ current_vm_config['status'] == 'stopped' and status.value == 'active' }}"
+      delegate_to: "{{ delegate_to_pve_instance }}"
+      shell:
+        executable: /usr/bin/bash
+        cmd: |
+          {{ item.action }}
+      register: update_properties
+      when: item.condition
+      loop_control:
+        label: "{{ item.label }}"
+      loop: "{{ iterations }}"
+
+  - name: CONFIGURE SSH ON ROOT AND ABOLISH THE DEFAULT USER
+    vars:
+      remote_user: debian
+      root_authorized_keys: /root/.ssh/authorized_keys
+      ssh_root_access: # just a little hack to allow the check task to reside inside the block too
+        rc: 1
+    when: ssh_root_access.rc != 0
+    block: 
+    - name: Check if SSH access as root user is allowed
+      become: false
+      local_action: 
+        module: ansible.builtin.shell
+        cmd: ssh -o StrictHostKeyChecking=no root@{{ primary_ip4 }} exit
+      failed_when: ssh_root_access.rc not in [0,142,255] # 0 = root is correctly configured, 142 = config is still pending, 255 = permission denied (publickey)
+      changed_when: false
+      register: ssh_root_access
+
+    - name: Set `PermitRootLogin` on host
+      remote_user: "{{ remote_user }}"
+      template:
+        src: etc_ssh_sshd_config.d_permitrootlogin.conf.j2
+        dest: /etc/ssh/sshd_config.d/permitrootlogin.conf
+      register: set_permitrootlogin
+
+    - name: Reload sshd service
+      remote_user: "{{ remote_user }}"
+      ansible.builtin.service:
+        name: sshd
+        state: reloaded
+      when: 
+        - set_permitrootlogin.changed
+
+    - name: Add the ansile pubkey to the root user
+      remote_user: "{{ remote_user }}"
+      ansible.builtin.shell:
+        executable: /usr/bin/bash
+        cmd: |
+          [ -f {{ root_authorized_keys }} ] && return 1
+          echo {{ allowed_ssh_publickey }} > {{ root_authorized_keys }}
+      changed_when: add_root_authorized_keys.rc == 0
+      failed_when: add_root_authorized_keys.rc not in [0,1]
+      register: add_root_authorized_keys
+
+    - name: Test if SSH access as root user is now allowed
+      become: false
+      local_action: 
+        module: ansible.builtin.shell
+        cmd: ssh -o StrictHostKeyChecking=no root@{{ primary_ip4 }} exit
+      #failed_when: ssh_root_access.rc not in [0,142] # 0 = root is correctly configured, 142 = config is still pending
+      changed_when: false
+      #register: ssh_root_access
+
+    - name: "Kill processes owned by user {{ remote_user }}"
+      ansible.builtin.shell: "kill -9 $(ps -U debian -o pid=)"
+      #ignore_errors: yes
+
+    - name: "Delete user {{ remote_user }}"
+      ansible.builtin.user:
+        name: debian
+        state: absent
+
+    - name: "Delete home directory of {{ remote_user }}"
+      ansible.builtin.file:
+        path: /home/debian
+        state: absent
+      when: false
+
+    # End of Deployment block
+
+- name: Finish play if deploy_guest == "only"
+  meta: end_play
+  when:
+  - deploy_guest == "only"
