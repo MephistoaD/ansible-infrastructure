@@ -64,7 +64,7 @@
       shell:
         executable: /usr/bin/bash
         cmd: |
-          pvesh create /nodes/{{ delegate_to_pve_instance }}/lxc/{{ custom_fields.vmid }}/status/reboot
+          pvesh create /nodes/{{ current_lxc_config['node'] }}/lxc/{{ custom_fields.vmid }}/status/reboot
       register: guest_stop
       when:
         - current_lxc_config.status == "running"
