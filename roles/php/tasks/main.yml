@@ -1,3 +1,11 @@
 ---
-- include_tasks: install.yml
-- include_tasks: tune.yml
+- name: Install php
+  include_tasks: install.yml
+  when:
+    - only_role is undefined or only_role == "php"
+
+- name: Tune php
+  include_tasks: install.yml
+  when:
+    - only_role is undefined or only_role == "php"
+
