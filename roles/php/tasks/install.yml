@@ -23,11 +23,7 @@
     - php-fpm
     - "{{ php_packages | default([]) }}"
 
-- name: Get the version of the currently running PHP installation
-  shell: "php -v | head -n 1 | awk '{print $2}' | cut -d. -f1,2"
-  register: php_version_raw
-  changed_when: false
-
-- name: Set fact php_version
-  set_fact:
-    php_version: "{{ php_version_raw.stdout }}"
+- name: "Make sure the apache2 package is not installed"
+  apt:
+    pkg: apache2
+    state: absent
