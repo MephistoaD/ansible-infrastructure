@@ -5,9 +5,12 @@
   register: config_file
 
 - name: Initialize nextcloud
-  shell: "curl --insecure 'https://{{ ansible_default_ipv4.address }}/index.php' -X POST --data-raw 'install=true&adminlogin={{ ansible_local.nextcloud.nextcloud_default_admin_user | urlencode }}&adminpass={{ ansible_local.nextcloud.nextcloud_default_admin_password | urlencode }}&directory={{ directory }}&dbtype=pgsql&dbuser={{ postgres_users[0].name | urlencode }}&dbpass={{ postgres_users[0].password | urlencode }}&dbpass-clone={{ postgres_users[0].password | urlencode }}&dbname={{ postgres_databases[0].name | urlencode }}&dbhost={{ postgres_listen_address }}'"
+  shell: "curl --insecure 'https://{{ ansible_default_ipv4.address }}/index.php' -X POST --data-raw 'install=true&adminlogin={{ ansible_local.nextcloud.nextcloud_default_admin_user | urlencode }}&adminpass={{ ansible_local.nextcloud.nextcloud_default_admin_password | urlencode }}&directory={{ directory }}&dbtype=pgsql&dbuser={{ dbuser | urlencode }}&dbpass={{ dbpassword | urlencode }}&dbpass-clone={{ dbpassword | urlencode }}&dbname={{ dbname | urlencode }}&dbhost={{ postgres_listen_address }}'"
   vars:
     directory: "{{ nextcloud_data }}"
+    dbuser: "{{ ansible_local.postgres.users[0].name }}"
+    dbpassword: "{{ ansible_local.postgres.users[0].password }}"
+    dbname: "{{ ansible_local.postgres.databases[0].name }}"
   register: nextcloud_initialized
   when: not config_file.stat.exists
 

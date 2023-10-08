@@ -14,4 +14,3 @@
   include_tasks: upgrade.yml
   when: upgrade
 
-#- include_tasks: manage_applications.yml

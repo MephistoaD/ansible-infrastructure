@@ -1,4 +1,9 @@
 ---
+- name: Create ansible_local.postgres
+  include_tasks: ansible_local.yml
+  when:
+    - only_role is undefined or only_role == "postgres"
+
 - name: Install postgres
   include_tasks: install.yml
   when:
