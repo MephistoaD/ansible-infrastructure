@@ -1,0 +1,53 @@
+---
+- name: Check if there is sufficient disk space
+  block:
+  - name: Check available disk space on mount points
+    shell: df --output=avail -B1 --exclude-type=devtmpfs --exclude-type=tmpfs | tail -n +2
+    register: available_disk_spaces
+    changed_when: false
+
+  - debug:
+      var: available_disk_spaces.stdout_lines
+
+  - name: Check disk sizes
+    set_fact:
+      sufficent_disk_space: "{{ available_disk_spaces.stdout_lines | map('int') | select('>=', 1e9) | list | length == available_disk_spaces.stdout_lines | list | length }}"
+
+  - name: Handle insufficient disk space
+    fail:
+      msg: "Insufficient disk space. At least 1GB of free space is required on all mountpoints."
+    when: not sufficent_disk_space
+
+- name: Update Instance
+  block:
+  - name: Running nextcloud/updater/updater.phar --no-interaction
+    shell: sudo -u www-data php --define apc.enable_cli=1 /var/www/nextcloud/updater/updater.phar --no-interaction
+    register: updater_output
+    failed_when: false
+    changed_when: '"Start update" in updater_output.stdout'
+
+  - name: Show output from sudo -u www-data php --define apc.enable_cli=1 /var/www/nextcloud/updater/updater.phar --no-interaction
+    debug:
+      var: updater_output.stdout_lines
+
+  - name: Fail when encountered errors
+    fail:
+      msg: updater_output.stderr
+    when: updater_output.rc != 0
+
+- name: Migrate Database
+  block:
+  - name: Run databse migration nextcloud/occ db:add-missing-indices
+    shell: sudo -u www-data php --define apc.enable_cli=1 /var/www/nextcloud/occ db:add-missing-indices
+    register: migration_output
+    failed_when: false
+    changed_when: '"updated successfully." in migration_output.stdout'
+
+  - name: Show output from sudo -u www-data php --define apc.enable_cli=1 /var/www/nextcloud/updater/updater.phar --no-interaction
+    debug:
+      var: migration_output.stdout_lines
+
+  - name: Fail when encountered errors
+    fail:
+      msg: migration_output.stderr
+    when: migration_output.rc != 0

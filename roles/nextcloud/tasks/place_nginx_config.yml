@@ -1,0 +1,22 @@
+---
+- name: Copy nginx.conf
+  copy:
+    src: nginx.conf
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: '0644'
+  register: nginx_config_file
+
+- name: Copy Nginx nextcloud config file
+  template:
+    src: "nextcloud.conf.j2"
+    dest: /etc/nginx/conf.d/nextcloud.conf
+    mode: '0644'
+  register: nextcloud_config_file
+
+- name: Reload Nginx service
+  systemd:
+    name: nginx
+    state: reloaded
+  when: nginx_config_file.changed or nextcloud_config_file.changed

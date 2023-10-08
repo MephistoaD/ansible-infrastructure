@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+
+import json
+
+# Create a dictionary with the variables
+data = {
+    "nextcloud_default_admin_user": "{{ nextcloud_default_admin_user }}",
+    "nextcloud_default_admin_password": "{{ nextcloud_default_admin_password }}",
+    "prometheus_nextcloud_exporter_token": "{{ prometheus_nextcloud_exporter_token }}"
+}
+
+# Convert the dictionary to JSON format
+json_data = json.dumps(data, indent=4)
+
+# Print the JSON
+print(json_data)

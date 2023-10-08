@@ -1,0 +1,3 @@
+# Crontab which executes pending tasks
+# if active the background job setting can be switched to cron in the webui
+*/5 * * * * www-data php -f /var/www/nextcloud/cron.php > /dev/null 2>&1

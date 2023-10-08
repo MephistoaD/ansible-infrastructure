@@ -1,0 +1,31 @@
+---
+- name: Uncomment env vars needed by nextcloud
+  replace:
+    path: /etc/php/{{ php_version }}/fpm/pool.d/www.conf
+    regexp: '^;?(env\[[^]]+\].*)$'
+    replace: '\1'
+    backup: no
+  register: php_env_vars
+
+- name: Ensure fpm configuration is set
+  lineinfile:
+    path: /etc/php/{{ php_version }}/fpm/pool.d/www.conf
+    regexp: '^;?\s*{{ item.key }}\s*=*'
+    line: "{{ item.key }} = {{ item.value }}"
+    state: present
+    backup: no
+  with_items:
+    - { key: "pm", value: "dynamic" }
+    - { key: "pm.max_children", value: "10" }
+    - { key: "pm.start_servers", value: "5" }
+    - { key: "pm.min_spare_servers", value: "3" }
+    - { key: "pm.max_spare_servers", value: "5" }
+    - { key: "pm.process_idle_timeout", value: "60s" }
+    - { key: "pm.max_requests", value: "100" }
+  register: fpm_pool_config_changed
+
+- name: Restart php-fpm service
+  service:
+    name: "php{{ php_version }}-fpm"
+    state: restarted
+  when: php_env_vars.changed or fpm_pool_config_changed.changed

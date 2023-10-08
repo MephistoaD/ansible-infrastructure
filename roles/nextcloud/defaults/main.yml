@@ -1,0 +1,43 @@
+---
+nextcloud_data: "{{ local_context_data[0].nextcloud_data | default('/srv/nextcloud_data') }}"
+
+#nextcloud_domains:
+#  - "{{ ansible_hostname }}.*.lab"
+nextcloud_default_phone_region: DE
+
+nextcloud_default_admin_user: "nc_exporter"
+#nextcloud_default_admin_password: "admin"
+
+# postgres_listen_address: 127.0.0.1 ignored in defaults, since there is already a default
+
+#custom_settings:
+#  - { key: "mail_smtpmode", value: "'smtp'" }
+
+php_packages:
+  - php-gd
+  - php-curl
+  - php-xml
+  - php-zip
+  - php-intl
+  - php-mbstring
+  - php-bz2
+  - php-json
+  - php-apcu
+  - php-imagick
+  - php-gmp
+  - php-bcmath
+  - php-pgsql
+  - php-redis
+  - php-memcached
+
+php_cli_settings:
+  - { key: "apc.enabled", value: "1" }
+  - { key: "apc.enable_cli", value: "1" }
+
+
+postgres_users:
+  - name: "nextcloud_db_user"
+    password: "pAsSw0rD"
+postgres_databases:
+  - name: "nextcloud_db"
+    owner: "nextcloud_db_user"
