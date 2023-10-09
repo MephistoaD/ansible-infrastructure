@@ -9,7 +9,7 @@
     # do not touch below
     template_vmid: "{{ available_platforms[platforms[0]]['vm_template_id'] }}"
     template_vm: "{{ansible_local.pve_node['guests_by_id'][template_vmid]}}"
-    delegate_to_pve_instance: "{{ template_vm['node'] if template_vm['node'] in groups['pve_node'] else groups['pve_node'][0] }}"
+    delegate_to_template_pve_instance: "{{ template_vm['node'] if template_vm['node'] in groups['pve_node'] else groups['pve_node'][0] }}"
   block:
   # TODO: Remove
   - name: Print host variables
@@ -19,16 +19,12 @@
   - debug:
       var: template_vm
 
-    # Get node with vm template
-  - debug:
-      var: delegate_to_pve_instance
-
   - name: CLONE TEMPLATE
     when:
       - "custom_fields.vmid | string not in ansible_local.pve_node['guests_by_id']"
     block:
     - name: "Clone template {{ template_vmid }} for platform {{ available_platforms[platforms[0]]['name'] }}"
-      delegate_to: "{{ delegate_to_pve_instance }}"
+      delegate_to: "{{ delegate_to_template_pve_instance }}"
       shell:
         executable: /usr/bin/bash
         cmd: |
@@ -58,7 +54,7 @@
       register: guest_creation
     
     - name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
-      delegate_to: "{{ delegate_to_pve_instance }}"
+      delegate_to: "{{ delegate_to_template_pve_instance }}"
       setup:
         filter: ansible_local
 
@@ -69,7 +65,7 @@
       current_vm_config: "{{ ansible_local.pve_node['guests_by_id'][vmid] }}"
 
       # do not touch below
-      delegate_to_pve_instance: "{{ current_vm_config['node'] }}" # TODO: make obsolete
+      delegate_to_guest_pve_instance: "{{ current_vm_config['node'] }}" # TODO: make obsolete
     block:
     - debug:
         var: current_vm_config
@@ -101,7 +97,7 @@
           - label: "Start vm if active"
             action: "qm start {{ vmid }}"
             condition: "{{ current_vm_config['status'] == 'stopped' and status.value == 'active' }}"
-      delegate_to: "{{ delegate_to_pve_instance }}"
+      delegate_to: "{{ delegate_to_guest_pve_instance }}"
       shell:
         executable: /usr/bin/bash
         cmd: |
@@ -111,6 +107,15 @@
       loop_control:
         label: "{{ item.label }}"
       loop: "{{ iterations }}"
+
+    - name: Wait until the vm is online and sshd started
+      become: false
+      local_action:
+        module: wait_for
+        host: "{{ primary_ip4 }}"  # Replace with your target host
+        port: 22  # SSH port
+        state: started
+        timeout: 300  # Adjust the timeout as needed (in seconds)
 
   - name: CONFIGURE SSH ON ROOT AND ABOLISH THE DEFAULT USER
     vars:

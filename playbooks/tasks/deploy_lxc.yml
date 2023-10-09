@@ -44,44 +44,82 @@
             -unprivileged "1"
       register: guest_creation
 
+  - name: "Collect ansible_local on {{ delegate_to_pve_instance }} after guest creation"
+    delegate_to: "{{ delegate_to_pve_instance }}"
+    setup:
+      filter: ansible_local
+    when: guest_creation.changed
+
   - name: GUEST MODIFICATION
     vars:
       vmid: '{{ custom_fields.vmid }}'
       current_lxc_config: "{{ ansible_local.pve_node['guests_by_id'][vmid] }}"
+      delegate_to_local_pve_instance: "{{ ansible_local.pve_node['guests_by_id'][vmid]['node'] }}"
     block:
     - debug:
         var: current_lxc_config
 
     - name: Overwrite the config
-      delegate_to: "{{ delegate_to_pve_instance }}"
+      delegate_to: "{{ delegate_to_local_pve_instance }}"
       template:
         src: lxc.conf.j2
         dest: "{{ current_lxc_config.config_path }}"
       register: overwrite_config
+      when: false
 
-    - name: Reboot the guest in case changes were applied
+    - name: Update lxc properties
+      vars:
+        new_onboot: '{{ status.value == "active" }}'
+        iterations:
+#          - label: "Update name {{ current_lxc_config['name'] }} -> {{ ansible_hostname }}"
+ #           action: "pct set 214 --hostname {{ ansible_hostname }}"
+  #          condition: "{{ ansible_hostname | string != current_lxc_config['name'] | string }}"
+          - label: "Update vCPUs {{ current_lxc_config['cores'] }} -> {{ vcpus | int }} cores"
+            action: "pct set {{ vmid }} --cores {{ vcpus | int }}"
+            condition: "{{ vcpus | int != current_lxc_config['cores'] | int }}"
+          - label: "Update memory {{ current_lxc_config['memory'] }} -> {{ memory }} MB"
+            action: "pct set {{ vmid }} --memory {{ memory }}"
+            condition: "{{ memory | string != current_lxc_config['memory'] }}"
+#          - label: "Update onboot status {{ current_lxc_config['onboot'] }} -> {{ new_onboot }}"
+ #           action: "pct set {{ vmid }} --onboot {{ new_onboot }}"
+  #          condition: "{{ new_onboot | bool != current_lxc_config['onboot'] }}"
+#          - label: "TODO: Update disk size {{ current_lxc_config['scsi0']['size'] }} -> {{ disk }} GB"
+ #           action: "pct resize {{ vmid }} scsi0 {{ disk }}G"
+  #          condition: "{{ 1 != 1 }}" # "{{ disk > current_lxc_config['scsi0']['size'] }}"
+          - label: "Start lxc if active"
+            action: "pct start {{ vmid }}"
+            condition: "{{ current_lxc_config['status'] == 'stopped' and status.value == 'active' }}"
+      delegate_to: "{{ delegate_to_local_pve_instance }}"
+      shell:
+        executable: /usr/bin/bash
+        cmd: |
+          {{ item.action }}
+      register: update_properties
+      when: item.condition
+      loop_control:
+        label: "{{ item.label }}"
+      loop: "{{ iterations }}"
+
+    - name: Wait until the lxc is online and sshd started
+      become: false
+      local_action:
+        module: wait_for
+        host: "{{ primary_ip4 }}"  # Replace with your target host
+        port: 22  # SSH port
+        state: started
+        timeout: 300  # Adjust the timeout as needed (in seconds)
+
+
+    - name: Reboot the guest in case changes were applied # TODO: integrate into lxc properties task
       delegate_to: "{{ delegate_to_pve_instance }}"
       shell:
         executable: /usr/bin/bash
         cmd: |
           pvesh create /nodes/{{ current_lxc_config['node'] }}/lxc/{{ custom_fields.vmid }}/status/reboot
-      register: guest_stop
+      register: guest_reboot
       when:
         - current_lxc_config.status == "running"
         - overwrite_config.changed
-
-    - name: Start the guest
-      delegate_to: "{{ delegate_to_pve_instance }}"
-      shell:
-        executable: /usr/bin/bash
-        cmd: |
-          pvesh create /nodes/{{ delegate_to_pve_instance }}/lxc/{{ custom_fields.vmid }}/status/start
-      register: guest_start
-      when:
-        - current_lxc_config.status != "running"
-
-    - debug:
-        var: guest_start
 
   - name: NOTIFY ON NOT YET IMPLEMENTED CASES
     vars:
