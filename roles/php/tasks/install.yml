@@ -28,7 +28,7 @@
     pkg: apache2
     state: absent
 
-- name: "Remove traces of apache1 package"
+- name: "Remove traces of apache2 package"
   file:
     path: "{{ item }}"
     state: absent
