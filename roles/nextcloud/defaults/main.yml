@@ -1,0 +1,43 @@
+---
+#nextcloud_domains:
+#  - "{{ ansible_hostname }}.*.lab"
+nextcloud_default_phone_region: DE
+
+
+# Vars which can be overwritten via netbox #####################
+nextcloud_data: "{{ local_context_data[0].nextcloud_data | default('/srv/nextcloud_data') }}"
+nextcloud_default_admin_user: "nc_admin"
+
+#custom_settings:
+#  - { key: "mail_smtpmode", value: "'smtp'" }
+
+postgres_users:
+  - name: "nextcloud_db_user"
+#    password: "pAsSw0rD" # obsolete, but still working
+postgres_databases:
+  - name: "nextcloud_db"
+    owner: "nextcloud_db_user"
+
+################################################################
+
+php_packages:
+  - php-gd
+  - php-curl
+  - php-xml
+  - php-zip
+  - php-intl
+  - php-mbstring
+  - php-bz2
+  - php-json
+  - php-apcu
+  - php-imagick
+  - php-gmp
+  - php-bcmath
+  - php-pgsql
+  - php-redis
+  - php-memcached
+
+php_cli_settings:
+  - { key: "apc.enabled", value: "1" }
+  - { key: "apc.enable_cli", value: "1" }
+

@@ -1,0 +1,36 @@
+---
+- name: Ensure Nextcloud data directory exists
+  file:
+    path: "{{ nextcloud_data }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: '0750'
+  register: nextcloud_data_ownership
+
+- name: Download and extract the latest nextcloud release
+  unarchive:
+    src: https://download.nextcloud.com/server/releases/latest.tar.bz2
+    dest: /var/www
+    owner: www-data
+    group: www-data
+    remote_src: yes
+    creates: /var/www/nextcloud
+  register: download_release
+
+- name: Ensure Nextcloud directory ownership
+  file:
+    path: /var/www/nextcloud
+    owner: www-data
+    group: www-data
+    recurse: yes
+    state: directory
+  when: download_release.changed
+
+- name: Make sure the {{ nextcloud_data }}/.ocdata file exists
+  file:
+    path: "{{ nextcloud_data }}/.ocdata"
+    owner: www-data
+    group: www-data
+    state: touch
+  when: nextcloud_data_ownership.changed

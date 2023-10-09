@@ -1,0 +1,16 @@
+---
+- include_tasks: imagemagick.yml
+- include_tasks: place_nginx_config.yml
+- include_tasks: configure_php.yml
+
+- include_tasks: ansible_local.yml
+
+- include_tasks: download_nextcloud.yml
+- include_tasks: configure_nextcloud.yml
+
+- include_tasks: nextcloud_prometheus_exporter.yml
+
+- name: Run Nextcloud Upgrade
+  include_tasks: upgrade.yml
+  when: upgrade
+

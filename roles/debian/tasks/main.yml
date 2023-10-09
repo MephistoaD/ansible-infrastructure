@@ -22,6 +22,8 @@
 
 - name: Files and directories
   include_tasks: files_and_dirs.yml
+  when:
+    - only_role is undefined or only_role == "debian"
 
 - name: Set time
   include_tasks: set_time.yml

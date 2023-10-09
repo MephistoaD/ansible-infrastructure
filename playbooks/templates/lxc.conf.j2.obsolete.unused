@@ -1,3 +1,6 @@
+##########
+# used in deploy_lxc.yml (temporarily unused)
+##########
 {% for comment in current_lxc_config.current_comment_lines | default([]) %}
 {{ comment }}
 {% endfor %}

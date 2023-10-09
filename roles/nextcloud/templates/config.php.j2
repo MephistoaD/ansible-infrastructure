@@ -1,0 +1,54 @@
+<?php
+$CONFIG = array (
+  'instanceid' => '{{ nextcloud_instanceid }}',
+  'passwordsalt' => '{{ nextcloud_passwordsalt }}',
+  'secret' => '{{ nextcloud_secret }}',
+  'trusted_domains' =>
+   [
+{% for domain in nextcloud_domains %}
+    '{{ domain }}',
+{% endfor %}
+{% if public_domain is defined %}
+    '{{ public_domain }}',
+{% endif %}
+    '{{ ansible_default_ipv4.address }}',
+    '{{ ansible_fqdn }}'
+  ],
+  'datadirectory' => '{{ nextcloud_data }}',
+  'dbtype' => 'pgsql',
+  'version' => '{{ nextcloud_version }}',
+  'overwrite.cli.url' => 'https://{{ ansible_default_ipv4.address }}',
+  'dbname' => '{{ ansible_local.postgres.databases[0].name }}',
+  'dbhost' => '{{ postgres_listen_address }}',
+  'dbport' => '',
+  'dbtableprefix' => 'oc_',
+  'dbuser' => '{{ ansible_local.postgres.users[0].name }}',
+  'dbpassword' => '{{ ansible_local.postgres.users[0].password }}',
+  'installed' => true,
+
+  'default_phone_region' => '{{ nextcloud_default_phone_region }}',
+  'memcache.local' => '\OC\Memcache\APCu',
+
+  'overwriteprotocol' => 'https',
+  'logtimezone' => '{{ timezone }}',
+
+  'maintenance_window_start' => 2,
+
+  'filelocking.enabled' => true,
+  'memcache.locking' => '\OC\Memcache\Redis',
+  'redis' => array (
+     'host' => '127.0.0.1',
+     'port' => 6379,
+     'timeout' => 0.1,
+      ),
+{% if custom_settings is defined %}
+{% for item in custom_settings %}
+  '{{ item.key }}' => {{ item.value }},
+{% endfor %}
+{% endif %}
+{% if local_context_data[0] is defined and 'custom_settings' in local_context_data[0] %}
+{% for item in local_context_data[0].custom_settings %}
+  '{{ item.key }}' => {{ item.value }},
+{% endfor %}
+{% endif %}
+);

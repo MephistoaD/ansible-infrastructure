@@ -20,7 +20,7 @@
     name: "{{ item.name }}"
     password: "{{ item.password }}"
     state: present
-  with_items: "{{ postgres_users }}"
+  with_items: "{{ ansible_local.postgres.users }}"
 
 - name: Create PostgreSQL databases
   become: true
@@ -28,4 +28,4 @@
   postgresql_db:
     name: "{{ item.name }}"
     owner: "{{ item.owner }}"
-  with_items: "{{ postgres_databases }}"
+  with_items: "{{ ansible_local.postgres.databases }}"

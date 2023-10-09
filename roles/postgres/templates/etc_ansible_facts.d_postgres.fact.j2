@@ -1,0 +1,47 @@
+#!/usr/bin/env python3
+
+import json
+
+# Create a dictionary with the variables
+data = {
+    "users": [
+{% if local_context_data and local_context_data[0] is mapping and 'postgres_users' in local_context_data[0] %}
+{% for user in local_context_data[0].postgres_users %}
+        {
+            "name": "{{ user.name }}",
+            "password": "{{ user.password if 'password' in user else (ansible_local.postgres.users | selectattr('name', 'equalto', user.name) | list | first).get('password') if 'postgres' in ansible_local else lookup('password', '/dev/null chars=ascii_letters,digits length=22') }}"
+        },
+{% endfor %}
+{% else %}
+{% for user in postgres_users %}
+        {
+            "name": "{{ user.name }}",
+            "password": "{{ user.password if 'password' in user else (ansible_local.postgres.users | selectattr('name', 'equalto', user.name) | list | first).get('password') if 'postgres' in ansible_local else lookup('password', '/dev/null chars=ascii_letters,digits length=22') }}"
+        },
+{% endfor %}
+{% endif %}
+    ],
+    "databases": [
+{% if local_context_data and local_context_data[0] is mapping and 'postgres_databases' in local_context_data[0] %}
+{% for database in local_context_data[0].postgres_databases %}
+        {
+            "name": "{{ database.name }}",
+            "owner": "{{ database.owner }}",
+        },
+{% endfor %}
+{% else %}
+{% for database in postgres_databases %}
+        {
+            "name": "{{ database.name }}",
+            "owner": "{{ database.owner }}",
+        },
+{% endfor %}
+{% endif %}
+    ]
+}
+
+# Convert the dictionary to JSON format
+json_data = json.dumps(data, indent=4)
+
+# Print the JSON
+print(json_data)

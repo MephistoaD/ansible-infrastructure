@@ -1,0 +1,15 @@
+[Unit]
+Description=Prometheus Nextcloud Exporter
+After=network.target
+
+[Service]
+Type=simple
+User=nc_exporter
+Group=nc_exporter
+ExecStart=/usr/bin/prometheus-nextcloud-exporter -c /etc/prometheus-nextcloud-exporter/config.yaml
+
+SyslogIdentifier=prometheus-nextcloud-exporter
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

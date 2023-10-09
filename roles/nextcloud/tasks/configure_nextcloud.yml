@@ -1,0 +1,77 @@
+---
+- name: Check if config.php exists
+  stat:
+    path: /var/www/nextcloud/config/config.php
+  register: config_file
+
+- name: Initialize nextcloud
+  shell: "curl --insecure 'https://{{ ansible_default_ipv4.address }}/index.php' -X POST --data-raw 'install=true&adminlogin={{ ansible_local.nextcloud.nextcloud_default_admin_user | urlencode }}&adminpass={{ ansible_local.nextcloud.nextcloud_default_admin_password | urlencode }}&directory={{ directory }}&dbtype=pgsql&dbuser={{ dbuser | urlencode }}&dbpass={{ dbpassword | urlencode }}&dbpass-clone={{ dbpassword | urlencode }}&dbname={{ dbname | urlencode }}&dbhost={{ postgres_listen_address }}'"
+  vars:
+    directory: "{{ nextcloud_data }}"
+    dbuser: "{{ ansible_local.postgres.users[0].name }}"
+    dbpassword: "{{ ansible_local.postgres.users[0].password }}"
+    dbname: "{{ ansible_local.postgres.databases[0].name }}"
+  register: nextcloud_initialized
+  when: not config_file.stat.exists
+
+- name: Get Nextcloud instance ID
+  ansible.builtin.shell: "grep -oP \"(?<='instanceid' => ')[^']*\" /var/www/nextcloud/config/config.php"
+  register: instance_id
+  changed_when: false
+
+- name: Set fact nextcloud_instanceid
+  set_fact:
+    nextcloud_instanceid: "{{ instance_id.stdout }}"
+
+- name: Get Nextcloud passwordsalt
+  ansible.builtin.shell: "grep -oP \"(?<='passwordsalt' => ')[^']*\" /var/www/nextcloud/config/config.php"
+  register: passwordsalt
+  changed_when: false
+
+- name: Set fact nextcloud_passwordsalt
+  set_fact:
+    nextcloud_passwordsalt: "{{ passwordsalt.stdout }}"
+
+- name: Get Nextcloud version
+  ansible.builtin.shell: "grep -oP \"(?<='version' => ')[^']*\" /var/www/nextcloud/config/config.php"
+  register: version
+  changed_when: false
+
+- name: Set fact nextcloud_version
+  set_fact:
+    nextcloud_version: "{{ version.stdout }}"
+
+- name: Get Nextcloud secret
+  ansible.builtin.shell: "grep -oP \"(?<='secret' => ')[^']*\" /var/www/nextcloud/config/config.php"
+  register: secret
+  changed_when: false
+
+- name: Set fact nextcloud_secret
+  set_fact:
+    nextcloud_secret: "{{ secret.stdout }}"
+
+- name: Overwrite config.php
+  template:
+    src: "config.php.j2"
+    dest: /var/www/nextcloud/config/config.php
+    mode: '0644'
+
+- name: Create cron entry
+  copy:
+    src: nextcloud.cron
+    dest: /etc/cron.d/nextcloud
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Create prometheus_nextcloud_exporter_token
+  ansible.builtin.shell:
+    cmd: |
+      sudo -u www-data php \
+        --define apc.enable_cli=1 \
+        /var/www/nextcloud/occ \
+        config:app:set \
+        serverinfo token \
+        --value "{{ ansible_local.nextcloud.prometheus_nextcloud_exporter_token }}"
+  register: create_prometheus_nextcloud_exporter_token
+  changed_when: create_prometheus_nextcloud_exporter_token.rc != 0

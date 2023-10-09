@@ -1,0 +1,48 @@
+---
+- name: "Install prometheus exporter"
+  apt:
+    pkg: "{{ item }}"
+    state: present
+  loop:
+    - prometheus-nextcloud-exporter
+
+- name: Create nc_exporter user
+  become: true
+  user:
+    name: nc_exporter
+    system: yes
+
+- name: Create config directory for prometheus-nextcloud-exporter
+  file:
+    path: /etc/prometheus-nextcloud-exporter
+    state: directory
+
+- name: Create /etc/prometheus-nextcloud-exporter/config.yaml
+  template:
+    src: etc_prometheus-nextcloud-exporter_config.yaml.j2
+    dest: /etc/prometheus-nextcloud-exporter/config.yaml
+    owner: nc_exporter
+    group: nc_exporter
+    mode: 400
+
+- name: Create Systemd Service File
+  become: true
+  template:
+    src: etc_systemd_system_prometheus-nextcloud-exporter.service.j2
+    dest: /etc/systemd/system/prometheus-nextcloud-exporter.service
+    mode: 644
+  register: nextcloud_prometheus_exporter_service_file
+
+- name: Reload Systemd daemon
+  become: true
+  systemd:
+    daemon_reload: yes
+  when: nextcloud_prometheus_exporter_service_file.changed
+
+- name: Start nginx-prometheus-exporter
+  become: true
+  service:
+    name: prometheus-nextcloud-exporter
+    state: started
+    enabled: yes
+  when: nextcloud_prometheus_exporter_service_file.changed

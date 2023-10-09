@@ -1,0 +1,15 @@
+---
+
+- name: "Set ansible_local script"
+  template:
+    src: etc_ansible_facts.d_nextcloud.fact.j2  # Path to your Python script template
+    dest: /etc/ansible/facts.d/nextcloud.fact
+    mode: '0700'  # Set the executable permission on the script
+  vars:
+    _nextcloud_default_admin_user: "{{ ansible_local.nextcloud.nextcloud_default_admin_user if ansible_local.nextcloud is defined else local_context_data[0].nextcloud_default_admin_user | default(nextcloud_default_admin_user) }}"
+    nextcloud_default_admin_password: "{{ ansible_local.nextcloud.nextcloud_default_admin_password | default(lookup('password', '/dev/null chars=ascii_letters,digits length=22')) }}"
+    prometheus_nextcloud_exporter_token: "{{ ansible_local.nextcloud.prometheus_nextcloud_exporter_token | default(lookup('password', '/dev/null chars=ascii_letters,digits length=30')) }}"
+
+- name: Gather ansible_local facts
+  setup:
+    filter: ansible_local
