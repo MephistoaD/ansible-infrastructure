@@ -2,6 +2,9 @@
 - include_tasks: imagemagick.yml
 - include_tasks: place_nginx_config.yml
 - include_tasks: configure_php.yml
+  when: 
+    - only_role is defined
+    - only_role == "php"
 
 - include_tasks: ansible_local.yml
 
