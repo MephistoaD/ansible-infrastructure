@@ -8,8 +8,15 @@ $CONFIG = array (
 {% for domain in nextcloud_domains %}
     '{{ domain }}',
 {% endfor %}
-{% if public_domain is defined %}
-    '{{ public_domain }}',
+{% if proxied_domains is defined %}
+{% for entry in proxied_domains %}
+    '{{ entry.public_domain }}',
+{% endfor %}
+{% endif %}
+{% if 'proxied_domains' in local_context_data[0] %}
+{% for entry in local_context_data[0]['proxied_domains'] %}
+    '{{ entry.public_domain }}',
+{% endfor %}
 {% endif %}
     '{{ ansible_default_ipv4.address }}',
     '{{ ansible_fqdn }}'
