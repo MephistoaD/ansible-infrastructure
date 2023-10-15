@@ -50,6 +50,13 @@
   set_fact:
     nextcloud_secret: "{{ secret.stdout }}"
 
+- debug:
+    var: proxied_domains
+
+- debug:
+    var: item
+  loop: "{{ local_context_data[0].proxied_domains }}"
+
 - name: Overwrite config.php
   template:
     src: "config.php.j2"
