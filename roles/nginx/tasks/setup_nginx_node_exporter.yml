@@ -48,4 +48,3 @@
     name: nginx_prometheus_exporter
     state: started
     enabled: yes
-  when: nginx_prometheus_exporter_service_file.changed
