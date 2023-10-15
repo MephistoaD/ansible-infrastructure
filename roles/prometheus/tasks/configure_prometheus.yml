@@ -1,0 +1,66 @@
+---
+- name: Get groups depending on nginx
+  become: false
+  vars:
+    role_name: nginx
+  local_action: 
+    module: shell
+    cmd: python3 ../roles/prometheus/list_roles_dependent_on_nginx.py
+  changed_when: false
+  register: nginx_groups_out
+
+- name: CONFIGURE PROMETHEUS
+  vars:
+    guests: "{{ groups.all | map('extract', hostvars) | selectattr('custom_fields.technology', 'defined') | selectattr('custom_fields.technology', 'ne', 'lxc') | map(attribute='inventory_hostname') | list }}"
+    devices: "{{ groups.all | difference(groups.is_virtual) }}"
+    node_exporter_hosts: "{{ devices | union(guests) }}"
+    pve_exporter_hosts: "{{ groups.pve_node }}"
+    nginx_exporter_groups: "{{ nginx_groups_out.stdout | from_json }}"
+  block:
+
+  - name: Calculate the list of hosts
+    set_fact:
+      nginx_exporter_hosts: >-
+        {{
+          (nginx_exporter_hosts | default([])) +
+          (hosts_for_groups | default({}) | combine({item: groups[item] | default([])}) | dict2items | json_query('[].value[]'))
+        }}
+    loop: "{{ nginx_exporter_groups }}"
+    loop_control:
+      label: "{{ item }}"
+
+  - debug:
+      var: node_exporter_hosts
+
+  - debug:
+      var: pve_exporter_hosts
+
+  - debug:
+      var: nginx_exporter_hosts
+
+  - name: Place prometheus configuration (changes always reordering the hosts list)
+    template:
+      src: "prometheus.yml.j2"
+      dest: "/etc/prometheus/prometheus.yml"
+      owner: root
+      group: root
+      mode: '0644'
+    register: prometheus_config
+
+- name: Execute promtool script
+  shell: /bin/promtool check config /etc/prometheus/prometheus.yml
+  register: prometheus_config_validation
+  failed_when: false
+  changed_when: false
+
+- name: Fail in case of invalid config
+  fail:
+    msg: "{{ prometheus_config_validation.stderr }}"
+  when: prometheus_config_validation.rc != 0
+
+- name: Reload prometheus
+  systemd:
+    name: prometheus
+    state: reloaded
+  when: >
+    prometheus_config.changed
