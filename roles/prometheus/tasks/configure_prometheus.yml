@@ -38,7 +38,7 @@
   - debug:
       var: nginx_exporter_hosts
 
-  - name: Place prometheus configuration
+  - name: Place prometheus configuration (changes always reordering the hosts list)
     template:
       src: "prometheus.yml.j2"
       dest: "/etc/prometheus/prometheus.yml"
