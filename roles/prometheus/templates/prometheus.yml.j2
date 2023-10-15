@@ -1,0 +1,111 @@
+---
+global:
+  scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+  # scrape_timeout is set to the global default (10s).
+
+  # Attach these labels to any time series or alerts when communicating with
+  # external systems (federation, remote storage, Alertmanager).
+  external_labels:
+      monitor: 'example'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+  - static_configs:
+    - targets: ['localhost:9093']
+
+# Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+rule_files:
+# - rules.yml
+
+# A scrape configuration containing exactly one endpoint to scrape:
+# Here it's Prometheus itself.
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'prometheus'
+    static_configs:
+      - targets:
+        - localhost:9090
+
+  - job_name: node_exporter
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target] # make sure the port is not shown behind the address
+        target_label: instance
+      - source_labels: [__address__] # add the port 9100 behind the targets
+        regex: (.*)
+        replacement: $1:9100
+        target_label: __address__
+        action: replace
+    static_configs:
+      - targets:
+{% for item in node_exporter_hosts %}
+        - {{ item }}
+{% endfor %}
+
+  - job_name: 'pve_node_exporter'
+    metrics_path: /pve
+    params:
+      module: [default]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target] # make sure the port is not shown behind the address
+        target_label: instance
+      - source_labels: [__address__] # add the port behind the targets
+        regex: (.*)
+        replacement: $1:9221
+        target_label: __address__
+        action: replace
+    static_configs:
+      - targets:
+{% for host in pve_exporter_hosts %}
+        - {{ host }}.pve.lab
+{% endfor %}
+  
+  - job_name: 'netbox_exporter' # might not work yet
+    static_configs:
+      - targets:
+{% for host in groups.netbox %}
+        - {{ host }}
+{% endfor %}
+
+  - job_name: "nextcloud_exporter" # might not work yet
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target] # make sure the port is not shown behind the address
+        target_label: instance
+      - source_labels: [__address__] # add the port behind the targets
+        regex: (.*)
+        replacement: $1:9205
+        target_label: __address__
+        action: replace
+    static_configs:
+      - targets:
+{% for host in groups.nextcloud %}
+        - {{ host }}
+{% endfor %}
+
+  - job_name: 'nginx_exporter'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target] # make sure the port is not shown behind the address
+        target_label: instance
+      - source_labels: [__address__] # add the port behind the targets
+        regex: (.*)
+        replacement: $1:9113
+        target_label: __address__
+        action: replace
+    static_configs:
+      - targets:
+{% for group in nginx_exporter_groups %}
+{% if group in groups %}
+{% for host in groups[group] %}
+        - {{ host }}
+{% endfor %}
+{% endif %}
+{% endfor %}

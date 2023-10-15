@@ -1,0 +1,7 @@
+---
+- name: Install Prometheus Server
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - prometheus

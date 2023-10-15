@@ -1,0 +1,6 @@
+---
+# /etc/pve_exporter/pve_exporter.yml
+default:
+  user: {{ pve_cluster.auth.user }}
+  password: "{{ pve_cluster.auth.password }}"
+  verify_ssl: false
