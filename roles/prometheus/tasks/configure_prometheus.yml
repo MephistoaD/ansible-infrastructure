@@ -14,7 +14,7 @@
     guests: "{{ groups.all | map('extract', hostvars) | selectattr('custom_fields.technology', 'defined') | selectattr('custom_fields.technology', 'ne', 'lxc') | map(attribute='inventory_hostname') | list }}"
     devices: "{{ groups.all | difference(groups.is_virtual) }}"
     node_exporter_hosts: "{{ devices | union(guests) }}"
-    pve_exporter_hosts: "{{ groups.pve_node }}"
+    pve_exporter_hosts: "{{ groups._pve_node }}"
     nginx_exporter_groups: "{{ nginx_groups_out.stdout | from_json }}"
   block:
 

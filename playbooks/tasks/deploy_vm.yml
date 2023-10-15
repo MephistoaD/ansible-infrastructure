@@ -16,13 +16,13 @@
       # do not touch below
       template_vmid: "{{ available_platforms[platforms[0]]['vm_template_id'] }}"
       template_vm: "{{ansible_local.pve_node['guests_by_id'][template_vmid]}}"
-      delegate_to_template_pve_instance: "{{ template_vm['node'] if template_vm['node'] in groups['pve_node'] else groups['pve_node'][0] }}"
+      delegate_to_template_pve_instance: "{{ template_vm['node'] if template_vm['node'] in groups['_pve_node'] else groups['_pve_node'][0] }}"
     when:
       - "custom_fields.vmid | string not in ansible_local.pve_node['guests_by_id']"
     block:
     - debug:
-      var: template_vm
-      
+        var: template_vm
+
     - name: "Clone template {{ template_vmid }} for platform {{ available_platforms[platforms[0]]['name'] }}"
       delegate_to: "{{ delegate_to_template_pve_instance }}"
       shell:
