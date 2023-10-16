@@ -1,5 +1,5 @@
 ---
-- hosts: "_{{ device_role }}"
+- hosts: "{{ device_role if '_' in device_role else '_' + device_role }}"
   gather_facts: false
   tasks:
     - name: Deploy guest
