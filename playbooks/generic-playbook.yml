@@ -1,5 +1,5 @@
 ---
-- hosts: "_{{ device_role }}"
+- hosts: "{{ device_role if '_' in device_role else '_' + device_role }}"
   gather_facts: false
   tasks:
     - name: Deploy guest
@@ -22,7 +22,7 @@
 
     - name: Configure hosts
       include_role:
-        name: "{{ current_role }}"
+        name: "{{ current_role | replace('_', '') }}"
       loop: "{{ include_roles | default([device_role]) }}"
       loop_control:
         loop_var: current_role
