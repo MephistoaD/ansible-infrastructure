@@ -1,0 +1,13 @@
+---
+- name: "Set ansible_local script"
+  template:
+    src: etc_ansible_facts.d_grafana.fact.j2  # Path to your Python script template
+    dest: /etc/ansible/facts.d/grafana.fact
+    mode: '0700'  # Set the executable permission on the script
+  vars:
+    _grafana_admin_user: "{{ ansible_local.grafana.admin_user if ansible_local.grafana is defined else local_context_data[0].grafana_admin_user | default(grafana_default_admin_user) }}"
+    _grafana_admin_password: "{{ ansible_local.grafana.admin_password | default('admin') }}" # | default(lookup('password', '/dev/null chars=ascii_letters,digits length=22')) }}"
+
+- name: Gather ansible_local facts
+  setup:
+    filter: ansible_local
