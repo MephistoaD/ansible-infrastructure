@@ -1,0 +1,32 @@
+---
+- name: Add Grafana APT repository key
+  apt_key:
+    url: https://packages.grafana.com/gpg.key
+    state: present
+
+- name: Add Grafana APT repository
+  apt_repository:
+    repo: deb https://packages.grafana.com/oss/deb stable main
+    state: present
+    update_cache: yes
+
+- name: Install Grafana
+  apt:
+    name: grafana
+    state: latest
+  register: grafana_install
+
+- name: Enable and start Grafana service
+  systemd:
+    name: grafana-server
+    state: started
+    enabled: yes
+
+- name: Wait for Grafana to be restarted
+  wait_for:
+    host: localhost
+    port: 3000
+    state: started
+    delay: 5
+    timeout: 300
+  when: grafana_install.changed

@@ -1,0 +1,6 @@
+---
+grafana_default_admin_user: admin
+
+grafana_datasources:
+  prometheus:
+    - "{{ groups._prometheus }}"

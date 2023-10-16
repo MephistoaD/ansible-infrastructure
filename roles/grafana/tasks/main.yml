@@ -1,0 +1,9 @@
+---
+- include_tasks: place_nginx_config.yml
+
+- include_tasks: ansible_local.yml
+
+- include_tasks: install.yml
+
+- include_tasks: add_datasources.yml
+#- include_tasks: install_dashboards.yml

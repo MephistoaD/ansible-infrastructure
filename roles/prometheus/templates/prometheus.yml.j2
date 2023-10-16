@@ -68,7 +68,7 @@ scrape_configs:
   - job_name: 'netbox_exporter' # might not work yet
     static_configs:
       - targets:
-{% for host in groups.netbox %}
+{% for host in groups['_netbox'] %}
         - {{ host }}
 {% endfor %}
 
@@ -85,7 +85,7 @@ scrape_configs:
         action: replace
     static_configs:
       - targets:
-{% for host in groups.nextcloud %}
+{% for host in groups['_nextcloud'] %}
         - {{ host }}
 {% endfor %}
 
@@ -103,8 +103,8 @@ scrape_configs:
     static_configs:
       - targets:
 {% for group in nginx_exporter_groups %}
-{% if group in groups %}
-{% for host in groups[group] %}
+{% if '_' + group in groups %}
+{% for host in groups['_' + group] %}
         - {{ host }}
 {% endfor %}
 {% endif %}

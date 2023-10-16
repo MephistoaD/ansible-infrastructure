@@ -1,0 +1,14 @@
+---
+- name: Add dasboards
+  community.grafana.grafana_dashboard:
+#    name: "{{ item.name }}"
+    grafana_url: "https://{{ ansible_default_ipv4.address }}"
+    grafana_user: "{{ grafana_admin_user }}"
+    grafana_password: "{{ grafana_admin_password }}"
+    validate_certs: false # the ssl certificate of grafana
+    org_id: "1"
+    overwrite: false
+    state: present # absent export
+    dashboard_id: "{{ item.id }}"
+#    path: "{{ item.path }}"
+  with_items: "{{ grafana_dashboards }}"
