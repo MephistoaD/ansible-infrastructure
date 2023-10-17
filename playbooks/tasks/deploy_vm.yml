@@ -97,6 +97,11 @@
           - label: "Start vm if active"
             action: "qm start {{ vmid }}"
             condition: "{{ current_vm_config['status'] == 'stopped' and status.value == 'active' }}"
+          - label: "Change pool if necessary"
+            action: |
+              pvesh set pools/{{ current_vm_config.pool }} --vms {{ custom_fields.vmid }} --delete true
+              pvesh set pools/{{ custom_fields.pool | upper }} --vms {{ custom_fields.vmid }}
+            condition: "{{ custom_fields.pool | upper != current_vm_config.pool }}"
       delegate_to: "{{ delegate_to_guest_pve_instance }}"
       shell:
         executable: /usr/bin/bash
