@@ -89,6 +89,11 @@
           - label: "Start lxc if active"
             action: "pct start {{ vmid }}"
             condition: "{{ current_lxc_config['status'] == 'stopped' and status.value == 'active' }}"
+          - label: "Change pool if necessary"
+            action: |
+              pvesh set pools/{{ current_lxc_config.pool }} --vms {{ custom_fields.vmid }} --delete true
+              pvesh set pools/{{ custom_fields.pool | upper }} --vms {{ custom_fields.vmid }}
+            condition: "{{ custom_fields.pool | upper != current_lxc_config.pool }}"
       delegate_to: "{{ delegate_to_local_pve_instance }}"
       shell:
         executable: /usr/bin/bash
