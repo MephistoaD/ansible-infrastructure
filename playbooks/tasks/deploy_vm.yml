@@ -127,16 +127,16 @@
       remote_user: debian
       root_authorized_keys: /root/.ssh/authorized_keys
       ssh_root_access: # just a little hack to allow the check task to reside inside the block too
-        rc: 1
-    when: ssh_root_access.rc != 0
+        unreachable: true
+    when:
+      - ssh_root_access.unreachable is defined
+      - ssh_root_access.unreachable
     block: 
     - name: Check if SSH access as root user is allowed
-      become: false
-      local_action: 
-        module: ansible.builtin.shell
-        cmd: ssh -o StrictHostKeyChecking=no root@{{ primary_ip4 }} exit
-      failed_when: ssh_root_access.rc not in [0,142,255] # 0 = root is correctly configured, 142 = config is still pending, 255 = permission denied (publickey)
+      ansible.builtin.shell:
+        cmd: echo foo
       changed_when: false
+      ignore_unreachable: true
       register: ssh_root_access
 
     - name: Set `PermitRootLogin` on host
