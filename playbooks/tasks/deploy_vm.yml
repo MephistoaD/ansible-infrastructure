@@ -146,14 +146,6 @@
         dest: /etc/ssh/sshd_config.d/permitrootlogin.conf
       register: set_permitrootlogin
 
-    - name: Reload sshd service
-      remote_user: "{{ remote_user }}"
-      ansible.builtin.service:
-        name: sshd
-        state: reloaded
-      when: 
-        - set_permitrootlogin.changed
-
     - name: Add the ansile pubkey to the root user
       remote_user: "{{ remote_user }}"
       ansible.builtin.shell:
@@ -165,16 +157,21 @@
       failed_when: add_root_authorized_keys.rc not in [0,1]
       register: add_root_authorized_keys
 
-    - name: Check if SSH access as root user now is allowed
-      ansible.builtin.shell:
-        cmd: echo foo
-      changed_when: false
-      #ignore_unreachable: true
-      register: ssh_root_access
+      # Workaround, else the sshd doesn't restart timely enough
+    - name: Reboot after changes on the sshd
+      remote_user: "{{ remote_user }}"
+      reboot:
+        msg: "Reboot by ansible deploy_vm"
+        connect_timeout: 5
+        reboot_timeout: 600
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
+        test_command: uptime
+      when:
+        - set_permitrootlogin.changed
 
     - name: "Kill processes owned by user {{ remote_user }}"
       ansible.builtin.shell: "kill -9 $(ps -U debian -o pid=)"
-      #ignore_errors: yes
 
     - name: "Delete user {{ remote_user }}"
       ansible.builtin.user:
