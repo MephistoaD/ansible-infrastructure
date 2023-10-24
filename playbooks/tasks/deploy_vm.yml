@@ -122,6 +122,15 @@
         state: started
         timeout: 300  # Adjust the timeout as needed (in seconds)
 
+    - name: Remove cloudinit drive after first boot
+      delegate_to: "{{ delegate_to_guest_pve_instance }}"
+      ansible.builtin.shell:
+        cmd: |
+          pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/qemu/{{ custom_fields.vmid }}/config --delete "ide2"
+        executable: /usr/bin/bash
+      when:
+        - guest_creation.changed
+
   - name: CONFIGURE SSH ON ROOT AND ABOLISH THE DEFAULT USER
     vars:
       remote_user: debian
