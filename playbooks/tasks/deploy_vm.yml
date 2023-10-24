@@ -82,6 +82,9 @@
       vars:
         new_onboot: '{{ status.value == "active" }}'
         iterations:
+          - label: "Update hostname {{ current_vm_config['name'] }} -> {{ inventory_hostname }}"
+            action: "pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/qemu/{{ vmid }}/config --name {{ inventory_hostname }}"
+            condition: "{{ current_vm_config['name'] != inventory_hostname }}"
           - label: "Update vCPUs {{ current_vm_config['maxcpu'] }} -> {{ vcpus | int }} cores"
             action: "qm set {{ vmid }} --cores {{ vcpus | int }}"
             condition: "{{ vcpus | int != current_vm_config['maxcpu'] }}"
@@ -126,7 +129,7 @@
       delegate_to: "{{ delegate_to_guest_pve_instance }}"
       ansible.builtin.shell:
         cmd: |
-          pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/qemu/{{ custom_fields.vmid }}/config --delete "ide2"
+          pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/qemu/{{ vmid }}/config --delete "ide2"
         executable: /usr/bin/bash
       when:
         - guest_creation.changed
@@ -193,7 +196,17 @@
         state: absent
       when: false
 
-    # End of Deployment block
+  - name: "Update the hostname on the machine"
+    vars: 
+      vmid: '{{ custom_fields.vmid }}'
+      current_vm_config: "{{ ansible_local.pve_node['guests_by_id'][vmid] }}"
+    ansible.builtin.shell:
+      cmd: |
+        sed -i 's/oldname/newname/g' /etc/hosts /etc/hostname
+      executable: /usr/bin/bash
+    when: current_vm_config['name'] != inventory_hostname
+
+  # End of Deployment block
 
 - name: Finish play if deploy_guest == "only"
   meta: end_play
