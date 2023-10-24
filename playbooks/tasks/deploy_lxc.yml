@@ -71,9 +71,9 @@
       vars:
         new_onboot: '{{ status.value == "active" }}'
         iterations:
-#          - label: "Update name {{ current_lxc_config['name'] }} -> {{ ansible_hostname }}"
- #           action: "pct set 214 --hostname {{ ansible_hostname }}"
-  #          condition: "{{ ansible_hostname | string != current_lxc_config['name'] | string }}"
+          - label: "Update name {{ current_lxc_config['name'] }} -> {{ inventory_hostname }}"
+            action: "pvesh set /nodes/{{ delegate_to_local_pve_instance }}/lxc/{{ vmid }}/config --hostname {{ inventory_hostname }}"
+            condition: "{{ inventory_hostname != current_lxc_config['name'] }}"
           - label: "Update vCPUs {{ current_lxc_config['cores'] }} -> {{ vcpus | int }} cores"
             action: "pct set {{ vmid }} --cores {{ vcpus | int }}"
             condition: "{{ vcpus | int != current_lxc_config['cores'] | int }}"
@@ -103,7 +103,7 @@
       when: item.condition
       loop_control:
         label: "{{ item.label }}"
-      loop: "{{ iterations }}"
+      loop: "{{ iterations | selectattr('condition', 'defined') | list }}"
 
     - name: Wait until the lxc is online and sshd started
       become: false
