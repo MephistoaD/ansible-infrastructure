@@ -1,0 +1,85 @@
+---
+- name: Disable ssh StrictHostKeyChecking
+  template:
+    src: etc_ssh_ssh_config.d_stricthostkeychecking.conf.j2
+    dest: /etc/ssh/ssh_config.d/stricthostkeychecking.conf
+
+- name: Add the user 'semaphore'
+  user:
+    name: semaphore
+    comment: semaphore playbook user
+    shell: /bin/bash
+
+- name: Install dependencies
+  apt:
+    name: "{{ item }}"
+    state: present
+  with_items:
+    - ansible
+    - python3-pip
+  when:
+    - not quick
+
+- name: Install netbox_inventory dependencies
+  pip:
+    name: "{{ item }}"
+    extra_args: --break-system-packages
+  when:
+    - not quick
+  loop:
+    - pytz
+
+- name: Install semaphore package
+  vars:
+    install_version: "{{ semaphore_latest_version if upgrade or ansible_local.semaphore.current_version is not defined else ansible_local.semaphore.current_version }}"
+    deb_path: "https://github.com/ansible-semaphore/semaphore/releases/download/v{{ install_version }}/semaphore_{{ install_version }}_linux_amd64.deb"
+  apt:
+    deb: "{{ item }}"
+  register: semaphore_package_install
+  loop_control:
+    label: "Install version {{ install_version }}, current version is {{ semaphore_latest_version }}"
+  loop:
+    - "{{ deb_path }}"
+  when:
+    - not quick
+
+- name: Create /etc/semaphore directory
+  file:
+    path: "{{ semaphore_config_path | dirname }}"
+    state: directory
+    mode: '0755'
+
+- name: Template {{ semaphore_config_path }}
+  template:
+    src: etc_semaphore_config.json.j2
+    dest: "{{ semaphore_config_path }}"
+    owner: semaphore
+    group: semaphore
+    mode: '0644'
+  register: semaphore_config_file
+
+- name: Run database migrations
+  shell:
+    cmd: "/bin/semaphore migrate --config {{ semaphore_config_path }}"
+  register: database_migrations
+  changed_when: '"Executing migration" in database_migrations.stdout'
+
+- name: Place semaphore.service
+  template:
+    src: etc_systemd_system_semaphore.service.j2
+    dest: /etc/systemd/system/semaphore.service
+    owner: semaphore
+    group: semaphore
+    mode: '0644'
+  register: semaphore_service_file
+
+- name: Restart semaphore service
+  ansible.builtin.service:
+    name: semaphore.service
+    state: restarted
+    enabled: yes
+  when: >
+    (semaphore_package_install.changed or
+    semaphore_config_file.changed or
+    database_migrations.changed or
+    semaphore_service_file.changed)

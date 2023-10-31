@@ -1,0 +1,62 @@
+{
+ 	"mysql": {
+ 		"host": "",
+ 		"user": "",
+ 		"pass": "",
+ 		"name": "",
+ 		"options": null
+ 	},
+ 	"bolt": {
+ 		"host": "",
+ 		"user": "",
+ 		"pass": "",
+ 		"name": "",
+ 		"options": null
+ 	},
+ 	"postgres": {
+ 		"host": "{{ postgres_listen_address }}:5432",
+ 		"user": "{{ ansible_local.postgres.users[0].name }}",
+ 		"pass": "{{ ansible_local.postgres.users[0].password }}",
+ 		"name": "{{ ansible_local.postgres.databases[0].name }}",
+ 		"options": {
+ 			"sslmode": "disable"
+ 		}
+ 	},
+ 	"dialect": "postgres",
+ 	"port": "",
+ 	"interface": "",
+ 	"tmp_path": "/tmp/semaphore",
+ 	"cookie_hash": "9eqDwjqWVsblfPYFY0MxPqV18jSsPkvva7G3OLbC5C0=",
+ 	"cookie_encryption": "SJ/xjyaZ5yEzGNf/3+HHnG8AKDWfjea87ZJLuC/lHcc=",
+ 	"access_key_encryption": "+6qBh5ZLT7jOwrWpCQmMJgFyXE5Qb2IRSbGPz+T5fmc=",
+ 	"email_sender": "semaphore@localhost",
+ 	"email_host": "localhost",
+ 	"email_port": "25",
+ 	"email_username": "",
+ 	"email_password": "",
+ 	"web_host": "/",
+ 	"ldap_binddn": "",
+ 	"ldap_bindpassword": "",
+ 	"ldap_server": "",
+ 	"ldap_searchdn": "",
+ 	"ldap_searchfilter": "",
+ 	"ldap_mappings": {
+ 		"dn": "",
+ 		"mail": "",
+ 		"uid": "",
+ 		"cn": ""
+ 	},
+ 	"telegram_chat": "",
+ 	"telegram_token": "",
+ 	"slack_url": "",
+ 	"max_parallel_tasks": {{ semaphore_max_parralel_tasks }},
+ 	"email_alert": true,
+ 	"email_secure": false,
+ 	"telegram_alert": false,
+ 	"slack_alert": false,
+ 	"ldap_enable": false,
+ 	"ldap_needtls": false,
+ 	"ssh_config_path": "",
+ 	"demo_mode": false,
+ 	"git_client": ""
+}
