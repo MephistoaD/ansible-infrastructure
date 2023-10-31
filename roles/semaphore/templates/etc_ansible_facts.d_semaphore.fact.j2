@@ -1,0 +1,58 @@
+#!/usr/bin/python3
+
+
+import subprocess
+import json
+
+def get_semaphore_version():
+    try:
+        # Run the command 'semaphore version' and capture the output
+        output = subprocess.check_output(['semaphore', 'version'], stderr=subprocess.STDOUT, text=True)
+
+        # Strip the 'v' from the version number
+        version = output.strip().strip('v')
+    except subprocess.CalledProcessError as e:
+        version = None
+    
+    return version
+
+def get_semaphore_users():
+    try:
+        # Run the command 'semaphore user list' and capture the output (get list of user logins)
+        usernames_raw = subprocess.check_output(['semaphore', 'user', 'list', '--config', '/etc/semaphore/config.json'], stderr=subprocess.STDOUT, text=True).split('\n')[2:]
+        usernames = [ line for line in usernames_raw if line.strip()]
+
+        # Get data about each user
+        users = {
+{% for user in semaphore_users_ %}
+            "{{ user.login }}": {
+                "api_token": "{{ ansible_local.semaphore.users[user.login].api_token if 'semaphore' in ansible_local and user.login in ansible_local.semaphore.users else created_api_tokens | selectattr('login', 'equalto', user.login) | map(attribute='api_token') | first }}"
+            },
+{% endfor %}
+        }
+
+        for user in usernames:
+            if user not in users:
+                users[user] = {}
+            user_raw = subprocess.check_output(['semaphore', 'user', 'get', '--login', f'{user}', '--config', '/etc/semaphore/config.json'], stderr=subprocess.STDOUT, text=True).split('\n')[2:]
+            # Iterate through the lines in user_raw and skip empty lines
+            for line in user_raw:
+                line = line.strip()
+                if line:
+                    # Split each line into key and value
+                    key, value = line.split(': ', 1)
+                    # Add key-value pairs to the dictionary
+                    users[user][key] = value
+
+    except subprocess.CalledProcessError as e:
+        users = None
+
+    return users
+
+
+result = {
+    "current_version": get_semaphore_version(),
+    "users": get_semaphore_users()
+}
+    
+print(json.dumps(result, indent=4))

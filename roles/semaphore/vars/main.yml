@@ -1,0 +1,6 @@
+---
+postgres_users:
+  - name: "semaphore_db_user"
+postgres_databases:
+  - name: "semaphore_db"
+    owner: "semaphore_db_user"

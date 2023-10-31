@@ -1,0 +1,16 @@
+---
+
+#- meta: end_play
+
+
+- name: Plant semaphore.fact file
+  vars:
+    created_api_tokens: "{{ create_semaphore_user.results | map(attribute='stdout') | select('string') | map('from_json') | list }}"
+  template:
+    src: etc_ansible_facts.d_semaphore.fact.j2  # Path to your Python script template
+    dest: /etc/ansible/facts.d/semaphore.fact
+    mode: '0700'  # Set the executable permission on the script
+
+- name: Gather ansible_local facts
+  setup:
+    filter: ansible_local

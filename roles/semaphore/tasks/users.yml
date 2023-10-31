@@ -1,0 +1,107 @@
+---
+
+- name: Get pending changes on the semaphore users
+  become: false
+  local_action: 
+    module: shell
+    executable: "{{ ansible_python.executable }}"
+    cmd: |
+      import json
+      import copy
+
+      # Print the list of device roles
+      target_state = {{ semaphore_users_ }}
+      current_state = {{ ansible_local.semaphore.users if 'semaphore' in ansible_local else '{}' }}
+
+      semaphore_users = {
+        "target_state": copy.deepcopy(target_state),
+        "current_state": copy.deepcopy(current_state),
+        "to_create": [],
+        "to_update": [],
+        "to_delete": {}
+      }
+
+      for user in target_state:
+        if user['login'] not in current_state: 
+          semaphore_users['to_create'].append(user)
+        elif ( user['email'] != current_state[user['login']]['Email'] or
+          user['name'] != current_state[user['login']]['Name'] or
+          ('admin' in user and user['admin'] and current_state[user['login']]['Admin'] != 'true')
+          ):
+          semaphore_users['to_update'].append(user)
+          current_state.pop(user['login'])
+        else:
+          current_state.pop(user['login'])
+        
+      semaphore_users['to_delete'] = current_state
+
+      print(json.dumps(semaphore_users))
+  changed_when: false
+  register: semaphore_users_pending_changes_
+
+- name: MANAGE USERS
+  vars:
+    semaphore_users_pending_changes: "{{ semaphore_users_pending_changes_.stdout | from_json }}"
+    to_create: "{{ semaphore_users_pending_changes.to_create }}"
+    to_update: "{{ semaphore_users_pending_changes.to_update }}"
+    to_delete: "{{ semaphore_users_pending_changes.to_delete }}"
+  block:
+  - name: Add user to semaphore
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        PASSWORD="{{ lookup('password', '/dev/null chars=ascii_letters,digits length=30') }}"
+        COOKIE="/tmp/semaphore-cookie"
+
+        semaphore user add --config {{ semaphore_config_path }} \
+        {% if item.admin is defined and item.admin %}
+            --admin \
+        {% endif %}
+            --email "{{ item.email }}" \
+            --login "{{ item.login }}" \
+            --name "{{ item.name }}" \
+            --password $PASSWORD > /dev/null
+
+        curl -v -c $COOKIE \
+          -H 'Content-Type: application/json' \
+          -H 'Accept: application/json' \
+          -d '{"auth": "{{ item.login }}", "password": "'"$PASSWORD"'"}' \
+          http://localhost:3000/api/auth/login
+        
+        token_response=$(curl -v -b $COOKIE -X POST \
+          -H 'Content-Type: application/json' \
+          -H 'Accept: application/json' \
+          http://localhost:3000/api/user/tokens)
+
+        token=$(echo "$token_response" | jq -r .id)
+
+        echo '{ "login": "{{ item.login }}", "api_token": "'"$token"'" }'
+
+        rm $COOKIE
+    register: create_semaphore_user
+    loop_control:
+      label: "User: { name: {{ item.name }}, login: {{ item.login }}}"
+    loop: "{{ to_create }}"
+
+  - name: Update user in semaphore (does not change the password)
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        semaphore user change-by-login --config {{ semaphore_config_path }} \
+        {% if item.admin is defined and item.admin %}
+            --admin \
+        {% endif %}
+            --email "{{ item.email }}" \
+            --login "{{ item.login }}" \
+            --name "{{ item.name }}"
+    loop_control:
+      label: "User: { name: {{ item.name }}, login: {{ item.login }}}"
+    loop: "{{ to_update }}"
+
+  - name: Delete user from semaphore
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        semaphore user delete --config {{ semaphore_config_path }} \
+            --login "{{ to_delete[item].Login }}"
+    with_items: "{{ to_delete }}"

@@ -1,0 +1,22 @@
+---
+- name: Get current_version from host or set current version to latest_version
+  shell:
+    executable: "{{ ansible_python.executable }}"
+    cmd: |
+      import os
+      import json
+      import requests
+
+      # GitHub repository and API endpoint
+      api_url = "https://api.github.com/repos/{{ semaphore_upstream_repo }}/releases/latest"
+
+      # Get the latest release version using requests and json
+      response = requests.get(api_url)
+      data = response.json()
+      print(data.get("tag_name").strip("v"))
+  register: latest_version_query
+  changed_when: false
+
+- name: Store semaphore_latest_version
+  set_fact:
+    semaphore_latest_version: "{{ latest_version_query.stdout }}"
