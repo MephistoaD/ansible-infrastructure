@@ -1,6 +1,4 @@
 ---
-#nextcloud_domains:
-#  - "{{ ansible_hostname }}.*.lab"
 nextcloud_default_phone_region: DE
 
 
@@ -10,13 +8,6 @@ nextcloud_default_admin_user: "nc_admin"
 
 #custom_settings:
 #  - { key: "mail_smtpmode", value: "'smtp'" }
-
-postgres_users:
-  - name: "nextcloud_db_user"
-#    password: "pAsSw0rD" # obsolete, but still working
-postgres_databases:
-  - name: "nextcloud_db"
-    owner: "nextcloud_db_user"
 
 ################################################################
 
