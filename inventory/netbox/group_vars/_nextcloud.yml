@@ -2,8 +2,3 @@
 nextcloud_domains:
   - "{{ ansible_hostname }}.*.lab"
 
-postgres_users:
-  - name: "nextcloud_db_user"
-postgres_databases:
-  - name: "nextcloud_db"
-    owner: "nextcloud_db_user"
