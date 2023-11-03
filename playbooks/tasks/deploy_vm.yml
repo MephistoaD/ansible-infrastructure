@@ -70,13 +70,13 @@
     - debug:
         var: current_vm_config
     
-    - name: Fail if netbox has a lower disk size than the current vm
-      fail:
-        msg: |
-         netbox_disk = {{ disk }}GB < vms_disk = {{ current_vm_config['scsi0']['size'] }}GB
-         Please increase the disksize in netbox to at least {{ current_vm_config['scsi0']['size'] }}GB
-      when: 
-        - disk < current_vm_config['scsi0']['size']
+#    - name: Fail if netbox has a lower disk size than the current vm
+ #     fail:
+  #      msg: |
+   #      netbox_disk = {{ disk }}GB < vms_disk = {{ current_vm_config['scsi0']['size'] }}GB
+    #     Please increase the disksize in netbox to at least {{ current_vm_config['scsi0']['size'] }}GB
+     # when: 
+      #  - disk < current_vm_config['scsi0']['size']
 
     - name: Update vm properties
       vars:
@@ -94,9 +94,9 @@
           - label: "Update onboot status {{ current_vm_config['onboot'] }} -> {{ new_onboot }}"
             action: "qm set {{ vmid }} --onboot {{ new_onboot }}"
             condition: "{{ new_onboot | bool != current_vm_config['onboot'] }}"
-          - label: "Update disk size {{ current_vm_config['scsi0']['size'] }} -> {{ disk }} GB"
-            action: "qm resize {{ vmid }} scsi0 {{ disk }}G"
-            condition: "{{ disk > current_vm_config['scsi0']['size'] }}"
+#          - label: "Update disk size {{ current_vm_config['scsi0']['size'] }} -> {{ disk }} GB"
+ #           action: "qm resize {{ vmid }} scsi0 {{ disk }}G"
+  #          condition: "{{ disk > current_vm_config['scsi0']['size'] }}"
           - label: "Start vm if active"
             action: "qm start {{ vmid }}"
             condition: "{{ current_vm_config['status'] == 'stopped' and status.value == 'active' }}"
