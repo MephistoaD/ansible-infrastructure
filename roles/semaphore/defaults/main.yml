@@ -26,13 +26,13 @@ semaphore_tasks:
     name: "CONFIG: generic-playbook"
     description: "ansible role without updates"
     playbook: playbooks/generic-playbook.yml
-    arguments: '["-e","device_role=debian"]'
+    arguments: '["-e","target=_debian"]'
     environment: '{ "deploy_guest": true }'
   - view: upgrade
     name: "UPGRADE: generic-playbook"
     description: " ansible role with updates"
     playbook: playbooks/generic-playbook.yml
-    arguments: '["-e","device_role=debian"]'
+    arguments: '["-e","target=_debian"]'
     environment: '{ "upgrade": true, "deploy_guest": true }'
 
 # views sind z.T. bei der Erstellung von Task templates hardcoded in Verwendung

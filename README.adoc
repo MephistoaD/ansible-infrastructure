@@ -2,7 +2,7 @@
 
 ## Arguments:
 
-  device_role: str The role given to the host by the inventory
+  target: a hostname, a list of hostnames or a group the playbook is run agains
   include_roles: [ device_role ] Overwrites the device_role by including a custom list of roles instead
   upgrade: (false, true) runs all upgrades defined in the various roles
   quick: (false, true) skipps installs, and most time costly operations (never interferes with upgrade)
@@ -11,7 +11,7 @@
 
 ## PVE Nodes:
 
-  ansible-playbook playbooks/generic-playbook.yml -e "device_role=pve_node include_roles=['pve_node','debian','postfix','etckeeper']"
+  ansible-playbook playbooks/generic-playbook.yml -e "target=_pve_node include_roles=['pve_node','debian','postfix','etckeeper']"
 
 ## Semaphore
 
@@ -19,5 +19,5 @@
 
 ## examples:
 
-  ansible-playbook playbooks/generic-playbook.yml -e "device_role=semaphore"
-  ansible-playbook playbooks/generic-playbook.yml -e "device_role=semaphore upgrade=true"
+  ansible-playbook playbooks/generic-playbook.yml -e "target=semaphore"
+  ansible-playbook playbooks/generic-playbook.yml -e "target=semaphore upgrade=true"
