@@ -23,15 +23,15 @@ semaphore_repository_name: "{{ semaphore_project }}-{{ semaphore_repository_git_
 
 semaphore_tasks:
   - view: config
-    name: "CONFIG: generic-playbook"
+    name: "CONFIG: generic_playbook"
     description: "ansible role without updates"
-    playbook: playbooks/generic-playbook.yml
+    playbook: playbooks/generic_playbook.yml
     arguments: '["-e","target=_debian"]'
     environment: '{ "deploy_guest": true }'
   - view: upgrade
-    name: "UPGRADE: generic-playbook"
+    name: "UPGRADE: generic_playbook"
     description: " ansible role with updates"
-    playbook: playbooks/generic-playbook.yml
+    playbook: playbooks/generic_playbook.yml
     arguments: '["-e","target=_debian"]'
     environment: '{ "upgrade": true, "deploy_guest": true }'
 
