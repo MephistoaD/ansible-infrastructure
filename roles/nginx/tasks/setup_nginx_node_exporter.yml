@@ -15,21 +15,48 @@
 
 ##############################
 
+- name: EXPORTER LATEST VERSION
+  block:
+  - name: Get latest version from github
+    shell:
+      executable: "{{ ansible_python.executable }}"
+      cmd: |
+        import os
+        import json
+        import requests
+
+        # GitHub repository and API endpoint
+        api_url = "https://api.github.com/repos/{{ nginx_exporter_repo }}/releases/latest"
+
+        # Get the latest release version using requests and json
+        response = requests.get(api_url)
+        data = response.json()
+        print(data.get("tag_name").strip("v"))
+    register: latest_version_query
+    changed_when: false
+
+  - name: Store nginx_exporter_latest_version
+    set_fact:
+      nginx_exporter_latest_version: "{{ latest_version_query.stdout }}"
+
+- debug:
+    var: ansible_local.nginx.prometheus_exporter_version
 
 - name: Download and extract nginx-prometheus-exporter
+  vars:
+    current_version: "{{ ansible_local.nginx.prometheus_exporter_version }}"
+    installation_version: "{{ nginx_exporter_latest_version if current_version == '' or upgrade else current_version }}"
   unarchive:
-    src: "https://github.com/nginxinc/nginx-prometheus-exporter/releases/download/v{{ nginx_node_exporter_version }}/nginx-prometheus-exporter_{{ nginx_node_exporter_version }}_linux_amd64.tar.gz"
+    src: "https://github.com/{{ nginx_exporter_repo }}/releases/download/v{{ installation_version }}/nginx-prometheus-exporter_{{ installation_version }}_linux_amd64.tar.gz"
     dest: "/usr/local/bin"
     remote_src: yes
 
 - name: Create nginx_exporter user
-  become: true
   user:
     name: nginx_exporter
     system: yes
 
 - name: Create Systemd Service File
-  become: true
   template:
     src: nginx_prometheus_exporter.service.j2
     dest: /etc/systemd/system/nginx_prometheus_exporter.service
@@ -37,13 +64,11 @@
   register: nginx_prometheus_exporter_service_file
 
 - name: Reload Systemd daemon
-  become: true
   systemd:
     daemon_reload: yes
   when: nginx_prometheus_exporter_service_file.changed
 
 - name: Start nginx-prometheus-exporter
-  become: true
   service:
     name: nginx_prometheus_exporter
     state: started
