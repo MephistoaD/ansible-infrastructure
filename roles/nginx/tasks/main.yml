@@ -1,16 +1,18 @@
 ---
-- name: Install nginx
-  include_tasks: install.yml
+- name: NGINX
   when:
     - only_role is undefined or only_role == "nginx"
-  
-- name: Place snippets for optional inclusion in config
-  include_tasks: place_snippets.yml
-  when:
-    - only_role is undefined or only_role == "nginx"
+  block:
+  - name: Install nginx
+    include_tasks: install.yml
+    
+  - name: Place snippets for optional inclusion in config
+    include_tasks: place_snippets.yml
 
-- name: Setup nginx_node_exporter
-  include_tasks: setup_nginx_node_exporter.yml
-  when:
-    - only_role is undefined or only_role == "nginx"
-    - nginx_node_exporter_enabled
+  - name: Place ansible_local
+    include_tasks: ansible_local.yml
+
+  - name: Setup nginx_node_exporter
+    include_tasks: setup_nginx_node_exporter.yml
+    when:
+      - nginx_exporter_enabled

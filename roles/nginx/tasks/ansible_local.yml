@@ -1,0 +1,11 @@
+- name: "Set ansible_local script"
+  template:
+    src: etc_ansible_facts.d_nginx.fact.j2  # Path to your Python script template
+    dest: /etc/ansible/facts.d/nginx.fact
+    mode: '0700'  # Set the executable permission on the script
+  register: set_ansible_local
+  
+- name: Gather ansible_local facts
+  setup:
+    filter: ansible_local
+  when: set_ansible_local.changed

@@ -1,0 +1,32 @@
+#!/usr/bin/python3
+
+import json
+import subprocess
+
+def get_nginx_exporter_version():
+    # Command to run
+    command = "/usr/local/bin/nginx-prometheus-exporter --version"
+
+    try:
+        # Run the command and capture its output
+        output = subprocess.check_output(command.split(), stderr=subprocess.STDOUT, text=True)
+
+        # Split the output by newline and extract the line containing the version
+        for line in output.split('\n'):
+            if "NGINX Prometheus Exporter version=" in line:
+                version_line = line
+                break
+
+        # Extract the version number
+        version = version_line.split("version=")[1].split(" ")[0]
+    #    version = output
+    except Exception:
+        # If the command failed, set version to 'null'
+        version = None
+
+    return version
+
+output = {
+    "prometheus_exporter_version": get_nginx_exporter_version(),
+}
+print(json.dumps(output, indent=4))

@@ -2,8 +2,8 @@
 ssl_cert_path: "/etc/ssl/certs/self-signed.crt"
 ssl_key_path: "/etc/ssl/private/self-signed.key"
 
-nginx_node_exporter_enabled: true
-nginx_node_exporter_version: 0.11.0
+nginx_exporter_enabled: true
+nginx_exporter_repo: nginxinc/nginx-prometheus-exporter
 
 keepalived_ha_checks:
   check_nginx: "/usr/bin/pkill -0 nginx"
