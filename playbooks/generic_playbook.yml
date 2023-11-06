@@ -1,0 +1,21 @@
+---
+- hosts: "{{ target | default('all') }}"
+  gather_facts: false
+  tasks:
+    - name: Deploy guest
+      include_tasks: "tasks/deploy_guest.yml"
+      when: 
+        - is_virtual
+        - custom_fields.technology is defined
+        - deploy_guest is defined
+        - deploy_guest
+
+    - name: Gather Facts
+      setup:
+
+    - name: Configure hosts
+      include_role:
+        name: "{{ current_role | regex_replace('^_', '') }}"
+      loop: "{{ include_roles | default(device_roles) }}"
+      loop_control:
+        loop_var: current_role
