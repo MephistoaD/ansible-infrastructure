@@ -1,0 +1,275 @@
+---
+- vars:
+    vmid: "{{ custom_fields.vmid }}"
+    guest_storage: "node-local"
+    guest_default_user: "debian" # for vm only
+    gateway: "192.168.2.1"
+    nameserver: "192.168.2.250" # for vm only, lxc defaults to dns of host
+    swap_default_size: 0 # for lxc only
+    delegate_to_pve_instance: "{{ groups['_pve_node'][0] }}" # the node where the lxc is created / the guest list is scraped
+    ostemplate: "{{ available_platforms[platforms[0]].lxc_ostemplate }}" # = The platform set in the netbox entry
+    rootfs_volume: "{{ guest_storage }}:{{ disk }}"
+  block:
+  # TODO: Remove this
+  - name: Print host variables
+    debug:
+      var: hostvars[inventory_hostname]
+
+  - name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
+    delegate_to: "{{ delegate_to_pve_instance }}"
+    run_once: true
+    setup:
+      filter: ansible_local
+
+
+  - name: CREATE GUEST
+    vars:
+      # do not touch below
+      template_vmid: "{{ available_platforms[platforms[0]]['vm_template_id'] }}"
+      template_vm: "{{ ansible_local.pve_node['guests_by_id'][template_vmid] }}"
+      delegate_to_template_pve_instance: "{{ template_vm['node'] if template_vm['node'] in groups['_pve_node'] and custom_fields.technology == 'vm' else delegate_to_pve_instance }}"
+    when: 
+      - vmid not in ansible_local.pve_node['guests_by_id']
+    block:
+    - debug:
+        var: template_vm
+      when:
+        - custom_fields.technology == "vm"
+
+    - debug:
+        var: delegate_to_template_pve_instance
+    
+    - name: "Create new guest"
+      vars:
+        command:
+          lxc: |
+            # Set just any random password
+            password=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | cut -c1-"${1:-12}")
+
+            pvesh create "/nodes/{{ delegate_to_pve_instance }}/lxc" \
+              -vmid "{{ vmid }}" \
+              -hostname "{{ inventory_hostname }}" \
+              -ostemplate "{{ ostemplate }}" \
+              -password "$password" \
+              -ssh-public-keys "{{ allowed_ssh_publickey }}" \
+              -cores "{{ vcpus | int }}" \
+              -memory "{{ memory }}" \
+              -swap "{{ swap_default_size  }}" \
+              -storage "{{ guest_storage }}" \
+              -rootfs "volume={{ rootfs_volume }}" \
+              -pool "{{ custom_fields.pool | upper }}" \
+              -net0 "name=eth0,bridge=vmbr0,firewall=1,ip={{ primary_ip4 }}/24,gw={{ gateway }}" \
+              -features "nesting=1" \
+              -unprivileged "1"
+          vm: |
+            # Creation from the template
+            qm clone {{ template_vmid }} {{ vmid }} \
+              --name "{{ inventory_hostname }}" \
+              --full true \
+              --pool "{{ custom_fields.pool | upper }}" \
+              --storage "{{ guest_storage }}"
+
+            # Create cloudinit drive
+            qm set {{ vmid }} --ide2 {{ guest_storage }}:cloudinit
+
+            # By some weird reason the ssh key needs to be passed as file:
+            ansible_pubkey="/tmp/ansible_id_rsa.pub"
+            echo {{ allowed_ssh_publickey }} > $ansible_pubkey
+            qm set {{ vmid }} \
+              --sshkeys $ansible_pubkey
+
+            # The cloudinit config must be passed before initial boot
+            qm set {{ vmid }} \
+              --ipconfig0 gw={{ gateway }},ip={{ primary_ip4 }}/24 \
+              --nameserver {{ nameserver }} \
+              --ciupgrade false
+
+            qm resize {{ vmid }} scsi0 {{ disk }}G
+      delegate_to: "{{ delegate_to_template_pve_instance }}"
+      shell:
+        executable: /usr/bin/bash
+        cmd: "{{ command[custom_fields.technology] }}"
+      register: guest_creation
+      
+    - name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
+      delegate_to: "{{ delegate_to_template_pve_instance }}"
+      setup:
+        filter: ansible_local
+
+
+  - name: MODIFY GUEST
+    vars:
+      current_guest_config: "{{ ansible_local.pve_node['guests_by_id'][vmid] }}"
+      delegate_to_guest_pve_instance: "{{ ansible_local.pve_node['guests_by_id'][vmid]['node'] }}"
+    block:
+    - debug:
+        var: current_guest_config
+
+    - name: Update guest properties
+      vars:
+        current_guest_cpu: "{{ current_guest_config['maxcpu'] if custom_fields.technology == 'vm' else current_guest_config['cores'] }}"
+        new_onboot: '{{ status.value == "active" }}'
+        iterations:
+          - label: "Update hostname {{ current_guest_config['name'] }} -> {{ inventory_hostname }}"
+            command:
+              vm: "pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/qemu/{{ vmid }}/config --name {{ inventory_hostname }}"
+              lxc: "pvesh set /nodes/{{ delegate_to_guest_pve_instance }}/lxc/{{ vmid }}/config --hostname {{ inventory_hostname }}"
+            condition: "{{ current_guest_config['name'] != inventory_hostname }}"
+          - label: "Update vCPUs {{ current_guest_cpu | int }} -> {{ vcpus | int }} cores"
+            command:
+              vm: "qm set {{ vmid }} --cores {{ vcpus | int }}"
+              lxc: "pct set {{ vmid }} --cores {{ vcpus | int }}"
+            condition: "{{ vcpus | int != current_guest_cpu | int }}"
+          - label: "Update memory {{ current_guest_config['memory'] }} -> {{ memory }} MB"
+            command:
+              vm: "qm set {{ vmid }} --memory {{ memory }}"
+              lxc: "pct set {{ vmid }} --memory {{ memory }}"
+            condition: "{{ memory | string != current_guest_config['memory'] }}"
+          - label: "Update onboot status {{ 'onboot' in current_guest_config and current_guest_config['onboot'] }} -> {{ new_onboot }}"
+            command:
+              vm: "qm set {{ vmid }} --onboot {{ new_onboot }}"
+              lxc: "pct set {{ vmid }} --onboot {{ new_onboot }}"
+            condition: "{{ 'onboot' not in current_guest_config or ('onboot' in current_guest_config and current_guest_config['onboot'] != new_onboot) }}"
+#          - label: "Update disk size {{ current_guest_config['scsi0']['size'] }} -> {{ disk }} GB"
+ #           action: "qm resize {{ vmid }} scsi0 {{ disk }}G"
+  #          condition: "{{ disk > current_guest_config['scsi0']['size'] }}"
+          - label: "Start guest if active"
+            command: 
+              vm: "qm start {{ vmid }}"
+              lxc: "pct start {{ vmid }}"
+            condition: "{{ current_guest_config['status'] == 'stopped' and status.value == 'active' }}"
+          - label: "Change pool if necessary"
+            command: # lxc and vm are similar (maybe this can be refactored in future)
+              vm: |
+                pvesh set pools/{{ current_guest_config.pool }} --vms {{ vmid }} --delete true
+                pvesh set pools/{{ custom_fields.pool | upper }} --vms {{ vmid }}
+              lxc: |
+                pvesh set pools/{{ current_guest_config.pool }} --vms {{ vmid }} --delete true
+                pvesh set pools/{{ custom_fields.pool | upper }} --vms {{ vmid }}
+            condition: "{{ custom_fields.pool | upper != current_guest_config.pool }}"
+      delegate_to: "{{ delegate_to_guest_pve_instance }}"
+      shell:
+        executable: /usr/bin/bash
+        cmd: |
+          {{ item.command[custom_fields.technology] }}
+      register: update_properties
+      when: 
+        - item.condition is defined
+        - item.condition
+      loop_control:
+        label: "{{ item.label }}"
+      loop: "{{ iterations | selectattr('condition', 'defined') | list }}"
+
+    - name: Wait until the guest is online and sshd started
+      become: false
+      local_action:
+        module: wait_for
+        host: "{{ primary_ip4 }}"  # Replace with your target host
+        port: 22  # SSH port
+        state: started
+        timeout: 300  # Adjust the timeout as needed (in seconds)
+
+    - name: Remove cloudinit drive after first boot
+      delegate_to: "{{ delegate_to_guest_pve_instance }}"
+      ansible.builtin.shell:
+        cmd: |
+          pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/qemu/{{ vmid }}/config --delete "ide2"
+        executable: /usr/bin/bash
+      when:
+        - guest_creation.changed
+        - custom_fields.technology == "vm"
+
+
+  - name: CONFIGURE SSH ON ROOT AND ABOLISH THE DEFAULT USER
+    vars:
+      root_authorized_keys: /root/.ssh/authorized_keys
+      ssh_root_access: # just a little hack to allow the check task to reside inside the block too
+        unreachable: true
+    when:
+      - ssh_root_access.unreachable is defined
+      - ssh_root_access.unreachable
+      - custom_fields.technology == "vm"
+    block: 
+    - name: Check if SSH access as root user is allowed
+      ansible.builtin.shell:
+        cmd: echo foo
+      changed_when: false
+      ignore_unreachable: true
+      register: ssh_root_access
+
+    - name: Set `PermitRootLogin` on host
+      remote_user: "{{ guest_default_user }}"
+      template:
+        src: etc_ssh_sshd_config.d_permitrootlogin.conf.j2
+        dest: /etc/ssh/sshd_config.d/permitrootlogin.conf
+      register: set_permitrootlogin
+
+    - name: Add the ansile pubkey to the root user
+      remote_user: "{{ guest_default_user }}"
+      ansible.builtin.shell:
+        executable: /usr/bin/bash
+        cmd: |
+          [ -f {{ root_authorized_keys }} ] && return 1
+          echo {{ allowed_ssh_publickey }} > {{ root_authorized_keys }}
+      changed_when: add_root_authorized_keys.rc == 0
+      failed_when: add_root_authorized_keys.rc not in [0,1]
+      register: add_root_authorized_keys
+
+      # Workaround, else the sshd doesn't restart timely enough
+    - name: Reboot after changes on the sshd
+      remote_user: "{{ guest_default_user }}"
+      reboot:
+        msg: "Reboot by ansible deploy_vm"
+        connect_timeout: 5
+        reboot_timeout: 600
+        pre_reboot_delay: 0
+        post_reboot_delay: 30
+        test_command: uptime
+      when:
+        - set_permitrootlogin.changed
+
+    - name: "Kill processes owned by user {{ guest_default_user }}"
+      ansible.builtin.shell: "kill -9 $(ps -U debian -o pid=)"
+
+    - name: "Delete user {{ guest_default_user }}"
+      ansible.builtin.user:
+        name: debian
+        state: absent
+
+    - name: "Delete home directory of {{ guest_default_user }}"
+      ansible.builtin.file:
+        path: /home/debian
+        state: absent
+      when: false
+
+
+  - name: "Update the hostname on the vm"
+    vars: 
+      vmid: '{{ custom_fields.vmid }}'
+      current_vm_config: "{{ ansible_local.pve_node['guests_by_id'][vmid] }}"
+    ansible.builtin.shell:
+      cmd: |
+        sed -i 's/oldname/newname/g' /etc/hosts /etc/hostname
+      executable: /usr/bin/bash
+    when: 
+      - current_vm_config['name'] != inventory_hostname
+      - custom_fields.technology == "vm"
+
+
+  - name: NOTIFY ON NOT YET IMPLEMENTED CASES
+    vars:
+      current_guest_config: "{{ ansible_local.pve_node['guests_by_id'][vmid] }}"
+    block:
+    - name: Error on different rootfs sizes
+      fail:
+        msg: "The current guests rootfs size is {{ current_lxc_config.rootfs_size }} but the netbox defines it to be {{ disk }}. Automatic disk changes are not implemented yet."
+      when:
+        - custom_fields.technology == "lxc"
+        - current_guest_config.rootfs_size != disk
+
+# End of Deployment block
+
+- name: Finish play if deploy_guest == "only"
+  meta: end_play
+  when:
+  - deploy_guest == "only"
