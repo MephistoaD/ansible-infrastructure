@@ -5,9 +5,15 @@
   block:
   - name: Install nginx
     include_tasks: install.yml
+    when: 
+      - not quick
     
   - name: Place snippets for optional inclusion in config
     include_tasks: place_snippets.yml
+
+  - name: Configure nginx
+    include_tasks: configure.yml
+    when: nginx_config is defined
 
   - name: Place ansible_local
     include_tasks: ansible_local.yml
@@ -16,3 +22,4 @@
     include_tasks: setup_nginx_node_exporter.yml
     when:
       - nginx_exporter_enabled
+      - not quick

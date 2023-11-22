@@ -1,0 +1,58 @@
+---
+- name: Place /etc/nginx/nginx.conf
+  template:
+    src: etc_nginx_nginx.conf.j2 
+    dest: /etc/nginx/nginx.conf
+    mode: 0644
+  register: nginx_conf
+
+- name: Configure vhosts
+  when: 
+    - nginx_config is defined
+  loop: "{{ nginx_config }}"
+  loop_control:
+    loop_var: vhost
+    label: "{{ vhost.name }}"
+  template:
+    src: etc_nginx_conf.d_vhost.conf.j2
+    dest: /etc/nginx/conf.d/{{ vhost.name }}.conf
+    mode: 0644
+  register: vhost_conf
+
+- name: Find files in /etc/nginx/conf.d/
+  find:
+    paths: /etc/nginx/conf.d/
+    patterns: "*.conf"
+  register: found_files
+
+- name: Remove unwanted vhost files
+  vars:
+    domains: "{{ nginx_config | map(attribute='name') | list }}"
+  file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ found_files.files }}"
+  loop_control:
+    label: "{{ item.path }}" 
+  when: 
+    - item.path | basename | regex_replace('\\.conf$', '') not in domains
+
+- name: Validate nginx config
+  shell:
+    cmd: /usr/sbin/nginx -t
+  register: validate_nginx_config
+  failed_when: false
+  changed_when: false
+
+- name: Fail if nginx config is invalid
+  fail:
+    msg: "{{ validate_nginx_config.stderr_lines }}"
+  when: validate_nginx_config.rc != 0
+
+- name: Reload Nginx service
+  systemd:
+    name: nginx
+    state: restarted
+  when: 
+    - nginx_conf.changed or vhost_conf.changed
+

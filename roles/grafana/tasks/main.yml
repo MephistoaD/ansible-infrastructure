@@ -1,6 +1,4 @@
 ---
-- include_tasks: place_nginx_config.yml
-
 - include_tasks: ansible_local.yml
 
 - include_tasks: install.yml

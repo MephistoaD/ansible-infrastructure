@@ -1,0 +1,57 @@
+upstream {{ vhost.name }}.upstream {
+{% for proxy_target in vhost['proxy_targets'] %}
+    server "{{ proxy_target }}";
+{% endfor %}
+}
+
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+
+    server_name {{ vhost.name}};
+
+    access_log  /var/log/nginx/{{ vhost.name }}.access.log;
+
+    ssl_certificate           {{ ssl_cert_path }};
+    ssl_certificate_key       {{ ssl_key_path }};
+
+    # Some settings selecting stronger encryption
+    ssl_session_cache  builtin:1000  shared:SSL:10m;
+    ssl_protocols  TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!eNULL:!EXPORT:!CAMELLIA:!DES:!MD5:!PSK:!RC4;
+    ssl_prefer_server_ciphers on;
+
+    # Ignore self-signed certificate of the upstream server
+    proxy_ssl_verify off;
+
+{% if 'custom_config_lines' in vhost %}
+{% for custom_config_line in vhost['custom_config_lines'] %}
+    {{ custom_config_line }}
+{% endfor %}
+{% endif %}
+
+{% if 'custom_locations' in vhost %}
+{% for custom_location in vhost['custom_locations'] %}
+    location {{ custom_location['location'] }} {
+        default_type "text/plain";
+        alias {{ custom_location['alias'] }};
+    }
+{% endfor %}
+{% endif %}
+
+{% if acme_challenge_dir is defined %}
+    location ^~ /.well-known/acme-challenge/ {
+        default_type "text/plain";
+        root {{ acme_challenge_dir }};
+    }
+{% endif %}
+
+    location / {
+        proxy_pass          {{ 'http' if not vhost.https else 'https' }}://{{ vhost.name }}.upstream;
+        proxy_set_header    Host $host;
+        proxy_set_header    X-Real-IP $remote_addr;
+        proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header    X-Forwarded-Proto {{ 'http' if not vhost.https else 'https' }};
+        proxy_ssl_name      $host;
+    }
+}
