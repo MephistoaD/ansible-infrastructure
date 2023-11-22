@@ -1,0 +1,7 @@
+---
+
+nginx_config:
+  - name: "_"
+    https: false # false, self-signed, acme
+    proxy_targets:
+      - "localhost:9090"
