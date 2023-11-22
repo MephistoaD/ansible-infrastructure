@@ -40,3 +40,10 @@ semaphore_views:
   - name: "config"
   - name: "upgrade"
   - name: "other"
+
+
+nginx_config:
+  - name: "_"
+    https: false # false, self-signed, acme
+    proxy_targets:
+      - "localhost:3000"
