@@ -3,7 +3,6 @@
   vars:
     semaphore_users_: "{{ local_context_data[0].semaphore_users if local_context_data[0] is defined else semaphore_users }}"
   block:
-  - include_tasks: nginx_config.yml
   - include_tasks: latest_version.yml
   - include_tasks: install.yml
   - include_tasks: users.yml
