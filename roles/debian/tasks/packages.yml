@@ -7,7 +7,7 @@
   loop:
     - gpg # import of debian repos
     - sudo # for become_user to get root
-    - debian-goodies # ansible find out if restart is needed (playbooks)
+#    - debian-goodies # ansible find out if restart is needed (playbooks)
 
 - name: Install useful packages for administration
   apt:
