@@ -15,8 +15,9 @@
     include_tasks: configure.yml
     when: 
       - nginx_config is defined or 
-        (local_context_data[0] is defined and
-        'nginx_config' in local_context_data[0])
+        ((local_context_data is defined and 
+          local_context_data[0] is mapping) and
+          'nginx_config' in local_context_data[0] | default([]))
 
   - name: Place ansible_local
     include_tasks: ansible_local.yml
