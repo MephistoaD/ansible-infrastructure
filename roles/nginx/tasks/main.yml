@@ -1,5 +1,8 @@
 ---
 - name: NGINX
+  vars: 
+    nginx_config_: "{{ local_context_data[0]['nginx_config'] | default(nginx_config) }}"
+
   when:
     - only_role is undefined or only_role == "nginx"
   block:
@@ -14,10 +17,7 @@
   - name: Configure nginx
     include_tasks: configure.yml
     when: 
-      - nginx_config is defined or 
-        ((local_context_data is defined and 
-          local_context_data[0] is mapping) and
-          'nginx_config' in local_context_data[0] | default([]))
+      - nginx_config_ is defined
 
   - name: Place ansible_local
     include_tasks: ansible_local.yml
