@@ -171,7 +171,7 @@
               vm: "qm set {{ vmid }} --onboot {{ new_onboot }}"
               lxc: "pct set {{ vmid }} --onboot {{ new_onboot }}"
             condition: "{{ 'onboot' not in current_guest_config or ('onboot' in current_guest_config and current_guest_config['onboot'] != new_onboot) }}"
-          - label: "Change pool if necessary"
+          - label: "Change pool {{ current_guest_config.pool | upper }} -> {{ pool | upper }}"
             command: # lxc and vm are similar (maybe this can be refactored in future)
               vm: |
                 pvesh set pools/{{ current_guest_config.pool }} --vms {{ vmid }} --delete true
