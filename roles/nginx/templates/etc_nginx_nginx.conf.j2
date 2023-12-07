@@ -43,24 +43,6 @@ http {
     }
 {% endif %}
 
-    server {
-        listen 80;
-        listen [::]:80;
-
-        server_name cloud.db0de.de;
-
-{% if acme_challenge_dir is defined %}
-        location ^~ /.well-known/acme-challenge/ {
-            default_type "text/plain";
-            root {{ acme_challenge_dir }};
-        }
-{% endif %}
-
-        location / {
-            return 301 https://$server_name$request_uri;
-        }
-    }
-
 
     include /etc/nginx/conf.d/*.conf;
 }
