@@ -2,6 +2,7 @@
 - name: NGINX
   vars: 
     nginx_config_: "{{ local_context_data[0]['nginx_config'] | default(nginx_config) }}"
+    lets_encrypt_mail_: "{{ local_context_data[0]['lets_encrypt_mail'] | default(lets_encrypt_mail) }}"
 
   when:
     - only_role is undefined or only_role == "nginx"
@@ -14,13 +15,16 @@
   - name: Place snippets for optional inclusion in config
     include_tasks: place_snippets.yml
 
+  - name: Place ansible_local
+    include_tasks: ansible_local.yml
+
+  - name: Run certbot
+    include_tasks: certbot.yml
+
   - name: Configure nginx
     include_tasks: configure.yml
     when: 
       - nginx_config_ is defined
-
-  - name: Place ansible_local
-    include_tasks: ansible_local.yml
 
   - name: Setup nginx_node_exporter
     include_tasks: setup_nginx_node_exporter.yml

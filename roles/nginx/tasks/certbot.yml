@@ -1,0 +1,42 @@
+---
+# --non-interactive --agree-tos -m webmaster@example.com
+
+- name: Get SSL Certificate via certbot
+  loop: "{{ nginx_config_ }}"
+  loop_control:
+    loop_var: vhost
+    label: "{{ vhost.name }}"
+  shell:
+    executable: /usr/bin/bash
+    cmd: |
+      certbot --nginx -d {{ vhost.name }} --non-interactive --agree-tos -m {{ lets_encrypt_mail_ }} 2>&1
+  register: certbot_certs
+  failed_when: false
+  when: 
+    - vhost.name not in ansible_local.nginx.certbot_managed_domains
+
+- name: Show results of certbot certificate creation
+  debug:
+    var: result.stdout_lines
+  when: 
+    - certbot_certs.changed
+    - result.changed
+  loop: "{{ certbot_certs.results | default([]) }}"
+  loop_control:
+    loop_var: result
+    label: "{{ result.vhost.name }}"
+
+- name: Simulate renewal of the certificates
+  shell:
+    executable: /usr/bin/bash
+    cmd: |
+      certbot renew --dry-run 2>&1
+  register: certbot_renew
+  changed_when: false
+  when:
+    - not quick
+
+- debug:
+    var: certbot_renew.stdout_lines
+  when: 
+    - not quick

@@ -2,6 +2,7 @@
 
 import json
 import subprocess
+import os
 
 def get_nginx_exporter_version():
     # Command to run
@@ -26,7 +27,18 @@ def get_nginx_exporter_version():
 
     return version
 
+def get_certbot_managed_domains(certbot_path="/etc/letsencrypt/live/"):
+    try:
+        # Get the list of subdirectories in the Certbot path
+        subdirectories = next(os.walk(certbot_path))[1]
+
+        # Return the list of domain names
+        return subdirectories
+    except Exception as e:
+        return []
+
 output = {
     "prometheus_exporter_version": get_nginx_exporter_version(),
+    "certbot_managed_domains": get_certbot_managed_domains(),
 }
 print(json.dumps(output, indent=4))
