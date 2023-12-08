@@ -1,0 +1,14 @@
+---
+
+- name: Install Keepalived
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - keepalived
+
+- name: Ensure user keepalived_script (default user scripts are executed with) exists
+  user:
+    name: keepalived_script
+    state: present
+    createhome: no  # Do not create a home directory for the user if it doesn't exist

@@ -1,0 +1,49 @@
+---
+- name: "Set ansible_local script only on the cluster leader"
+  vars:
+    auth_pass: "{{ ansible_local.keepalived.auth_pass | default(lookup('password', '/dev/null chars=ascii_letters,digits length=8')) }}"
+  template:
+    src: etc_ansible_facts.d_keepalived.fact.cluster_leader.j2  # Path to your Python script template
+    dest: /etc/ansible/facts.d/keepalived.fact
+    mode: '0700'  # Set the executable permission on the script
+  register: set_ansible_local
+  when:
+    - cluster_leader == inventory_hostname
+
+- name: Sync the /etc/ansible/facts.d/keepalived.fact from the cluster_leader to all cluster_members
+  block:
+  - name: "Fetch the /etc/ansible/facts.d/keepalived.fact from the cluster_leader ({{ cluster_leader }}) to master"
+    delegate_to: "{{ cluster_leader }}"
+    ignore_unreachable: true
+    #run_once: true
+    slurp: 
+      src: /etc/ansible/facts.d/keepalived.fact
+    register: cluster_leader_ansible_local
+    when:
+      - cluster_leader != inventory_hostname
+
+  - name: "Unable to sync ansible_local.keepalived from the cluster_leader {{ cluster_leader }}. Assert that a local version exists..."
+    assert:
+      that:
+        - ansible_local.keepalived is defined
+    when: 
+     - cluster_leader_ansible_local.unreachable is defined
+     - cluster_leader_ansible_local.unreachable
+
+  - name: Distribute the /etc/ansible/facts.d/keepalived.fact to the cluster_members
+    vars:
+      content: "{{ cluster_leader_ansible_local.content | b64decode }}"
+    template:
+      src: etc_ansible_facts.d_keepalived.fact.cluster_member.j2  # Path to your Python script template
+      dest: /etc/ansible/facts.d/keepalived.fact
+      mode: '0700'  # Set the executable permission on the script
+    register: distribute_keepalived_facts
+    when:
+      - cluster_leader != inventory_hostname
+
+  - name: Gather ansible_local facts
+    setup:
+      filter: ansible_local
+    when: 
+      - (set_ansible_local.changed or distribute_keepalived_facts.changed) 
+
