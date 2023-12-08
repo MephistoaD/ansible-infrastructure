@@ -1,0 +1,14 @@
+---
+- name: "Role: pbs"
+  vars:
+    pbs_discord_dark_: "{{ local_context_data[0].pbs_discord_dark | default(pbs_discord_dark) }}"
+  when:
+  - (only_role is not defined or only_role == "pbs")
+  block:
+  - import_tasks: install.yml
+    when:
+      - not quick
+
+  - import_tasks: nag_box.yml
+
+  - import_tasks: dark_theme.yml

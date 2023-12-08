@@ -1,0 +1,24 @@
+---
+# äquivaltent zu bash <(curl -s https://raw.githubusercontent.com/Luckyvb/PBSDiscordDark/master/PBSDiscordDark.sh ) install
+
+- name: Download dark theme
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/Luckyvb/PBSDiscordDark/master/PBSDiscordDark.sh
+    dest: /usr/local/bin/PBSDiscordDark.sh
+    mode: '0744'
+
+- name: Install dark theme
+  command: 'bash /usr/local/bin/PBSDiscordDark.sh install'
+  register: out
+  failed_when: out.rc not in [ 0, 2 ]
+  changed_when: false # no change if already installed
+  when:
+    - pbs_discord_dark_
+
+- name: Uninstall dark theme
+  command: 'bash /usr/local/bin/PBSDiscordDark.sh uninstall'
+  register: out
+  failed_when: out.rc not in [ 0, 2 ]
+  changed_when: false # no change if already uninstalled
+  when:
+    - not pbs_discord_dark_
