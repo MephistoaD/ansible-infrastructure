@@ -1,0 +1,45 @@
+global_defs {
+    enable_script_security  # Enable script security
+
+    # Add the following line to set max_auto_priority
+    max_auto_priority 50 # The time interval in which keepalived increases the priority of the vrrp process, measured in a mysterious unit
+}
+
+{# {% for check in ha_checks %}
+vrrp_script {{ check }} {
+    script  "{{ ha_checks[check] }}"
+    interval 3
+    weight   50
+}
+{% endfor %} #}
+
+vrrp_instance VI_1 {
+  {# state is not necessary since keepalived automatically determines that from the priority #}
+  interface {{ keepalived_interface }}
+  virtual_router_id 55
+  priority {{ '100' if cluster_leader == inventory_hostname else '50'}} # makes the cluster leader the master
+  advert_int 1
+  unicast_src_ip {{ src_ip }}
+  unicast_peer {
+{% for member in application_layer_cluster %}
+{% if member != inventory_hostname %}
+    {{ hostvars[member].primary_ip4 }}
+{% endif %}
+{% endfor %}
+  }
+
+  authentication {
+    auth_type PASS
+    auth_pass {{ ansible_local.keepalived.auth_pass }}
+  }
+
+  virtual_ipaddress {
+    {{ keepalived_virtual_ip_ }}/24
+  }
+
+  {# track_script {
+{% for check in ha_checks %}
+    {{ check }}
+{% endfor %}
+  } #}
+}

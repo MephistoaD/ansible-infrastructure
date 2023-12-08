@@ -1,0 +1,34 @@
+---
+- name: "Role: keepalived"
+  vars:
+    keepalived_virtual_ip_: "{{ hostvars[cluster_leader].local_context_data[0].keepalived_virtual_ip | default(keepalived_virtual_ip) }}"
+    cluster_leader: "{{ cluster_leaders | first }}"
+  when:
+  - (only_role is not defined or only_role == "keepalived")
+    
+  block:
+  - name: Assert keepalived_virtual_ip is set properly
+    assert:
+      that:
+        - keepalived_virtual_ip_ is defined
+
+  - name: Assert that there is only one cluster_leader
+    assert:
+      that: 
+        - cluster_leaders | length == 1
+
+  - name: Print scope of the cluster
+    debug:
+      var: application_layer_cluster
+
+  - name: Print cluster leader
+    debug:
+      var: cluster_leader
+
+  - import_tasks: install.yml
+    when:
+      - not quick
+
+  - import_tasks: ansible_local.yml
+
+  - import_tasks: configure.yml
