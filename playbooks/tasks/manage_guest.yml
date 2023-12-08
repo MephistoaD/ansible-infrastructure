@@ -166,11 +166,11 @@
             condition: "{{ current_guest_config['status'] == 'stopped' and status.value == 'active' }}"
           
           # after start
-          - label: "Update onboot status {{ 'onboot' in current_guest_config and current_guest_config['onboot'] }} -> {{ new_onboot }}"
+          - label: "Update onboot status {{ 'onboot' in current_guest_config and current_guest_config.onboot == '1' }} -> {{ new_onboot }}"
             command:
               vm: "qm set {{ vmid }} --onboot {{ new_onboot }}"
               lxc: "pct set {{ vmid }} --onboot {{ new_onboot }}"
-            condition: "{{ 'onboot' not in current_guest_config or ('onboot' in current_guest_config and current_guest_config['onboot'] != new_onboot) }}"
+            condition: "{{ 'onboot' not in current_guest_config or ('onboot' in current_guest_config and (current_guest_config.onboot == '1') != new_onboot) }}"
           - label: "Change pool {{ current_guest_config.pool | upper }} -> {{ pool | upper }}"
             command: # lxc and vm are similar (maybe this can be refactored in future)
               vm: |
