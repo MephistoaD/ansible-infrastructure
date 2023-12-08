@@ -1,0 +1,31 @@
+---
+- name: (pbs_install) add pbs apt-key
+  apt_key:
+    url: https://enterprise.proxmox.com/debian/proxmox-release-{{ ansible_distribution_release }}.gpg
+    state: present
+
+- name: add pbs no subscription repository
+  apt_repository:
+    repo: 'deb http://download.proxmox.com/debian/pbs {{ ansible_distribution_release }} pbs-no-subscription'
+    state: present
+    filename: pbs
+    update_cache: yes
+
+- name: install packages
+  apt:
+    pkg:
+      - proxmox-backup-server
+    state: present
+
+- name: Disable and stop zfs-zed.service
+  service:
+    name: zfs-zed
+    enabled: no
+    state: stopped
+  when: 
+    - custom_fields.technology == 'lxc'
+
+- name: remove pve-enterprise.list
+  file:
+    path: /etc/apt/sources.list.d/pbs-enterprise.list
+    state: absent
