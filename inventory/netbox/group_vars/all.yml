@@ -46,3 +46,4 @@ pools:
 
 application_layer_cluster: "{{ groups[device_roles[0]] | map('extract', hostvars) | selectattr('custom_fields.application_layer_cluster_name', 'defined')  | selectattr('custom_fields.application_layer_cluster_name', 'equalto', custom_fields.application_layer_cluster_name) | map(attribute='inventory_hostname') | list }}"
 cluster_leaders: "{{ application_layer_cluster | map('extract', hostvars) | selectattr('custom_fields.cluster_position', 'defined') | selectattr('custom_fields.cluster_position', 'equalto', 'leader') | map(attribute='inventory_hostname') | list }}"
+cluster_leader: "{{ cluster_leaders | first }}"

@@ -2,7 +2,6 @@
 - name: "Role: keepalived"
   vars:
     keepalived_virtual_ip_: "{{ hostvars[cluster_leader].local_context_data[0].keepalived_virtual_ip | default(keepalived_virtual_ip) }}"
-    cluster_leader: "{{ cluster_leaders | first }}"
   when:
   - (only_role is not defined or only_role == "keepalived")
     
