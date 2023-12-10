@@ -1,0 +1,14 @@
+---
+- name: Install unbound dns server
+  apt:
+    pkg: "{{ item }}"
+    state: present
+  loop:
+    - unbound
+
+- name: Download named.root file if it doesn't exist
+  get_url:
+    url: "https://www.internic.net/domain/named.root"
+    dest: "/var/lib/unbound/root.hints"
+    force: "{{ upgrade }}" # replaces the root hints on each system upgrade
+  register: download_result

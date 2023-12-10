@@ -102,7 +102,28 @@ scrape_configs:
         action: replace
     static_configs:
       - targets:
-{% for group in nginx_exporter_groups %}
+{% for group in dependencies_of['nginx'] %}
+{% if '_' + group in groups %}
+{% for host in groups['_' + group] %}
+        - {{ host }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+
+  - job_name: 'unbound_exporter'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target] # make sure the port is not shown behind the address
+        target_label: instance
+      - source_labels: [__address__] # add the port behind the targets
+        regex: (.*)
+        replacement: $1:9167
+        target_label: __address__
+        action: replace
+    static_configs:
+      - targets:
+{% for group in dependencies_of['unbound'] %}
 {% if '_' + group in groups %}
 {% for host in groups['_' + group] %}
         - {{ host }}

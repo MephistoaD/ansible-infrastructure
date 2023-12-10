@@ -1,0 +1,49 @@
+---
+- name: Install dependencies
+  apt:
+    pkg: "{{ item }}"
+    state: present
+  loop:
+    - golang
+
+- name: Install prometheus-unbound-exporter
+  shell:
+    executable: /usr/bin/bash
+    cmd: |
+      go install github.com/letsencrypt/unbound_exporter@latest
+  register: install_unbound_exporter
+  # returns 0 even when nothing is installed
+  changed_when: install_unbound_exporter.stdout != ""
+
+- name: Update prometheus-unbound-exporter
+  shell:
+    executable: /usr/bin/bash
+    cmd: |
+      go get -u
+  when:
+    - upgrade
+
+- name: Template prometheus-unbound-exporter.service
+  ansible.builtin.template:
+    src: "etc_systemd_system_prometheus-unbound-exporter.service.j2"
+    dest: "/etc/systemd/system/prometheus-unbound-exporter.service"
+    owner: root
+    group: root
+    mode: '0644'
+  register: prometheus_unbound_exporter_service
+  
+- name: Restart prometheus-unbound-exporter.service on config changes
+  service:
+    name: prometheus-unbound-exporter.service
+    state: restarted
+    enabled: true
+  when: 
+    - prometheus_unbound_exporter_service.changed
+
+- name: Assert that prometheus-unbound-exporter.service is up and running
+  block:
+  - name: Check if prometheus-unbound-exporter.service is running
+    ansible.builtin.systemd:
+      name: "prometheus-unbound-exporter.service"
+    register: prometheus_unbound_exporter_service_check
+    failed_when: prometheus_unbound_exporter_service_check.status.ActiveState != "active"

@@ -1,0 +1,12 @@
+[Unit]
+Description=Unbound Exporter for Prometheus
+After=network.target
+
+[Service]
+ExecStart=/root/go/bin/unbound_exporter -unbound.ca "" -unbound.cert "" -unbound.host "unix:///run/unbound.ctl"
+Restart=always
+User=root
+Group=root
+
+[Install]
+WantedBy=multi-user.target

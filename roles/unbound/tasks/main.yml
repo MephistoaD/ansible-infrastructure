@@ -1,0 +1,14 @@
+---
+- name: "Role unbound"
+  when:
+    - only_role is undefined or only_role == "unbound"
+  block:
+  - import_tasks: install_unbound.yml
+    when:
+      - not quick
+
+  - import_tasks: configure_unbound.yml
+
+  - import_tasks: prometheus_exporter.yml
+    when:
+      - not quick
