@@ -7,6 +7,9 @@
   when:
     - only_role is undefined or only_role == "nginx"
   block:
+  - debug:
+      var: nginx_config_
+
   - name: Install nginx
     include_tasks: install.yml
     when: 

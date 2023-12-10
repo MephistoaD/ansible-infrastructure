@@ -14,6 +14,7 @@
   failed_when: false
   when: 
     - vhost.name not in ansible_local.nginx.certbot_managed_domains
+    - vhost.https == "certbot"
 
 - name: Show results of certbot certificate creation
   debug:

@@ -4,6 +4,7 @@ upstream {{ vhost.name }}.upstream {
 {% endfor %}
 }
 
+{% if 'https' in vhost and vhost['https']%}
 server {
     listen 443 ssl http2;
     listen [::]:443 ssl http2;
@@ -12,14 +13,12 @@ server {
 
     access_log  /var/log/nginx/{{ vhost.name }}.access.log;
 
-{% if 'https' in vhost %}
-{% if 'self-signed' in vhost['https'] %}
+{% if vhost['https'] and'self-signed' in vhost['https'] %}
     ssl_certificate     {{ ssl_cert_path }};
     ssl_certificate_key {{ ssl_key_path }};
-{% elif 'certbot' in vhost['https'] %}
+{% elif vhost['https'] and 'certbot' in vhost['https'] %}
     ssl_certificate     /etc/letsencrypt/live/{{ vhost.name }}/fullchain.pem; # managed by Certbot
     ssl_certificate_key /etc/letsencrypt/live/{{ vhost.name }}/privkey.pem; # managed by Certbot
-{% endif %}
 {% endif %}
 
     # Some settings selecting stronger encryption
@@ -67,14 +66,15 @@ server {
 {% endif %} #}
 
     location / {
-        proxy_pass          {{ 'http' if not vhost.https else 'https' }}://{{ vhost.name }}.upstream;
+        proxy_pass          {{ 'http' if vhost.proxy_to_http is defined and vhost.proxy_to_http }}://{{ vhost.name }}.upstream;
         proxy_set_header    Host $host;
         proxy_set_header    X-Real-IP $remote_addr;
         proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header    X-Forwarded-Proto {{ 'http' if not vhost.https else 'https' }};
+        proxy_set_header    X-Forwarded-Proto https;
         proxy_ssl_name      $host;
     }
 }
+{% endif %}
 
 # This block is located here to log the requests correctly
 server {
@@ -106,7 +106,16 @@ server {
 {% endif %} #}
 
     location / {
+{% if vhost['https'] %}
         # Redirect other requests to https
         return 301 https://$host$request_uri;
+{% else %}
+        proxy_pass          http://{{ vhost.name }}.upstream;
+        proxy_set_header    Host $host;
+        proxy_set_header    X-Real-IP $remote_addr;
+        proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header    X-Forwarded-Proto http;
+        proxy_ssl_name      $host;
+{% endif %}
     }
 }
