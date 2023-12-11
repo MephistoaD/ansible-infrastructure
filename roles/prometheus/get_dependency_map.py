@@ -19,8 +19,6 @@ def list_dependent_roles(role_name):
                 if dependency == current_role:
                     stack.append(role)
 
-    dependent_roles.remove(role_name)  # Remove the role itself
-
     return list(dependent_roles)
 
 def get_all_dependencies():
