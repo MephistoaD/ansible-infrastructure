@@ -5,8 +5,12 @@ grafana_datasources:
   prometheus:
     - "{{ groups._prometheus }}"
 
+grafana_panel_plugins:
+  - grafana-piechart-panel
+
 nginx_config:
   - name: "_"
-    https: false # false, self-signed, acme
+    https: self-signed # false, self-signed, acme
+    proxy_to_http: true
     proxy_targets:
-      - "localhost:3000"
+      - "127.0.0.1:3000"

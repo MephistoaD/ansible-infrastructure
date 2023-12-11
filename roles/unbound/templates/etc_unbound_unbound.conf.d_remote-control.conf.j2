@@ -1,0 +1,9 @@
+{# 
+    Those remote control settings are usually set by default. 
+    However it is crucial that they are set this way since the prometheus exporter depends on it.
+ #}
+remote-control:
+  control-enable: yes
+  # by default the control interface is is 127.0.0.1 and ::1 and port 8953
+  # it is possible to use a unix socket too
+  control-interface: /run/unbound.ctl

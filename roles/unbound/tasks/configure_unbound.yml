@@ -1,0 +1,41 @@
+---
+- name: Template /etc/unbound/unbound.conf.d/*
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: '0644'
+  register: unbound_config
+  loop_control:
+    label: "{{ item.dest }}"
+  loop:
+    - src: "etc_unbound_unbound.conf.d_server.conf.j2"
+      dest: "/etc/unbound/unbound.conf.d/server.conf"
+    - src: "etc_unbound_unbound.conf.d_remote-control.conf.j2"
+      dest: "/etc/unbound/unbound.conf.d/remote-control.conf"
+
+- name: Restart unbound service on config changes
+  service:
+    name: unbound
+    state: restarted
+    enabled: true
+  when: 
+    - unbound_config.changed
+
+- name: Assert that unbound is up and running
+  block:
+  - name: Check if unbound.service is running
+    ansible.builtin.systemd:
+      name: "unbound.service"
+    register: unbound_service_check
+    failed_when: unbound_service_check.status.ActiveState != "active"
+
+  - name: Resolve pi-hole.net to ensure unbound is working properly
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        dig pi-hole.net @127.0.0.1 -p {{ unbound_port }}
+    register: unbound_test_resolution
+    changed_when: false
+    failed_when: unbound_test_resolution.rc != 0

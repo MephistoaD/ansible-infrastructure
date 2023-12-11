@@ -1,3 +1,9 @@
 ---
-- include_tasks: install.yml
-- include_tasks: configure_prometheus.yml
+- name: "Role: prometheus"
+  when:
+    - (only_role is not defined or only_role == "prometheus")
+  block:
+  - include_tasks: install.yml
+    when:
+      - not quick
+  - include_tasks: configure_prometheus.yml

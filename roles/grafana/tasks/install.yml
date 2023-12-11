@@ -16,11 +16,22 @@
     state: latest
   register: grafana_install
 
+- name: Install/update Grafana panel plugins
+  community.grafana.grafana_plugin:
+    name: "{{ item }}"
+    version: latest
+    state: present
+  register: install_plugins
+  loop: "{{ grafana_panel_plugins }}"
+
 - name: Enable and start Grafana service
   systemd:
     name: grafana-server
-    state: started
+    state: restarted
     enabled: yes
+  when:
+    - (grafana_install.changed or
+      install_plugins.changed)
 
 - name: Wait for Grafana to be restarted
   wait_for:
