@@ -5,7 +5,7 @@
     role_name: nginx
   local_action: 
     module: shell
-    cmd: python3 ../roles/prometheus/get_dependency_map.py
+    cmd: python3 ../roles/prometheus/get_dependency_map.py --inventory {{ inventory_file }}
   changed_when: false
   register: dependency_map_raw
 
@@ -15,7 +15,7 @@
     devices: "{{ groups.all | difference(groups.is_virtual) }}"
     node_exporter_hosts: "{{ devices | union(guests) }}"
     pve_exporter_hosts: "{{ groups._pve_node }}"
-    dependencies_of: "{{ dependency_map_raw.stdout | from_json }}"
+    dependency_map: "{{ dependency_map_raw.stdout | from_json }}"
   block:
   - debug:
       var: node_exporter_hosts
@@ -24,7 +24,7 @@
       var: pve_exporter_hosts
 
   - debug:
-      var: dependencies_of
+      var: dependency_map
 
   - name: Place prometheus configuration (changes always reordering the hosts list)
     template:

@@ -1,4 +1,6 @@
 ---
+prometheus_role_exporter_port_nginx: 9113
+
 ssl_cert_path: "/etc/ssl/certs/self-signed.crt"
 ssl_key_path: "/etc/ssl/private/self-signed.key"
 
