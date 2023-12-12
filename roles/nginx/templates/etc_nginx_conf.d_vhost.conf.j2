@@ -66,7 +66,7 @@ server {
 {% endif %} #}
 
     location / {
-        proxy_pass          {{ 'http' if vhost.proxy_to_http is defined and vhost.proxy_to_http }}://{{ vhost.name }}.upstream;
+        proxy_pass          {{ 'http' if vhost.proxy_to_http is defined and vhost.proxy_to_http else 'https' }}://{{ vhost.name }}.upstream;
         proxy_set_header    Host $host;
         proxy_set_header    X-Real-IP $remote_addr;
         proxy_set_header    X-Forwarded-For $proxy_add_x_forwarded_for;
