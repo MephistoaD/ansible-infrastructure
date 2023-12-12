@@ -9,6 +9,10 @@
   deploy_guest: (false, "true", "redeploy", "purge") deploys the vm or ct from the stats given in the netbox instance, purge ignores the status in netbox, if set to "only" the roles are skipped
   only_role: (undefined, role name) skipps non vital tasks from all other roles (useful for debugging)
 
+## Prometheus:
+
+  prometheus_role_exporter_port_{role_name}: (false, int) set for each role in its vars, this determines the port of the roles dedicated promethtus exporter
+
 ## PVE Nodes:
 
   ansible-playbook playbooks/generic-playbook.yml -e "target=_pve_node include_roles=['pve_node','debian','postfix','etckeeper']"
