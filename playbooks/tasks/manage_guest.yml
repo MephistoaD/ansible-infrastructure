@@ -166,11 +166,11 @@
             condition: "{{ current_guest_config['status'] == 'stopped' and status.value == 'active' }}"
           
           # after start
-          - label: "Update onboot status {{ 'onboot' in current_guest_config and current_guest_config.onboot == '1' }} -> {{ new_onboot }}"
+          - label: "Update onboot status {{ 'onboot' in current_guest_config and current_guest_config.onboot }} -> {{ new_onboot }}"
             command:
               vm: "qm set {{ vmid }} --onboot {{ new_onboot }}"
               lxc: "pct set {{ vmid }} --onboot {{ new_onboot }}"
-            condition: "{{ 'onboot' not in current_guest_config or ('onboot' in current_guest_config and (current_guest_config.onboot == '1') != new_onboot) }}"
+            condition: "{{ 'onboot' not in current_guest_config or ('onboot' in current_guest_config and (current_guest_config.onboot) != new_onboot) }}"
           - label: "Change pool {{ current_guest_config.pool | upper }} -> {{ pool | upper }}"
             command: # lxc and vm are similar (maybe this can be refactored in future)
               vm: |
@@ -294,10 +294,10 @@
     block:
     - name: Error on different rootfs sizes
       fail:
-        msg: "The current guests rootfs size is {{ current_guest_config.rootfs_size }} but the netbox defines it to be {{ disk }}. Automatic disk changes are not implemented yet."
+        msg: "The current guests rootfs size is {{ current_guest_config.storage.rootfs.size }}GB but the netbox defines it to be {{ disk }}. Automatic disk changes are not implemented yet."
       when:
         - technology == "lxc"
-        - current_guest_config.rootfs_size != disk
+        - current_guest_config.storage.rootfs.size != disk
 
 # End of Deployment block
 
