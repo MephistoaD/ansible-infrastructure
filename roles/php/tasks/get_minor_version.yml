@@ -1,0 +1,57 @@
+---
+# NOTE TO MYSELF: Why such a weird logic?
+# Seemingly (as right now when I'm writing this with php8.2 -> 8.3) it is possible
+# that not all php metapackages get bumped to the next version simultaneously.
+# This logic ensures that the next php version is only installed when all metapackages
+# are updated previously to ensure all modules are available.
+# Without this there are a ton of missing php packages in such a situation rendering 
+# the webserver unusable.
+
+- name: Get the highest common minor version of the required php packages
+  shell:
+    executable: "{{ ansible_python.executable }}"
+    cmd: |
+      import re
+      import subprocess
+      import json
+
+      # List of PHP metapackages
+      php_metapackages = {{ php_packages }}
+
+      # Function to get the minor version of a PHP package from the "Depends" field
+      def get_php_minor_version_from_depends(package):
+          result = subprocess.run(["apt", "show", package], capture_output=True, text=True)
+          output_lines = result.stdout.splitlines()
+
+          php_module_name = package.split("php-")[1] if package != "php" else "php"
+
+          for line in output_lines:
+              if line.startswith("Depends:"):
+                  match = list(filter(lambda pkg: php_module_name in pkg, line.split(" ")))[0]
+                  version = match.strip(",").strip("php").split("-")[0]
+
+                  return version
+
+          return None
+
+      # Get the minor versions of all PHP metapackages
+      versions = {package.split("php-")[1] if package != "php" else "php": get_php_minor_version_from_depends(package) for package in php_metapackages}
+
+      # Find the minimum minor version
+      min_minor_version = min(versions.values())
+
+      # Construct the JSON output
+      output_json = {
+          "packages": versions,
+          "min_minor_version": min_minor_version
+      }
+
+      # Print the JSON
+      print(json.dumps(output_json, indent=2))
+
+
+  register: php_version_latest_raw
+  changed_when: false
+
+- debug:
+    var: php_version_latest_raw.stdout

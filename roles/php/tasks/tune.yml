@@ -1,4 +1,6 @@
 ---
+
+
 - name: Ensure fpm configuration is set
   lineinfile:
     path: /etc/php/{{ php_version }}/fpm/php.ini

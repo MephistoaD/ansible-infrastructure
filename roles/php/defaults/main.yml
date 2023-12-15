@@ -13,3 +13,7 @@ php_fpm_default_settings: # equivalent: php_fpm_settings
   - { key: "opcache.max_accelerated_files", value: "10000" }
   - { key: "opcache.revalidate_freq", value: "1" }
   - { key: "opcache.save_comments", value: "1" }
+
+php_packages: 
+  - php
+  - php-fpm  
