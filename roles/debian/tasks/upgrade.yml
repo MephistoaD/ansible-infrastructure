@@ -22,6 +22,7 @@
 
 - name: Dist-upgrade
   apt:
+    clean: true # clean cache afterwards
     upgrade: dist
     autoremove: yes
   diff: true
