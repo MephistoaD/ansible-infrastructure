@@ -1,16 +1,22 @@
 ---
-- name: Install Redis
-  become: true
-  apt:
-    name: redis-server
-    state: present
+- name: "Role: redis"
+  when:
+    - only_role is not defined or only_role == "redis"
+  block:
+  - name: Install Redis
+    become: true
+    apt:
+      name: redis-server
+      state: present
+    when:
+      - not quick
 
-- name: Check Redis Status
-  command: redis-cli ping
-  register: redis_status
-  ignore_errors: true
-  changed_when: false
+  - name: Check Redis Status
+    command: redis-cli ping
+    register: redis_status
+    ignore_errors: true
+    changed_when: false
 
-- name: Show Redis Status
-  debug:
-    msg: "Redis is {{ 'up and running' if redis_status.stdout == 'PONG' else 'not running' }}"
+  - name: Show Redis Status
+    debug:
+      msg: "Redis is {{ 'up and running' if redis_status.stdout == 'PONG' else 'not running' }}"
