@@ -1,20 +1,45 @@
 ---
-- name: Install php
-  include_tasks: install.yml
+- name: "Role: php"
+  vars:
+    foo: bar
   when:
-    - only_role is undefined or only_role == "php"
+    - only_role is not defined or only_role == "php"
+  block:
+  # - name: Add repositories
+  #   include_tasks: add_repositories.yml # TODO: uncomment
 
-- name: Get the version of the currently running PHP installation
-  shell: "php -v | head -n 1 | awk '{print $2}' | cut -d. -f1,2"
-  register: php_version_raw
-  changed_when: false
+  - name: Get the version of the currently running PHP installation
+    shell: "php -v | head -n 1 | awk '{print $2}' | cut -d. -f1,2"
+    register: php_version_raw
+    changed_when: false
 
-- name: Set fact php_version
-  set_fact:
-    php_version: "{{ php_version_raw.stdout }}"
+  - debug:
+      var: php_version_raw
 
-- name: Tune php
-  include_tasks: tune.yml
-  when:
-    - only_role is undefined or only_role == "php"
+  - name: Get minor version
+    include_tasks: get_minor_version.yml
+    when:
+      - not quick
+
+  - name: Install php
+    vars:
+      php_latest_versions: "{{ php_version_latest_raw.stdout | from_json}}"
+      php_version_to_install: "{{ php_version_raw.stdout if not upgrade and php_version_raw.stdout != '' else php_latest_versions.min_minor_version }}"
+    include_tasks: install.yml
+    when:
+      - not quick
+
+  - name: Get the version of the currently running PHP installation
+    shell: "php -v | head -n 1 | awk '{print $2}' | cut -d. -f1,2"
+    register: php_version_raw
+    changed_when: false
+
+  - name: Set fact php_version
+    set_fact:
+      php_version: "{{ php_version_raw.stdout }}"
+
+  - name: Tune php
+    include_tasks: tune.yml
+    when:
+      - only_role is undefined or only_role == "php"
 

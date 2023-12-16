@@ -23,6 +23,7 @@
     block:
     - when:
       - vmid | string in ansible_local.pve_node['guests_by_id']
+      - deploy_guest in ["redeploy", "purge"] or status.value in ['offline', 'decommissioning']
       block:
       - name: Manage guest
         vars:
@@ -33,7 +34,7 @@
             command:
               vm: "qm stop {{ vmid}}"
               lxc: "pct stop {{ vmid }}"
-            condition: "{{ (current_vm_config.status == 'running' and status.value in ['offline', 'decommissioning']) or deploy_guest in ['redeploy', 'purge'] }}"
+            condition: "{{ current_vm_config.status == 'running' }}"
           - label: "Remove {{ technology | upper }} {{ vmid }}"
             command:
               vm: "qm destroy {{ vmid}}"
@@ -132,6 +133,7 @@
     vars:
       current_guest_config: "{{ ansible_local.pve_node['guests_by_id'][vmid] }}"
       delegate_to_guest_pve_instance: "{{ ansible_local.pve_node['guests_by_id'][vmid]['node'] }}"
+      current_memory: "{{ current_guest_config.maxmem / 1024 / 1024 | int }}"
     block:
     - name: Change guest
       vars:
@@ -149,11 +151,11 @@
               vm: "qm set {{ vmid }} --cores {{ vcpus | int }}"
               lxc: "pct set {{ vmid }} --cores {{ vcpus | int }}"
             condition: "{{ vcpus | int != current_guest_cpu | int }}"
-          - label: "Update memory {{ current_guest_config['memory'] }} -> {{ memory }} MB"
+          - label: "Update memory {{ current_memory }} -> {{ memory }} MB"
             command:
               vm: "qm set {{ vmid }} --memory {{ memory }}"
               lxc: "pct set {{ vmid }} --memory {{ memory }}"
-            condition: "{{ memory | string != current_guest_config['memory'] }}"
+            condition: "{{ memory | string != current_memory }}"
 #          - label: "Update disk size {{ current_guest_config['scsi0']['size'] }} -> {{ disk }} GB"
  #           action: "qm resize {{ vmid }} scsi0 {{ disk }}G"
   #          condition: "{{ disk > current_guest_config['scsi0']['size'] }}"

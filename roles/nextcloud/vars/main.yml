@@ -4,3 +4,27 @@ postgres_users:
 postgres_databases:
   - name: "nextcloud_db"
     owner: "nextcloud_db_user"
+
+php_packages:
+  - php
+  - php-fpm  
+  - php-gd
+  - php-curl
+  - php-xml
+  - php-zip
+  - php-intl
+  - php-mbstring
+  - php-bz2
+#  - php-json # meta apckage which is already satisfied with php-fpm
+  - php-apcu
+  - php-imagick
+  - php-gmp
+  - php-bcmath
+  - php-pgsql
+  - php-redis
+  - php-memcached
+
+php_cli_settings:
+  - { key: "apc.enabled", value: "1" }
+  - { key: "apc.enable_cli", value: "1" }
+

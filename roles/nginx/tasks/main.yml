@@ -23,6 +23,8 @@
 
   - name: Run certbot
     include_tasks: certbot.yml
+    when:
+      - nginx_config_ is defined
 
   - name: Configure nginx
     include_tasks: configure.yml
