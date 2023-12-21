@@ -1,6 +1,4 @@
 ---
-
-
 - name: Ensure fpm configuration is set
   lineinfile:
     path: /etc/php/{{ php_version }}/fpm/php.ini
@@ -21,8 +19,21 @@
   with_items: "{{ (php_cli_default_settings | default([])) + (php_cli_settings | default([])) }}"
   register: cli_config_changed
 
+- name: Ensure www pool configuration is set
+  lineinfile:
+    path: /etc/php/{{ php_version }}/fpm/pool.d/www.conf
+    regexp: '^;?\s*{{ item.key }}\s*=*'
+    line: "{{ item.key }} = {{ item.value }}"
+    state: present
+    backup: no
+  with_items: "{{ (php_www_default_settings | default([])) + (php_www_settings | default([])) }}"
+  register: www_pool_config_changed
+
 - name: Restart php-fpm service
   service:
     name: "php{{ php_version }}-fpm"
     state: restarted
-  when: fpm_config_changed.changed or cli_config_changed.changed
+  when: 
+    - (fpm_config_changed.changed or 
+      cli_config_changed.changed or
+      www_pool_config_changed.changed)

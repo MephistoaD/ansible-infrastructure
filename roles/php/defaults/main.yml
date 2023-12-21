@@ -9,10 +9,17 @@ php_fpm_default_settings: # equivalent: php_fpm_settings
   - { key: "opcache.enable", value: "1" }
   - { key: "opcache.enable_cli", value: "1" }
   - { key: "opcache.memory_consumption", value: "{{ (ansible_memory_mb['real']['total'] * 0.85) | int }}" }
-  - { key: "opcache.interned_strings_buffer", value: "8" }
+  - { key: "opcache.interned_strings_buffer", value: "32" }
   - { key: "opcache.max_accelerated_files", value: "10000" }
   - { key: "opcache.revalidate_freq", value: "1" }
   - { key: "opcache.save_comments", value: "1" }
+
+php_www_default_settings:
+  - { key: "env[HOSTNAME]", value: "$HOSTNAME" }
+  - { key: "env[PATH]", value: "/usr/local/bin:/usr/bin:/bin" }
+  - { key: "env[TMP]", value: "/tmp" }
+  - { key: "env[TMPDIR]", value: "/tmp" }
+  - { key: "env[TEMP]", value: "/tmp" }
 
 php_packages: 
   - php
