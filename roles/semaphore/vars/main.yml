@@ -4,3 +4,10 @@ postgres_users:
 postgres_databases:
   - name: "semaphore_db"
     owner: "semaphore_db_user"
+
+
+nginx_config:
+  - name: "_"
+    https: false # false, self-signed, acme
+    proxy_targets:
+      - "localhost:3000"
