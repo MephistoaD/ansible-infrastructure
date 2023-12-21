@@ -1,38 +1,31 @@
 ---
 - name: DEB debian update repos
+  when:
+    - only_role is undefined or only_role == "debian"
   block:
   - name: Update all repos and cache
     apt:
       update_cache: yes
       force_apt_get: yes
     changed_when: false # does not count as change
+
+  # INCLUDES
+  - name: Run upgrades
+    include_tasks: upgrade.yml
     when:
-      - only_role is undefined or only_role == "debian"
+      - upgrade
 
-# INCLUDES
-- name: Run upgrades
-  include_tasks: upgrade.yml
-  when:
-    - upgrade
+  - name: DEB debian packages
+    include_tasks: packages.yml
 
-- name: DEB debian packages
-  include_tasks: packages.yml
-  when:
-    - only_role is undefined or only_role == "debian"
+  - name: Files and directories
+    include_tasks: files_and_dirs.yml
 
-- name: Files and directories
-  include_tasks: files_and_dirs.yml
-  when:
-    - only_role is undefined or only_role == "debian"
+  - name: Set time
+    include_tasks: set_time.yml
 
-- name: Set time
-  include_tasks: set_time.yml
-  when:
-    - only_role is undefined or only_role == "debian"
-
-- name: Install prometheus_node_exporter
-  include_tasks: install_prometheus_node_exporter.yml
-  when:
-    - only_role is undefined or only_role == "debian"
-    - install_prometheus_node_exporter
-    - not (is_virtual and custom_fields.technology == 'lxc') # lxc exportieren nur die Stats von ihrem host
+  - name: Install prometheus_node_exporter
+    include_tasks: install_prometheus_node_exporter.yml
+    when:
+      - install_prometheus_node_exporter
+      - not (is_virtual and custom_fields.technology == 'lxc') # lxc exportieren nur die Stats von ihrem host
