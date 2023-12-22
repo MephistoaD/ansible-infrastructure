@@ -23,7 +23,7 @@
 - name: Install netbox_inventory dependencies
   pip:
     name: "{{ item }}"
-    extra_args: --break-system-packages
+    extra_args: "{{ '--break-system-packages' if ansible_lsb.major_release | int >= 12 else '' }}"
   when:
     - not quick
   loop:
