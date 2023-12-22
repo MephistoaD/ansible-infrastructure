@@ -1,0 +1,13 @@
+[Unit]
+Description=Home Assistant Core
+After=network.target
+
+[Service]
+Type=simple
+User={{ homeassistant_user }}
+Environment="VIRTUAL_ENV={{ homeassistant_dir }}"
+ExecStart={{ homeassistant_dir }}/bin/hass
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
