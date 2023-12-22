@@ -1,0 +1,81 @@
+---
+- name: Install dependencies
+  apt:
+    pkg: "{{ item }}"
+    state: present
+  when:
+    - not quick
+  loop:
+    - python3 
+    - python3-dev 
+    - python3-venv 
+    - python3-pip 
+    - bluez 
+    - libffi-dev 
+    - libssl-dev
+    - libjpeg-dev
+    - zlib1g-dev
+    - autoconf
+    - build-essential
+    - libopenjp2-7
+    - libtiff6
+    - libturbojpeg0-dev
+    - tzdata
+    - ffmpeg
+    - liblapack3
+    - liblapack-dev
+    - libatlas-base-dev
+
+- name: "Create {{ homeassistant_user }} group"
+  group:
+    name: "{{ homeassistant_user }}"
+    state: present
+
+- name: "Create {{ homeassistant_user }} system user"
+  user:
+    name: "{{ homeassistant_user }}"
+    system: yes
+    group: "{{ homeassistant_user }}"
+    home: "{{ homeassistant_dir }}"
+    shell: /bin/false
+
+- name: Install required python packages with pip3
+  become: true
+  become_user: "{{ homeassistant_user }}"
+  pip:
+    name: "{{ item }}"
+    extra_args: "{{ '--break-system-packages' if ansible_distribution_major_version | int >= 12 else '' }}"
+    state: "{{ 'latest' if upgrade else 'present' }}"
+    virtualenv: "{{ homeassistant_dir }}"
+    virtualenv_command: "/usr/bin/python3 -m venv" #"{{ ansible_python.executable }}"
+  loop:
+    - wheel
+    - homeassistant
+  when:
+    - not quick
+
+- name: Place homeassisstant service
+  template:
+    src: etc_systemd_system_homeassistant.service.j2
+    dest: /etc/systemd/system/homeassistant.service
+    owner: root
+    group: root
+    mode: 0644
+  register: homeassistant_service
+
+- name: Restart homeassitant service
+  systemd:
+    name: homeassistant.service
+    enabled: true
+    state: restarted
+  when: 
+    - homeassistant_service.changed
+
+
+- name: Assert that homeassisstant is up and running
+  block:
+  - name: Check if homeassistant.service is running
+    ansible.builtin.systemd:
+      name: "homeassistant.service"
+    register: homeassisstant_service_check
+    failed_when: homeassisstant_service_check.status.ActiveState != "active"

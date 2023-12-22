@@ -1,0 +1,3 @@
+---
+homeassistant_dir: /opt/homeassistant
+homeassistant_user: homeassistant

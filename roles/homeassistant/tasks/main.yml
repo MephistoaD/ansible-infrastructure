@@ -1,0 +1,11 @@
+---
+- name: "Role: homeassistant"
+  vars:
+    foo: bar
+  when: 
+    - only_role is not defined or only_role == "homeassistant"
+  block:
+  # Assertions
+
+  # Installation
+  - include_tasks: install.yml
