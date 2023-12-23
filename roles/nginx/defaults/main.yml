@@ -9,3 +9,5 @@ nginx_exporter_repo: nginxinc/nginx-prometheus-exporter
 
 keepalived_ha_checks:
   check_nginx: "/usr/bin/pkill -0 nginx"
+
+nginx_supress_certbot: false
