@@ -1,0 +1,50 @@
+---
+- name: "Role {{ role_name }}"
+  vars:
+    foo_: "{{ local_context_data[0]['foo'] | default(foo) }}"
+    
+  when:
+    - only_role is undefined or only_role == role_name
+  block:
+  # Assertions
+  - name: "Preventive assertions of role {{ role_name }}"
+    assert:
+      that:
+        - "{{ item.check }}"
+      fail_msg: "{{ item.msg }}"
+    loop_control:
+      label: "{{ item.msg }}"
+    loop:
+      - { check: "{{ not is_virtual or custom_fields.technology == 'vm' }}", msg: "Assert that the PVE host is either a phisical device or a vm." }
+
+  # Scripts
+
+  # Tasks
+  - import_tasks: prepare.yml
+    when:
+      - not quick
+
+  - import_tasks: install.yml
+    when:
+      - not quick
+
+  - import_tasks: drain_node.yml
+    when: 
+      - (drain_node or upgrade)
+
+  - import_tasks: upgrade.yml
+    when: 
+      - upgrade
+
+  - import_tasks: ansible_local.yml
+
+  - import_tasks: configure.yml
+
+  - import_tasks: join_cluster.yml
+    when:
+      - cluster is defined
+      - not is_virtual
+
+  - import_tasks: prometheus_exporter.yml
+
+  # Tests

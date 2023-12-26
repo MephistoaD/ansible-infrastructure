@@ -1,0 +1,151 @@
+#!/usr/bin/env python3
+
+import subprocess
+import json
+
+def get_all_cluster_resources():
+    try:
+        return json.loads(
+                subprocess.check_output(["pvesh", "get", "/cluster/resources", "--output-format", "json"])
+            )
+    except subprocess.CalledProcessError as e:
+        print("Error running pvesh command:", e)
+        exit(1)
+
+def get_config_path(vmid):
+    try:
+        return subprocess.check_output(
+            ["find", "/etc/pve/nodes", "-type", "f", "-name", f"{vmid}.conf"],
+            stderr=subprocess.DEVNULL,
+            universal_newlines=True
+        ).strip()
+    except subprocess.CalledProcessError as e:
+        return None  # Handle errors or no matching file found
+
+def parse_config(config_path):
+    # Default values
+    parsed_config = {
+        "net": {},
+        "storage": {},
+        "onboot": False,
+    }
+
+    try:
+        with open(config_path, 'r') as file:
+            old_config = file.readlines()
+    except FileNotFoundError:
+        print(f"Config file not found at {config_path}")
+        return {}
+
+    for line in old_config:
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue # skip empty lines and comments
+        if line.startswith('['):
+            break # ignore snapshot sections
+
+        key, value = map(str.strip, line.split(":", 1))
+
+        match key:
+            case "onboot":
+                parsed_config['onboot'] = value == "1"
+            case x if 'net' in x:
+                parsed_config["net"][key] = { field.split("=")[0] : field.split("=")[1] for field in value.split(",") }
+            case x if (x.startswith("mp") or "rootfs" in x) or ("scsi" in x and "scsihw" != x):
+                # "mp0": "node-local:subvol-226-disk-3,mp=/mnt/nextcloud_data,backup=1,size=100G",
+                fields = value.split(",")
+                prefix = fields[0]
+                fields.remove(prefix)
+                properties = { field.split("=")[0] : field.split("=")[1] for field in fields }
+                properties["volume"] = prefix.split(":")[0]
+                properties["subvol"] = prefix.split(":")[1]
+                properties["size"] = int(properties["size"].strip("G"))
+                parsed_config["storage"][key] = properties
+            case _:
+                parsed_config[key] = value
+
+    return parsed_config
+
+def parse_nodes_status(nodes_status):
+    nodes = {}
+    for node in nodes_status:
+        if node["status"] != "online":
+            continue
+        nodes[node["node"]] = node
+        nodes[node["node"]]["guests"] = []
+    return nodes
+
+def get_cluster_resources_for(all_cluster_resources, resource_type):
+    wanted_resources = []
+
+    for resource in all_cluster_resources:
+        if resource["type"] == resource_type:
+            wanted_resources.append(resource)
+    return wanted_resources
+
+def get_tokens():
+    tokens = {}
+    try:
+        with open('/etc/pve/priv/token.cfg', 'r') as file:
+            lines = file.readlines()
+            for line in lines:
+                parts = line.strip().split()
+                tokens[parts[0]] = {
+                    "user": parts[0].split("!")[0],
+                    "tokenname": parts[0].split("!")[1],
+                    "token": parts[1]
+                }
+    except FileNotFoundError as e:
+        pass
+    return tokens
+
+def get_facts():
+    all_cluster_resources = get_all_cluster_resources()
+
+    # Run the pvesh command to get VM information
+    cluster_guests = get_cluster_resources_for(all_cluster_resources, "qemu") #
+    cluster_guests.extend(get_cluster_resources_for(all_cluster_resources, "lxc"))
+    cluster_nodes = get_cluster_resources_for(all_cluster_resources, "node")
+    cluster_pools = get_cluster_resources_for(all_cluster_resources, "pool")
+    tokens = get_tokens()
+
+    guests_by_id = {}
+    guests_by_node = parse_nodes_status(cluster_nodes)
+
+    for guest in cluster_guests:
+        vmid = guest["vmid"]
+        node = guest["node"]
+
+        # Store guests by ID
+        guests_by_id[vmid] = guest
+
+        # Store guests by node
+        guests_by_node[node]["guests"].append(guest)
+
+        # Find the config file path
+        config_file_path = get_config_path(vmid)
+
+        # Add the config file path to the guest dictionary
+        guest["config_path"] = config_file_path
+
+        # Parse guest configuration
+        guest_config = parse_config(config_file_path)
+        guest.update(guest_config)
+
+    # Create a dictionary containing all required variables
+    result = {
+        "guests": cluster_guests,
+        "guests_by_id": guests_by_id,
+        "guests_by_node": guests_by_node,
+        "pools": cluster_pools,
+        "tokens": tokens
+    }
+    return result
+
+def main():
+    facts = get_facts()
+    # Print the facts as JSON
+    print(json.dumps(facts, indent=4))
+
+if __name__ == "__main__":
+    main()

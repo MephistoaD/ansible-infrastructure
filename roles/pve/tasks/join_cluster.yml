@@ -1,0 +1,68 @@
+---
+- name: Join cluster
+  vars:
+    cluster_nodes: "{{ groups[cluster] | difference(groups.is_virtual) | list }}"
+    other_nodes: "{{ cluster_nodes | difference([inventory_hostname]) | list }}"
+    cluster_size: "{{ cluster_nodes | count }}"
+  block:  
+  - name: Create cluster
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        PVECM=/usr/bin/pvecm 
+        $PVECM status > /dev/null 2>&1
+        cluster_exists=$?
+
+        if [ $cluster_exists -eq 2 ]; then
+          $PVECM create {{ cluster }}
+        fi
+        exit $cluster_exists
+    register: create_cluster
+    failed_when: create_cluster.rc not in [0,2]
+    changed_when: create_cluster.rc == 2
+    when:
+      - cluster_size | int == 1
+
+  - name: Install expect
+    apt:
+      pkg: expect
+      state: present
+    when:
+      - join_password is defined
+
+  - name: Join cluster
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        /usr/bin/pvecm status
+
+        STATUS=$?
+
+        echo $STATUS
+
+        # Check the return code
+        if [ $STATUS -eq 0 ]; then
+          exit 0
+        fi
+
+        # Replace these variables with your actual values
+        NODE_IP="{{ hostvars[other_nodes | first].ansible_host }}"
+
+        # Respond to the prompts during the process
+        expect <<EOF
+            spawn /usr/bin/pvecm add $NODE_IP
+            expect "Please enter superuser (root) password for '$NODE_IP':"
+            send "{{ join_password }}\r"
+            expect "Are you sure you want to continue connecting (yes/no)?"
+            send "yes\r"
+            expect eof
+        EOF
+
+        # Print a message indicating success
+        echo -e "\nNode '$HOSTNAME' added to the cluster successfully."
+        exit 1
+    register: join_cluster
+    changed_when: join_cluster.rc == 1
+    failed_when: join_cluster.rc not in [0,1]
+    when:
+      - join_password is defined

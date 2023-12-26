@@ -1,0 +1,80 @@
+---
+- debug:
+    msg: "configure {{ role_name }}"
+
+- name: NETWORK CONFIG
+  block:
+  - name: Overwrite network config
+    ansible.builtin.template:
+      src: etc_network_interfaces.j2
+      dest: /etc/network/interfaces
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: Cleanup pending changes on network config
+    file:
+      path: /etc/network/interfaces.new
+      state: absent
+
+- name: MODIFY WEBUI
+  block:
+  - name: Disable nag box
+    shell:
+      executable: /bin/bash
+      cmd: |
+        grep -n -B 1 'No valid sub' /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js | grep -s void
+        changed=$?
+        if [ $changed == 1 ]; then 
+          sed -Ezi.bak "s/(Ext.Msg.show\(\{\s+title: gettext\('No valid sub)/void\(\{ \/\/\1/g" /usr/share/javascript/proxmox-widget-toolkit/proxmoxlib.js
+        fi
+        exit $changed
+    register: out
+    changed_when: "out.rc == 1"
+    failed_when: false
+
+#   - name: Download dark theme
+#     ansible.builtin.get_url:
+#       url: https://raw.githubusercontent.com/Weilbyte/PVEDiscordDark/master/PVEDiscordDark.sh
+#       dest: /usr/local/bin/PVEDiscordDark.sh
+#       mode: '0744'
+
+#   - name: Install dark theme
+#     command: 'bash /usr/local/bin/PVEDiscordDark.sh install'
+#     register: out
+#     failed_when: out.rc not in [ 0, 2 ]
+#     changed_when: out.rc == 0 # no change if already installed
+#     when:
+#       - pve_discord_dark
+
+#   - name: Uninstall dark theme
+#     command: 'bash /usr/local/bin/PVEDiscordDark.sh uninstall'
+#     register: out
+#     failed_when: out.rc not in [ 0, 2 ]
+#     changed_when: false # no change if already uninstalled
+#     when:
+#       - not pve_discord_dark
+
+- name: POOL CREATION
+  vars:
+    existing_pools: "{{ ansible_local.pve.pools | selectattr('pool', 'defined') | map(attribute='pool') | map('lower') | list }}"
+  block:
+  - name: Create pools
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        pvesh create /pools --poolid {{ item }}
+    when:
+      - (existing_pools is not defined or item not in existing_pools)
+    loop: "{{ pools }}"
+
+  - name: Delete pools if unused
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        pvesh delete /pools/{{ item }}
+    register: delete_pools
+    failed_when: delete_pools.rc not in [ 0, 255 ]
+    when:
+      - item not in pools
+    loop: "{{ ansible_local.pve.pools | selectattr('pool', 'defined') | map(attribute='pool') | map('lower') | list }}"
