@@ -6,10 +6,6 @@
   register: dpkg_reconfigure
   changed_when: dpkg_reconfigure.stdout != ""
 
-- name: Update apt cache
-  apt:
-    update_cache: yes
-
 - name: Dry run apt full-upgrade
   shell: apt-get -s -o Debug::NoLocking=true dist-upgrade | grep "^Inst" | awk '{print $2 " " $3 " -> " $4}'
   register: upgrade_output

@@ -1,0 +1,5 @@
+---
+# 1. find the pve node the guest is on
+# 2. qm stop the guest
+# 3. qm start the guest
+# 4. check if guest is online / wait until it's online?
