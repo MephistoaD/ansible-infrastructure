@@ -1,0 +1,19 @@
+auto lo
+iface lo inet loopback
+
+{% for interface in ansible_interfaces %}
+{% if interface == 'lo' %}
+iface {{ interface }} inet manual
+{% endif %}
+{% endfor %}
+
+auto vmbr0
+iface vmbr0 inet static
+	address {{ ansible_default_ipv4.address }}/{{ ansible_default_ipv4.prefix }}
+	gateway {{ ansible_default_ipv4.gateway }}
+	bridge-ports {{ ansible_default_ipv4.interface }}
+	bridge-stp off
+	bridge-fd 0
+
+
+source /etc/network/interfaces.d/*

@@ -36,6 +36,7 @@
   changed_when: false
   when:
     - not quick
+    - not nginx_supress_certbot
 
 - debug:
     var: certbot_renew.stdout_lines

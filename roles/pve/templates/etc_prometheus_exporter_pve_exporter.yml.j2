@@ -1,0 +1,8 @@
+---
+# /etc/pve_exporter/pve_exporter.yml
+
+default:
+  user: "{{ pve_exporter_token_user }}"
+  token_name: "{{ pve_exporter_token_name }}"
+  token_value: "{{ ansible_local.pve.tokens[pve_exporter_token].token }}"
+  verify_ssl: false

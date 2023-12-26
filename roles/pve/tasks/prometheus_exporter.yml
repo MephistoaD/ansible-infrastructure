@@ -1,0 +1,79 @@
+---
+- name: INSTALL
+  block:
+  - name: Install dependencies
+    apt:
+      pkg:
+        - "{{ item }}"
+      state: present
+    loop:
+      - python3-pip
+
+  - name: Install prometheus-pve-exporter
+    pip:
+      name: "{{ item }}"
+      executable: pip3
+      extra_args: "{{ '--break-system-packages' if ansible_distribution_major_version | int >= 12 else '' }}"
+    loop:
+      - prometheus-pve-exporter
+
+- name: TOKEN
+  vars:
+    pve_exporter_token: "{{ pve_exporter_token_user }}!{{ pve_exporter_token_name }}"
+  when:
+    - pve_exporter_token not in ansible_local.pve.tokens 
+  block:
+  - name: "Create access token for {{ pve_exporter_token }}"
+    shell:
+      executable: /bin/bash
+      cmd: |
+        pvesh create /access/users/{{ pve_exporter_token_user }}/token/{{ pve_exporter_token_name }} \
+          --expire 0 \
+          --privsep false \
+          --output-format json
+    register: create_pve_token
+
+  - name: "Collect ansible_local"
+    setup:
+      filter: ansible_local
+
+- name: CONFIGURE PVE_EXPORTER
+  vars:
+    pve_exporter_token: "{{ pve_exporter_token_user }}!{{ pve_exporter_token_name }}"
+  block:
+  - name: Ensure /etc/prometheus_exporter exists
+    file:
+      path: /etc/prometheus_exporter
+      owner: root
+      group: root
+      recurse: yes
+      state: directory
+
+  - name: Place pve_exporter configuration
+    template:
+      src: etc_prometheus_exporter_pve_exporter.yml.j2
+      dest: /etc/prometheus_exporter/pve_exporter.yml
+      owner: root
+      group: root
+      mode: '0644'
+    register: pve_exporter_config
+
+- name: SYSTEMD
+  block:
+  - name: Create pve_exporter systemd service
+    copy:
+      src: etc_systemd_system_pve_exporter.service
+      dest: /etc/systemd/system/pve_exporter.service
+      owner: root
+      group: root
+      mode: '0644'
+    register: pve_exporter_service
+
+  - name: Restart and enable pve_exporter
+    systemd:
+      name: pve_exporter.service
+      state: restarted
+      enabled: yes
+    when: >
+      pve_exporter_service.changed or
+      pve_exporter_config.changed

@@ -1,0 +1,8 @@
+---
+role_name: pve
+pve_discord_dark: false
+
+pve_exporter_token_user: "root@pam"
+pve_exporter_token_name: "pve_exporter"
+
+drain_node: false

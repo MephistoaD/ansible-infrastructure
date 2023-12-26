@@ -1,0 +1,17 @@
+---
+- name: Create /etc/hosts
+  ansible.builtin.template:
+    src: etc_hosts.j2
+    dest: /etc/hosts
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: "Assert that the hostname resolves to {{ primary_ip4 }}"
+  shell:
+    executable: /usr/bin/bash
+    cmd: hostname --ip-address
+  register: check_hostname_resolution
+  failed_when: check_hostname_resolution.stdout != primary_ip4
+  changed_when: false
+  

@@ -1,0 +1,10 @@
+---
+- name: Set ansible_local file
+  template:
+    src: etc_ansible_facts.d_pve.fact.j2  # Path to Python script template
+    dest: /etc/ansible/facts.d/pve.fact
+    mode: '700'  # Set the executable permission on the script
+
+- name: "Collect ansible_local"
+  setup:
+    filter: ansible_local

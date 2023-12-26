@@ -1,0 +1,88 @@
+---
+- name: "Add {{ role_name }} APT repository key"
+  apt_key:
+    url: "https://enterprise.proxmox.com/debian/proxmox-release-{{ ansible_distribution_release }}.gpg"
+    state: present
+
+- name: "Add {{ role_name }} APT repository"
+  apt_repository:
+    repo: "deb [arch=amd64] http://download.proxmox.com/debian/pve {{ ansible_distribution_release }} pve-no-subscription"
+    state: present
+    update_cache: yes
+
+- name: Manage kernel
+  block:
+  - name: Install the Proxmox VE Kernel
+    apt:
+      pkg: proxmox-default-kernel
+    register: pve_kernel
+    when:
+      - not quick
+
+  - name: Reboot the machine to the new kernel
+    reboot:
+      msg: "Reboot after installation of PVE Kernel"
+      connect_timeout: 5
+      reboot_timeout: 600
+      pre_reboot_delay: 0
+      post_reboot_delay: 30
+      test_command: uptime
+    register: reboot_kernel
+    when:
+      - pve_kernel.changed
+
+  - setup:
+    when:
+      - reboot_kernel.changed
+
+  - name: Fail if system runs still on default kernel
+    fail:
+      msg: "System is still running on {{ ansible_cmdline.BOOT_IMAGE }} instead of the PVE kernel, maybe reboot again?"
+    when: "'pve' not in ansible_cmdline.BOOT_IMAGE"
+
+  - name: Remove Debian default kernel
+    apt:
+      name: "{{ item }}"
+      state: absent
+    register: remove_old_kernel
+    loop:
+      - linux-image-amd64
+      - "linux-image-*"
+
+  - name: Update GRUB2
+    command: update-grub
+    when: reboot_kernel.changed or remove_old_kernel.changed
+
+- name: Remove interferring packages
+  apt: 
+    pkg: "{{ item }}"
+    state: absent
+  loop:
+    - os-prober
+
+- name: Install Proxmox VE
+  apt:
+    pkg: "{{ item }}"
+    state: present
+  register: install_pve
+  loop:
+    - chrony
+    - open-iscsi
+    - postfix
+    - proxmox-ve
+# This ussually fails on vms (not tested on bare metal yet)
+# Workaround:
+# reboot now
+# apt --fix-broken install && rm /etc/apt/sources.list.d/pve-enterprise.list
+
+- name: Create Proxmox certificates
+  shell:
+    executable: /usr/bin/bash
+    cmd: /usr/bin/pvecm updatecerts
+  when: install_pve.changed
+
+- name: Remove PVE enterprise repository
+  apt_repository:
+    repo: "deb https://enterprise.proxmox.com/debian/pve {{ ansible_distribution_release }} pve-enterprise"
+    state: absent
+    update_cache: yes

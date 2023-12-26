@@ -32,5 +32,3 @@ color_codes: # For shell
   orange:
     tilde: red
     prompt: 37
-
-upgrade: false
