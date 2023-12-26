@@ -24,5 +24,5 @@
     - is_virtual
     - custom_fields.technology == 'vm'
   notify:
-    - Reboot
+    - Reboot vm
 

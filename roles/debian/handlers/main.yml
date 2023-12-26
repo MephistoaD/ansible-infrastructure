@@ -1,7 +1,7 @@
-
-- name: Reboot
+---
+- name: Reboot vm
   reboot:
-    msg: "Reboot by ansible debian role"
+    msg: "Reboot by ansible debian role after install of guest agent"
     connect_timeout: 5
     reboot_timeout: 600
     pre_reboot_delay: 0
