@@ -2,6 +2,7 @@
 
 import subprocess
 import json
+import re
 
 def get_all_cluster_resources():
     try:
@@ -73,6 +74,20 @@ def parse_nodes_status(nodes_status):
             continue
         nodes[node["node"]] = node
         nodes[node["node"]]["guests"] = []
+
+        nodes[node["node"]]["used_mem"] = nodes[node["node"]]["mem"] / nodes[node["node"]]["maxmem"]
+
+        node_state = "ACTIVE" # set default to ACTIVE
+        try:
+            with open(f"/etc/pve/nodes/{node['node']}/config", 'r') as file:
+                content = file.read()
+            # Using regular expression to extract the node_state value
+            match = re.search(r'`node_state%3A\s*(\w+)`', content)
+            if match:
+                node_state = match.groups()[0]
+        except FileNotFoundError:
+            pass
+        nodes[node["node"]]["node_state"] = node_state
     return nodes
 
 def get_cluster_resources_for(all_cluster_resources, resource_type):
@@ -138,7 +153,7 @@ def get_facts():
         "guests_by_id": guests_by_id,
         "guests_by_node": guests_by_node,
         "pools": cluster_pools,
-        "tokens": tokens
+        "tokens": tokens,
     }
     return result
 

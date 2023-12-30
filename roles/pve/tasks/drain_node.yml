@@ -1,3 +1,18 @@
 ---
-- debug:
-    msg: "drain node"
+- name: Ensure node_state = DRAIN
+  ansible.builtin.lineinfile:
+    path: "/etc/pve/nodes/{{ inventory_hostname }}/config"
+    state: present
+    line: "#`node_state%3A DRAIN`"
+    backrefs: yes
+    regexp: "^#`node_state%3A .*`$"
+
+- name: Move guest away
+  vars:
+    guests_to_move: "{{ ansible_local.pve.guests_by_node[inventory_hostname].guests | rejectattr('template', 'equalto', '1') | sort(attribute='id', reverse=true) }}"
+  include_tasks: drain_node_move_guest.yml
+  loop_control:
+    label: "{{ guest_to_move.id }}"
+    loop_var: guest_to_move
+    index_var: index
+  loop: "{{ guests_to_move }}"

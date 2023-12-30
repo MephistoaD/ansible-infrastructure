@@ -28,6 +28,8 @@
     when:
       - not quick
 
+  - import_tasks: ansible_local.yml
+
   - import_tasks: drain_node.yml
     when: 
       - (drain_node or upgrade)
@@ -35,8 +37,6 @@
   - import_tasks: upgrade.yml
     when: 
       - upgrade
-
-  - import_tasks: ansible_local.yml
 
   - import_tasks: configure.yml
 
@@ -46,5 +46,9 @@
       - not is_virtual
 
   - import_tasks: prometheus_exporter.yml
+
+  - import_tasks: undrain_node.yml
+    when:
+      - (undrain_node or upgrade)
 
   # Tests

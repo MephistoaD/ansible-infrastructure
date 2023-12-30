@@ -1,6 +1,44 @@
 ---
-- debug:
-    msg: "upgrade procedure"
+# Similar to the upgrade logic in the debian role
+- name: Reconfigure packages (particularly necessary after install of a fresh vm)
+  shell:
+    executable: /bin/bash
+    cmd: dpkg --configure -a
+  register: dpkg_reconfigure
+  changed_when: dpkg_reconfigure.stdout != ""
 
-- debug:
-    msg: "undrain procedure"
+- name: Dry run apt full-upgrade
+  shell: apt-get -s -o Debug::NoLocking=true dist-upgrade | grep "^Inst" | awk '{print $2 " " $3 " -> " $4}'
+  register: upgrade_output
+  changed_when: false
+  failed_when: false
+
+- name: Print packages to be upgraded
+  debug:
+    msg: "{{ upgrade_output.stdout }}"
+
+- name: Dist-upgrade
+  apt:
+    clean: true # clean cache afterwards
+    upgrade: dist
+    autoremove: yes
+  diff: true
+  register: dist_upgrade_output
+
+- name: Reboot the system
+  reboot:
+    msg: "Reboot initiated by Ansible for consistent device naming"
+  when: dist_upgrade_output.changed
+
+- name: Wait for system to come back online
+  wait_for:
+    host: "{{ ansible_default_ipv4.address }}"
+    port: 22
+    state: started
+    delay: 10
+    timeout: 600 # 10minutes
+  when: dist_upgrade_output.changed
+
+- name: Autoremove packages on node
+  apt:
+    autoremove: yes
