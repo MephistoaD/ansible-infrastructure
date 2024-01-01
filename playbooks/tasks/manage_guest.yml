@@ -38,7 +38,7 @@
           - label: "Remove {{ technology | upper }} {{ vmid }}"
             command:
               vm: "qm destroy {{ vmid}}"
-              lxc: "pct destroy {{ vmid }}"
+              lxc: "pct destroy {{ vmid }} --purge" # purge removes the ct from jobs and other configs
             condition: "{{ status.value == 'decommissioning' or deploy_guest in ['redeploy', 'purge'] }}"
         delegate_to: "{{ delegate_to_guest_pve_instance }}"
         shell:
