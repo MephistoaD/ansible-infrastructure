@@ -29,13 +29,14 @@
         vars:
           current_vm_config: "{{ ansible_local.pve_node['guests_by_id'][vmid | string] }}"
           delegate_to_guest_pve_instance: "{{ current_vm_config['node'] }}" # TODO: make obsolete
+          current_guest_type: "{{ 'vm' if current_vm_config.type == 'qemu' else current_vm_config.type }}"
           iterations:
-          - label: "Stop {{ technology | upper }} {{ vmid }}"
+          - label: "Stop {{ current_guest_type | upper }} {{ vmid }}"
             command:
               vm: "qm stop {{ vmid}}"
               lxc: "pct stop {{ vmid }}"
             condition: "{{ current_vm_config.status == 'running' }}"
-          - label: "Remove {{ technology | upper }} {{ vmid }}"
+          - label: "Remove {{ current_guest_type | upper }} {{ vmid }}"
             command:
               vm: "qm destroy {{ vmid}}"
               lxc: "pct destroy {{ vmid }} --purge" # purge removes the ct from jobs and other configs
@@ -43,7 +44,7 @@
         delegate_to: "{{ delegate_to_guest_pve_instance }}"
         shell:
           executable: /bin/bash
-          cmd: "{{ item.command[technology] }}"
+          cmd: "{{ item.command[current_guest_type] }}"
         when: 
           - item.condition
         loop_control:
