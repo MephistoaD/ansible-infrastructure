@@ -9,7 +9,7 @@
     gateway: "192.168.2.1"
     nameserver: "192.168.2.250" # for vm only, lxc defaults to dns of host
     swap_default_size: 0 # for lxc only
-    delegate_to_pve_instance: "{{ groups['_pve_node'][0] }}" # the node where the lxc is created / the guest list is scraped
+    delegate_to_pve_instance: "{{ groups['_pve'][0] }}" # the node where the lxc is created / the guest list is scraped
     ostemplate: "{{ available_platforms[platforms[0]].lxc_ostemplate }}" # = The platform set in the netbox entry
     rootfs_volume: "{{ guest_storage }}:{{ disk }}"
   block:
@@ -29,21 +29,22 @@
         vars:
           current_vm_config: "{{ ansible_local.pve_node['guests_by_id'][vmid | string] }}"
           delegate_to_guest_pve_instance: "{{ current_vm_config['node'] }}" # TODO: make obsolete
+          current_guest_type: "{{ 'vm' if current_vm_config.type == 'qemu' else current_vm_config.type }}"
           iterations:
-          - label: "Stop {{ technology | upper }} {{ vmid }}"
+          - label: "Stop {{ current_guest_type | upper }} {{ vmid }}"
             command:
               vm: "qm stop {{ vmid}}"
               lxc: "pct stop {{ vmid }}"
             condition: "{{ current_vm_config.status == 'running' }}"
-          - label: "Remove {{ technology | upper }} {{ vmid }}"
+          - label: "Remove {{ current_guest_type | upper }} {{ vmid }}"
             command:
               vm: "qm destroy {{ vmid}}"
-              lxc: "pct destroy {{ vmid }}"
+              lxc: "pct destroy {{ vmid }} --purge" # purge removes the ct from jobs and other configs
             condition: "{{ status.value == 'decommissioning' or deploy_guest in ['redeploy', 'purge'] }}"
         delegate_to: "{{ delegate_to_guest_pve_instance }}"
         shell:
           executable: /bin/bash
-          cmd: "{{ item.command[technology] }}"
+          cmd: "{{ item.command[current_guest_type] }}"
         when: 
           - item.condition
         loop_control:
@@ -67,7 +68,7 @@
       # do not touch below
       template_vmid: "{{ available_platforms[platforms[0]]['vm_template_id'] }}"
       template_vm: "{{ ansible_local.pve_node['guests_by_id'][template_vmid] }}"
-      delegate_to_template_pve_instance: "{{ template_vm['node'] if template_vm['node'] in groups['_pve_node'] and technology == 'vm' else delegate_to_pve_instance }}"
+      delegate_to_template_pve_instance: "{{ template_vm['node'] if template_vm['node'] in groups['_pve'] and technology == 'vm' else delegate_to_pve_instance }}"
     when: 
       - vmid not in ansible_local.pve_node['guests_by_id']
     block:    

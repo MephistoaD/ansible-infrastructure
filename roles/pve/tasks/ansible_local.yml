@@ -1,4 +1,38 @@
 ---
+- name: Get node_state
+  ansible.builtin.slurp:
+    src: "/etc/pve/nodes/{{ inventory_hostname }}/config"
+  register: config_content
+  failed_when: false
+
+- name: Touch the config file
+  file:
+    path: "/etc/pve/nodes/{{ inventory_hostname }}/config"
+    state: touch
+    owner: root
+    group: www-data
+    mode: "0640"
+  when:
+    - "'msg' in config_content"
+    - "'file not found' in config_content.msg"
+
+- name: Add node_state to config if not set
+  vars:
+    node_state_not_set: "{{ ('msg' in config_content and 'file not found' in config_content.msg) or ('#`node_state%3A ' not in config_content.content | b64decode) }}"
+  blockinfile:
+    path: "/etc/pve/nodes/{{ inventory_hostname }}/config"
+    marker: ""
+    create: true
+    owner: root
+    group: www-data
+    mode: "0640"
+    block: |
+      #
+      ### Ansible config%3A
+      #
+      #`node_state%3A ACTIVE`
+  when: node_state_not_set
+
 - name: Set ansible_local file
   template:
     src: etc_ansible_facts.d_pve.fact.j2  # Path to Python script template

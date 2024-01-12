@@ -1,0 +1,33 @@
+---
+- name: "Migration {{ index + 1 }}/{{ num_guests_to_move 1}}: {{ guest_to_move.id }} -> {{ dest_node }} ({{ guest_to_move.name }})"
+  vars:
+    pinned_node_dest: "{{ hostvars[guest_to_move.name].custom_fields.pinned_on_node.name if ansible_local.pve.guests_by_node[hostvars[guest_to_move.name].custom_fields.pinned_on_node.name].node_state == 'ACTIVE' }}"
+    active_cluster_nodes: "{{ ansible_local.pve.guests_by_node | dict2items | selectattr('value.node_state', 'equalto', 'ACTIVE') | rejectattr('value.node', 'equalto', inventory_hostname) | items2dict }}"
+    active_cluster_nodes_sorted: "{{ active_cluster_nodes | dict2items | map(attribute='value') | sort(attribute='used_mem') }}"
+    dest_node: "{{ pinned_node_dest | default((active_cluster_nodes_sorted | first).node) }}" # The node with the lowest memory consumption
+  shell:
+    executable: "/usr/bin/bash"
+    cmd: |
+      /usr/bin/pvesh create /nodes/{{ inventory_hostname }}/{{ guest_to_move.type }}/{{ guest_to_move.vmid }}/migrate \
+      {% if guest_to_move.type == 'qemu' %}
+        --online {{ '1' if guest_to_move.status == 'running' else '0' }} \
+        --with-local-disks 1 \
+      {% elif guest_to_move.type == 'lxc' %}
+        --restart {{ '1' if guest_to_move.status == 'running' else '0' }} \
+      {% endif %}
+        --target {{ dest_node }}
+  register: migration_output
+  failed_when: false
+
+- debug:
+    var: migration_output
+  when: migration_output.rc != 0
+
+- name: Fail if migration failed
+  fail:
+    msg: "MIGRATION FAILED"
+  when: migration_output.rc != 0
+
+- name: "Gather facts again to see the current status"
+  setup:
+    filter: ansible_local

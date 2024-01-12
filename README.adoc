@@ -15,7 +15,9 @@
 
 ## PVE Nodes:
 
-  ansible-playbook playbooks/generic-playbook.yml -e "target=_pve_node include_roles=['pve_node','debian','postfix','etckeeper']"
+  drain_node (false, true): weather the node should be drained or not
+  undrain_node (false, true): weather the node should be undrained or not
+  join_password: (string) if set, allows to join the node to the cluster defined in netbox
 
 ## Semaphore
 
