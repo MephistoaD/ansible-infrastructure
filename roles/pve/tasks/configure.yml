@@ -4,18 +4,21 @@
 
 - name: NETWORK CONFIG
   block:
-  - name: Overwrite network config
+  - name: Create network config
     ansible.builtin.template:
       src: etc_network_interfaces.j2
       dest: /etc/network/interfaces
       owner: root
       group: root
       mode: '0644'
+      force: false # does not overwrite the file. -> the upstream phisical network adapter should be fetched from netbox, but can't
+    register: create_network_config
 
   - name: Cleanup pending changes on network config
     file:
       path: /etc/network/interfaces.new
       state: absent
+    when: create_network_config.changed
 
 - name: MODIFY WEBUI
   block:
