@@ -1,9 +1,10 @@
 ---
-- name: "Migration {{ index + 1 }}/{{ guests_to_move | length }}: {{ guest_to_move.id }} -> {{ dest_node.node }}"
+- name: "Migration {{ index + 1 }}/{{ num_guests_to_move 1}}: {{ guest_to_move.id }} -> {{ dest_node }} ({{ guest_to_move.name }})"
   vars:
+    pinned_node_dest: "{{ hostvars[guest_to_move.name].custom_fields.pinned_on_node.name if ansible_local.pve.guests_by_node[hostvars[guest_to_move.name].custom_fields.pinned_on_node.name].node_state == 'ACTIVE' }}"
     active_cluster_nodes: "{{ ansible_local.pve.guests_by_node | dict2items | selectattr('value.node_state', 'equalto', 'ACTIVE') | rejectattr('value.node', 'equalto', inventory_hostname) | items2dict }}"
     active_cluster_nodes_sorted: "{{ active_cluster_nodes | dict2items | map(attribute='value') | sort(attribute='used_mem') }}"
-    dest_node: "{{ active_cluster_nodes_sorted | first }}" # The node with the lowest memory consumption
+    dest_node: "{{ pinned_node_dest | default((active_cluster_nodes_sorted | first).node) }}" # The node with the lowest memory consumption
   shell:
     executable: "/usr/bin/bash"
     cmd: |
@@ -14,7 +15,7 @@
       {% elif guest_to_move.type == 'lxc' %}
         --restart {{ '1' if guest_to_move.status == 'running' else '0' }} \
       {% endif %}
-        --target {{ dest_node.node }}
+        --target {{ dest_node }}
   register: migration_output
   failed_when: false
 
