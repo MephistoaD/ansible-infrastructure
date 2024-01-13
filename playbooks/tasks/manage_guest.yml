@@ -136,6 +136,18 @@
       delegate_to_guest_pve_instance: "{{ ansible_local.pve_node['guests_by_id'][vmid]['node'] }}"
       current_memory: "{{ current_guest_config.maxmem / 1024 / 1024 | int }}"
     block:
+
+    - name: Add lxc_custom_config_lines
+      delegate_to: "{{ delegate_to_guest_pve_instance }}"
+      ansible.builtin.lineinfile:
+        path: "/etc/pve/lxc/{{ vmid }}.conf"
+        regexp: '^{{ item }}:'
+        line: "{{ item }}: {{ lxc_custom_config_lines[item] }}"
+      when:
+        - technology == "lxc"
+        - item not in current_guest_config
+      loop: "{{ lxc_custom_config_lines | flatten(levels=1) }}"
+
     - name: Change guest
       vars:
         current_guest_cpu: "{{ current_guest_config['maxcpu'] if technology == 'vm' else current_guest_config['cores'] }}"
