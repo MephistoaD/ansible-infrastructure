@@ -7,14 +7,14 @@
   changed_when: dpkg_reconfigure.stdout != ""
 
 - name: Dry run apt full-upgrade
-  shell: apt-get -s -o Debug::NoLocking=true dist-upgrade | grep "^Inst" | awk '{print $2 " " $3 " -> " $4}'
+  shell: apt-get -s -o Debug::NoLocking=true dist-upgrade
   register: upgrade_output
   changed_when: false
   failed_when: false
 
 - name: Print packages to be upgraded
   debug:
-    msg: "{{ upgrade_output.stdout }}"
+    msg: "{{ upgrade_output.stdout_lines }}"
 
 - name: Dist-upgrade
   apt:
