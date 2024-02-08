@@ -1,7 +1,7 @@
 ---
 - name: Place configuration on nodes
   vars:
-    src_ip: "{{ hostvars[ansible_hostname]['ansible_' + keepalived_interface].ipv4.address }}"
+    src_ip: "{{ hostvars[inventory_hostname]['ansible_' + keepalived_interface].ipv4.address }}"
   template:
     src: etc_keepalived_keepalived.conf.j2
     dest: /etc/keepalived/keepalived.conf
