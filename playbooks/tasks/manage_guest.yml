@@ -146,6 +146,7 @@
       when:
         - technology == "lxc"
         - item not in current_guest_config
+        - lxc_custom_config_lines is defined
       loop: "{{ lxc_custom_config_lines | flatten(levels=1) }}"
 
     - name: Change guest
