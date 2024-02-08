@@ -14,7 +14,7 @@
     changed_when: false
 
   - debug:
-      var: php_version_raw
+      var: php_version_raw.stdout
 
   - name: Get minor version
     include_tasks: get_minor_version.yml
