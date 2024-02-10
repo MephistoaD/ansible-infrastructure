@@ -1,0 +1,35 @@
+---
+- name: Configure dnsmasq to resolve local dns requests
+  template:
+    src: etc_dnsmasq.d_10-localdns.conf.j2
+    dest: "/etc/dnsmasq.d/10-localdns.conf"
+  register: dnsmasq_config
+
+- name: Create dns list by-pool
+  template:
+    src: etc_pihole_by-pool.local.list.j2
+    dest: "/etc/pihole/by-pool.local.list"
+  register: by_pool_list
+
+- nb_ipam_info:
+    api_endpoint: "{{ NB_API_ENDPOINT  }}"
+    token: "{{ NB_API_RO_TOKEN }}"
+    validate_certs: "{{ NB_VALIDATE_CERTS  }}"
+  register: ipam_info
+  run_once: true
+
+- name: Create dns list by-ip
+  template:
+    src: etc_pihole_by-ip.local.list.j2
+    dest: "/etc/pihole/by-ip.local.list"
+  register: by_ip_list
+
+- name: Restart dns server
+  shell:
+    executable: /usr/bin/bash
+    cmd: |
+      /usr/local/bin/pihole restartdns
+  when:
+    - (dnsmasq_config.changed
+      or by_pool_list.changed
+      or by_ip_list.changed)

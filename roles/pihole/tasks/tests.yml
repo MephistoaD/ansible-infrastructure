@@ -1,0 +1,17 @@
+---
+- name: Assert that pihole is up and running
+  block:
+  - name: Check if pihole-FTL.service is running
+    ansible.builtin.systemd:
+      name: "pihole-FTL.service"
+    register: pihole_service_check
+    failed_when: pihole_service_check.status.ActiveState != "active"
+
+  - name: Resolve pi-hole.net to ensure pihole is working properly
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        dig pi-hole.net @127.0.0.1
+    register: pihole_test_resolution
+    changed_when: false
+    failed_when: pihole_test_resolution.rc != 0

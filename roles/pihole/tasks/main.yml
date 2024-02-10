@@ -1,0 +1,31 @@
+---
+- name: "Role pihole"
+  vars:
+    foo: bar
+  when:
+    - only_role is undefined or only_role == "pihole"
+  block:
+  - name: Assert that there is only one cluster_leader
+    assert:
+      that: 
+        - cluster_leaders | length <= 1
+
+  - import_tasks: ansible_local.yml
+
+  - import_tasks: install.yml
+
+  - import_tasks: upgrade.yml
+    when:
+      - upgrade
+
+  - import_tasks: tests.yml
+
+  - import_tasks: prometheus_exporter.yml
+
+  - import_tasks: local_dns.yml
+
+  - run_once: true
+    debug:
+      msg: "To change the pihole webpassword, run `pihole admin password`"
+
+# TODO: Write local dns records

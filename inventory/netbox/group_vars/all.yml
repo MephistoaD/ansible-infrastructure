@@ -1,4 +1,8 @@
 ---
+NB_API_ENDPOINT: "https://{{ hostvars['netbox'].primary_ip4 }}"
+NB_API_RO_TOKEN: "9ix22jo2AyNeVtVPGZUyhNIt2zpTfm3iZqd3vtzk"
+NB_VALIDATE_CERTS: False
+
 # file: group_vars/all
 debian_global_packages:
   # cpu / mem
@@ -28,6 +32,9 @@ deploy_guest: false # false, true, redeploy, purge
 upgrade: false
 
 available_platforms:
+  # only for oracle
+  ubuntu-22-jammy:
+    name: Ubuntu 22.04 Jammy Jellyfish
   debian-12-bookworm:
     name: Debian 12 bookworm
     lxc_ostemplate: "local:vztmpl/debian-12-standard_12.0-1_amd64.tar.zst"
@@ -51,3 +58,5 @@ application_layer_clusters: "{{ tags | map('regex_search', application_layer_clu
 application_layer_cluster: "{{ groups[application_layer_clusters | first] }}"
 cluster_leaders: "{{ application_layer_cluster | map('extract', hostvars) | selectattr('custom_fields.cluster_position', 'defined') | selectattr('custom_fields.cluster_position', 'equalto', 'leader') | map(attribute='inventory_hostname') | list }}"
 cluster_leader: "{{ cluster_leaders | first }}"
+
+dns_local_tld: "lab"
