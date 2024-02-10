@@ -6,8 +6,7 @@ postgres_databases:
     owner: "nextcloud_db_user"
 
 php_packages:
-  - php
-  - php-fpm  
+  - php-fpm 
   - php-gd
   - php-curl
   - php-xml

@@ -1,0 +1,12 @@
+{#
+    Contains content of ansible_local.wireguard from a peer
+    this is necessary to get all the keys and stuff for the interface configs
+#}
+{# {{ ansible_local.wireguard | to_json }} #}
+{{ '{' }}
+{% for interface in ansible_local.wireguard %}
+    "{{ interface }}": {
+        "pub": "{{ ansible_local.wireguard[interface].pub }}"
+    }{{ ',' if interface != ansible_local.wireguard | last }}
+{% endfor %}
+{{ '}' }}

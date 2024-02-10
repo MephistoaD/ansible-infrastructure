@@ -47,7 +47,7 @@
     msg: "{{ validate_nginx_config.stderr_lines }}"
   when: validate_nginx_config.rc != 0
 
-- name: Reload Nginx service
+- name: Restart Nginx service
   systemd:
     name: nginx
     state: restarted

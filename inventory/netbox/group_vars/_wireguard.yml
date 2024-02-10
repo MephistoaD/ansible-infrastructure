@@ -1,0 +1,12 @@
+---
+lxc_custom_config_lines:
+  lxc.cgroup.devices.allow: "c 10:200 rwm"
+  lxc.mount.entry: "/dev/net dev/net none bind,create=dir"
+
+#wireguard_interfaces_: "{{ local_context_data[0]['wireguard_interfaces'] | default(wireguard_interfaces) }}"
+
+# wg_endpoints:
+#   wg0: 192.168.2.213
+
+# allowed_ips:
+#   wg0: "192.168.2.0/24, 10.0.0.0/24"

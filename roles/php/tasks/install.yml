@@ -10,16 +10,3 @@
   loop_control:
     label: "php{{ php_version_to_install }}{{ '-' + item if item != 'php' else '' }}"
   with_items: "{{ php_latest_versions.packages }}"
-
-- name: "Make sure the apache2 package is not installed"
-  apt:
-    pkg: apache2
-    state: absent
-
-- name: "Remove traces of apache2 package"
-  file:
-    path: "{{ item }}"
-    state: absent
-  loop:
-    - /var/www/html
-    - /etc/apache2

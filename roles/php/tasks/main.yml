@@ -5,8 +5,8 @@
   when:
     - only_role is not defined or only_role == "php"
   block:
-  # - name: Add repositories
-  #   include_tasks: add_repositories.yml # TODO: uncomment
+  - name: Add repositories
+    include_tasks: add_repositories.yml
 
   - name: Get the version of the currently running PHP installation
     shell: "php -v | head -n 1 | awk '{print $2}' | cut -d. -f1,2"
@@ -14,7 +14,7 @@
     changed_when: false
 
   - debug:
-      var: php_version_raw
+      var: php_version_raw.stdout
 
   - name: Get minor version
     include_tasks: get_minor_version.yml
