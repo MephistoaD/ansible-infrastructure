@@ -1,7 +1,0 @@
----
-pve_discord_dark: true
-
-
-install_ceph: false
-pve_ceph_version: pacific
-pve_ceph_test_repository: 0 # 1=yes
