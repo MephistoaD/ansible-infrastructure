@@ -1,0 +1,15 @@
+---
+- name: Gather ansible_local facts
+  delegate_to: "{{ peer }}"
+  setup:
+    filter: ansible_local
+  ignore_unreachable: true
+  register: collect_peer
+
+- name: "Place peer keys"
+  template:
+    src: etc_wireguard_peer-keys_peer.json.j2
+    dest: /etc/wireguard/peer-keys/{{ peer }}.json
+    mode: '0600'
+  when:
+    - "'unreachable' not in collect_peer"

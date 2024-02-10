@@ -1,0 +1,29 @@
+#!/usr/bin/env python3
+
+import json
+import os
+
+def read_wireguard_files(directory):
+    result = {}
+
+    for filename in os.listdir(directory):
+        peer_name = os.path.splitext(filename)[0]
+        
+        path = os.path.join(directory, f"{filename}")
+
+        with open(path, 'r') as file:
+            peer_json = file.read().strip()
+            peer_data = json.loads(peer_json)
+            result[peer_name] = peer_data
+
+    return result
+
+if __name__ == "__main__":
+    wireguard_directory = "/etc/wireguard/peer-keys"
+    data = read_wireguard_files(wireguard_directory)
+
+    # Convert the dictionary to JSON format
+    json_data = json.dumps(data, indent=4)
+
+    # Print the JSON
+    print(json_data)
