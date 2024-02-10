@@ -1,0 +1,3 @@
+{% for host in groups.all %}
+{{ hostvars[host].primary_ip4 }}    {{ host }}.{{ hostvars[host].custom_fields.pool }}.{{ dns_local_tld }}
+{% endfor %}

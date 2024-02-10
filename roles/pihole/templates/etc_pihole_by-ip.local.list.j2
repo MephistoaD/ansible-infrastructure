@@ -1,0 +1,5 @@
+{% for ip in ipam_info.addresses.values() %}
+{% if ip.dns_name != '' %}
+{{ ip.address.split('/')[0] }}    {{ ip.dns_name }}
+{% endif %}
+{% endfor %}

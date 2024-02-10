@@ -1,0 +1,80 @@
+---
+- name: Install dependencies
+  apt:
+    pkg: "{{ item }}"
+    state: present
+  loop:
+    - golang
+  when:
+    - not pihole_as_recursive_dns # (already dependency for unbound exporter)
+
+- name: Install prometheus-pihole-exporter
+  shell:
+    executable: /usr/bin/bash
+    cmd: |
+      go install github.com/eko/pihole-exporter@latest
+  register: install_pihole_exporter
+  # returns 0 even when nothing was installed
+  changed_when: install_pihole_exporter.stdout != ""
+
+- name: Update prometheus-pihole-exporter
+  shell:
+    executable: /usr/bin/bash
+    cmd: |
+      go get -u
+  when:
+    - upgrade
+
+- name: Copy pihole-exporter binary to /usr/local/bin
+  become: true
+  copy:
+    src: /root/go/bin/pihole-exporter
+    remote_src: true
+    dest: /usr/local/bin/pihole-exporter
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: "Create pihole_exporter system user"
+  user:
+    name: "pihole_exporter"
+    system: yes
+    shell: /bin/false
+
+- name: Template prometheus-pihole-exporter.service
+  vars:
+    pihole_exporter_dir: /usr/local/bin/pihole-exporter.sh
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  register: prometheus_pihole_exporter_service
+  loop_control:
+    label: "{{ item.dest }}"
+  loop:
+    - src: "etc_systemd_system_prometheus-pihole-exporter.service.j2"
+      dest: "/etc/systemd/system/prometheus-pihole-exporter.service"
+      mode: '0644'
+    - src: usr_local_bin_pihole-exporter.sh.j2
+      dest: "{{ pihole_exporter_dir }}"
+      mode: '0755'
+  
+- name: Restart prometheus-pihole-exporter.service on config changes
+  service:
+    name: prometheus-pihole-exporter.service
+    state: restarted
+    enabled: true
+    daemon_reload: true
+  when: 
+    - (prometheus_pihole_exporter_service.changed or
+      (pihole_setupvars is defined and pihole_setupvars.changed))
+
+- name: Assert that prometheus-pihole-exporter.service is up and running
+  block:
+  - name: Check if prometheus-pihole-exporter.service is running
+    ansible.builtin.systemd:
+      name: "prometheus-pihole-exporter.service"
+    register: prometheus_pihole_exporter_service_check
+    failed_when: prometheus_pihole_exporter_service_check.status.ActiveState != "active"

@@ -1,0 +1,4 @@
+#!/bin/bash
+
+API_TOKEN=$(awk -F= -v key="WEBPASSWORD" '$1==key {print $2}' /etc/pihole/setupVars.conf)
+/usr/local/bin/pihole-exporter -pihole_hostname $HOSTNAME -pihole_port {{ prometheus_role_exporter_port_pihole }} -pihole_api_token "$API_TOKEN"

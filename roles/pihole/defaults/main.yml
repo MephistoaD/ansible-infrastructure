@@ -1,0 +1,3 @@
+---
+pihole_as_recursive_dns: true
+prometheus_role_exporter_port_pihole: 9617

@@ -23,6 +23,22 @@
   when:
     - upgrade
 
+- name: Copy unbound-exporter binary to /usr/local/bin
+  become: true
+  copy:
+    src: /root/go/bin/unbound_exporter
+    remote_src: true
+    dest: /usr/local/bin/unbound-exporter
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: "Create unbound_exporter system user"
+  user:
+    name: "unbound_exporter"
+    system: yes
+    shell: /bin/false
+
 - name: Template prometheus-unbound-exporter.service
   ansible.builtin.template:
     src: "etc_systemd_system_prometheus-unbound-exporter.service.j2"
@@ -37,6 +53,7 @@
     name: prometheus-unbound-exporter.service
     state: restarted
     enabled: true
+    daemon_reload: true
   when: 
     - prometheus_unbound_exporter_service.changed
 

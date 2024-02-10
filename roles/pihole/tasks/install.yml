@@ -1,0 +1,42 @@
+---
+- name: Create pihole config directory
+  file:
+    path: "/etc/pihole"
+    state: directory
+
+- name: Place pi-hole config
+  vars:
+    webpassword_hash: "{{ ansible_local.pihole.webpassword | default('changeme.hash') }}"
+  template:
+    src: "etc_pihole_setupVars.conf.j2"
+    dest: "/etc/pihole/setupVars.conf"
+  register: pihole_setupvars
+
+- name: Download pihole install script
+  get_url:
+    url: "https://install.pi-hole.net"
+    dest: "/usr/local/bin/pihole-install"
+    mode: "0755"
+    force: "{{ upgrade }}"
+  register: pihole_download_result
+
+- name: Install pihole / apply changes (this probably also updates pihole :-()
+  shell:
+    executable: /usr/bin/bash
+    cmd: |
+      /usr/local/bin/pihole-install --unattended {{ '--reconfigure' if pihole_setupvars.changed and not pihole_download_result.changed }} 2>&1
+  register: pihole_install
+  when:
+    - pihole_download_result.changed or pihole_setupvars.changed
+
+- debug:
+    var: pihole_install.stdout_lines
+  when:
+    - pihole_install.changed
+
+- name: Template dnsmasq config for hosts with unbound installation
+  template:
+    src: "etc_dnsmasq.d_99-edns.conf.j2"
+    dest: "/etc/dnsmasq.d/99-edns.conf"
+  when:
+    - pihole_as_recursive_dns

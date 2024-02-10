@@ -1,0 +1,11 @@
+---
+dependencies:
+  - role: debian
+  
+  - role: keepalived
+    when:
+      - cluster_leader is defined
+
+  - role: unbound
+    when: 
+      - pihole_as_recursive_dns
