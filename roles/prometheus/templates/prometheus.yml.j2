@@ -47,9 +47,9 @@ scrape_configs:
         action: replace
     static_configs:
       - targets:
-{% for group in dependency_map[role].dependent_roles %}
+{% for group in dependency_map[role].dependent_roles | sort %}
 {% if '_' + group in groups %}
-{% for host in groups['_' + group] %}
+{% for host in groups['_' + group] | sort %}
         - {{ host }}
 {% endfor %}
 {% endif %}

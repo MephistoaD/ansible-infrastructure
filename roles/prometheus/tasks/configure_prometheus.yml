@@ -26,7 +26,7 @@
   - debug:
       var: dependency_map
 
-  - name: Place prometheus configuration (changes always reordering the hosts list)
+  - name: Place prometheus configuration
     template:
       src: "prometheus.yml.j2"
       dest: "/etc/prometheus/prometheus.yml"
