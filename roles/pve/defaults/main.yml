@@ -1,5 +1,7 @@
 ---
 role_name: pve
+prometheus_role_exporter_port_pve: 9221
+
 pve_discord_dark: false
 
 pve_exporter_token_user: "root@pam"
