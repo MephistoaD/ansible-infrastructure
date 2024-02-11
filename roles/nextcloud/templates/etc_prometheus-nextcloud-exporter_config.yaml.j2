@@ -3,6 +3,6 @@ server: "https://127.0.0.1"
 # required for token authentication
 authToken: "{{ ansible_local.nextcloud.prometheus_nextcloud_exporter_token }}"
 # optional
-listenAddress: ":9205"
+listenAddress: ":{{ prometheus_role_exporter_port_nextcloud }}"
 timeout: "5s"
 tlsSkipVerify: true
