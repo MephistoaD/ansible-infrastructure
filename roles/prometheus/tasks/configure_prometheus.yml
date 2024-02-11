@@ -1,27 +1,21 @@
 ---
-- name: Get groups depending on nginx
+- name: Get dependency map
   become: false
-  vars:
-    role_name: nginx
   local_action: 
-    module: shell
-    cmd: python3 ../roles/prometheus/get_dependency_map.py --inventory {{ inventory_file }}
-  changed_when: false
-  register: dependency_map_raw
+    module: prometheus_dependency_map_info
+    inventory_dir: "{{ inventory_dir }}"
+    roles_dir: "{{ playbook_dir }}/../roles"
+  register: role_dependencies
 
 - name: CONFIGURE PROMETHEUS
   vars:
     guests: "{{ groups.all | map('extract', hostvars) | selectattr('custom_fields.technology', 'defined') | selectattr('custom_fields.technology', 'ne', 'lxc') | map(attribute='inventory_hostname') | list }}"
     devices: "{{ groups.all | difference(groups.is_virtual) }}"
     node_exporter_hosts: "{{ devices | union(guests) }}"
-    pve_exporter_hosts: "{{ groups._pve }}"
-    dependency_map: "{{ dependency_map_raw.stdout | from_json }}"
+    dependency_map: "{{ role_dependencies.dependency_map }}"
   block:
   - debug:
       var: node_exporter_hosts
-
-  - debug:
-      var: pve_exporter_hosts
 
   - debug:
       var: dependency_map
