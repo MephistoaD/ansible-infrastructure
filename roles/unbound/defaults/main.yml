@@ -1,2 +1,4 @@
 ---
+prometheus_role_exporter_port_unbound: 9167
+
 unbound_port: 53
