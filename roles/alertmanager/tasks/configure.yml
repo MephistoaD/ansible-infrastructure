@@ -1,0 +1,28 @@
+---
+- name: Place alertmanager configuration
+  template:
+    src: "alertmanager.yml.j2"
+    dest: "/etc/alertmanager/alertmanager.yml"
+    owner: root
+    group: root
+    mode: '0644'
+  register: alertmanager_config
+
+- name: Execute promtool script
+  shell: /usr/local/bin/amtool check-config /etc/alertmanager/alertmanager.yml
+  register: alertmanager_config_validation
+  failed_when: false
+  changed_when: false
+
+- name: Fail in case of invalid config
+  fail:
+    msg: "{{ alertmanager_config_validation.stderr }}"
+  when: alertmanager_config_validation.rc != 0
+
+- name: Restart alertmanager
+  systemd:
+    name: alertmanager
+    state: restarted
+    enabled: true
+  when: >
+    alertmanager_config.changed

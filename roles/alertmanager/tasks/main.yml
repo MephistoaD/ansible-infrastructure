@@ -1,0 +1,9 @@
+---
+- name: "Role: prometheus"
+  when:
+    - (only_role is not defined or only_role == "alertmanager")
+  block:
+  - include_tasks: install.yml
+    when:
+      - not quick
+  - include_tasks: configure.yml
