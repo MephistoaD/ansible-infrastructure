@@ -5,37 +5,31 @@ __metaclass__ = type
 
 DOCUMENTATION = r'''
 ---
-module: nb_ipam_info
+module: prometheus_dependency_map_info
 
-short_description: Returns all IPAM Data from NetBox
+short_description: Returns a map from each role on the roles depending on it.
 
 # If this is part of a collection, you need to use semantic versioning,
 # i.e. the version is of the form "2.5.0" and not "2.4".
 version_added: "1.0.0"
 
-description: An Info module returning IP-Addresses, IP-Ranges and the ips for each host.
+description: |
+    Returns a map of each locally available ansible role resolving to a list of roles 
+    which are including it. Additionally it returns the port each role-dedicated 
+    prometheus exporter is running on, or false.
 
-        api_endpoint=dict(type='str', required=True),
-        token=dict(type='str', required=True),
-        validate_certs=dict(type='bool', required=False, default=True)
+        inventory_dir=dict(type='str', required=True),
+        roles_dir=dict(type='str', required=True),
 
 options:
-    api_endpoint:
-        description: The URL to the NetBox API.
+    inventory_dir:
+        description: The directory of the current inventory
         required: true
         type: str
-    token:
-        description: The API token for the NetBox instance (read only permissions should be sufficient)
+    roles_dir:
+        description: The directory of the current roles
         required: true
         type: str
-    validate_certs:
-        description: 
-            Wether to validate the SSL certificate of the NetBox server.
-            options:
-            - True (defualt)
-            - False
-        required: false
-        type: bool
 # Specify this value according to your collection
 # in format of namespace.collection.doc_fragment_name
 # extends_documentation_fragment:
@@ -46,71 +40,55 @@ author:
 '''
 
 EXAMPLES = r'''
-- name: Get all IPAM info
-  nb_ipam_info:
-    api_endpoint: "https://netbox.local"
-    token: "xxxyyy"
-    validate_certs: False
-  register: ipam_info
+- name: Get dependency map
+  become: false
+  local_action:
+    module: prometheus_dependency_map_info
+    inventory_dir: "{{ inventory_dir }}"
+    roles_dir: "{{ playbook_dir }}/../roles"
+  register: role_dependencies
 '''
 
 RETURN = r'''
 # These are examples of possible return values, and in general should use other names for return values.
 
-addresses:
-    description: A list containing all known IP-Addresses.
-    type: dict
-    returned: always
-    sample: {
-            "10.0.0.2/24": {
-                "address": "10.0.0.2/24",
-                "custom_fields": {},
-                "description": "",
-                "dns_name": "webserver.local",
-                "instance": "webserver",
-                "interface": "eth0",
-                "tags": []
-            },
-        }
-instances:
-    description: A list of the interfaces and their IP-addresses per interface.
-    type: dict
-    returned: always
-    sample: {
-        "webserver": {
-                "eth0": [
-                    "10.0.0.2/24"
-                ],
-                "wg0": [
-                    "10.1.1.1/24"
-                ]
-            }
-        }
-ranges:
-    description: A list of all known IP-ranges and their IP addresses.
+all_roles:
+    description: A list containing all known roles.
     type: list
     returned: always
     sample: [
-            {
-                "addresses": [
-                    "10.0.0.2/24"
-                ],
-                "comments": "",
-                "custom_fields": {},
-                "description": "local network",
-                "display": "10.0.0.1-254/24",
-                "end_address": "10.0.0.254/24",
-                "family": {
-                    "label": "IPv4",
-                    "value": 4
-                },
-                "role": null,
-                "size": 254,
-                "start_address": "10.0.0.1/24",
-                "tags": [],
-                "vrf": null
-            }
+            nginx,
+            prometheus
+        ]
+dependencies:
+    description: A direct mapping from each role to it's first level dependencies.
+    type: dict
+    returned: always
+    sample: {
+        "nginx" [],
+        "prometheus": [
+                "nginx"
             ]
+        }
+dependency_map:
+    description: The full map of each role to all of the roles depending on it.
+    type: list
+    returned: always
+    sample: {
+            "nginx": {
+                "dependent_roles": [
+                    "nginx",
+                    "prometheus"
+                ],
+                "exporter_port": 9113
+            },
+            "prometheus": {
+                "dependent_roles": [
+                    "prometheus"
+                ],
+                "exporter_port": false
+            }
+        }
 '''
 
 from ansible.module_utils.basic import AnsibleModule
