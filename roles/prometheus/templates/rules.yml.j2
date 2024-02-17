@@ -1,0 +1,33 @@
+---
+groups:
+- name: AllInstances
+  rules:
+  - record: european_summer_time_offset
+    expr: |
+        (vector(1) and (month() > 3 and month() < 10))
+        or
+        (vector(1) and (month() == 3 and (day_of_month() - day_of_week()) >= 25) and absent((day_of_month() >= 25) and (day_of_week() == 0)))
+        or
+        (vector(1) and (month() == 10 and (day_of_month() - day_of_week()) < 25) and absent((day_of_month() >= 25) and (day_of_week() == 0)))
+        or
+        (vector(1) and ((month() == 10 and hour() < 1) or (month() == 3 and hour() > 0)) and ((day_of_month() >= 25) and (day_of_week() == 0)))
+        or
+        vector(0)
+  - record: middle_european_time
+    expr: time() + 3600 * (1 + european_summer_time_offset)
+
+
+
+
+  - alert: InstanceDown
+    # Condition for alerting
+    expr: up == 0
+    for: 1m
+    # Annotation - additional informational labels to store more information
+    annotations:
+        title: 'Instance is Down'
+    #   title: 'Instance { $labels.instance }} down'
+    #   description: '{ $labels.instance }} of job { $labels.job }} has been down for more than 1 minute.'
+    # Labels - additional labels to be attached to the alert
+    labels:
+      severity: 'critical'

@@ -17,17 +17,13 @@ alerting:
 
 # Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
 rule_files:
-# - rules.yml
+{% for rules_file in rules_files %}
+  - {{ rules_file }}
+{% endfor %}
 
 # A scrape configuration containing exactly one endpoint to scrape:
 # Here it's Prometheus itself.
 scrape_configs:
-  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
-  - job_name: 'prometheus'
-    static_configs:
-      - targets:
-        - localhost:9090
-
 {#
   Generic exporter job
 #}

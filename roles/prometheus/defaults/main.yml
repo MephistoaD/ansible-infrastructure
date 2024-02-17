@@ -1,8 +1,2 @@
 ---
-
-nginx_config:
-  - name: "_"
-    https: self-signed # false, self-signed, acme
-    proxy_to_http: true
-    proxy_targets:
-      - "127.0.0.1:9090"
+prometheus_role_exporter_port_prometheus: 9090

@@ -1,0 +1,45 @@
+---
+groups:
+- name: AllInstances
+  rules:
+  - record: european_summer_time_offset
+    expr: |
+        (vector(1) and (month() > 3 and month() < 10))
+        or
+        (vector(1) and (month() == 3 and (day_of_month() - day_of_week()) >= 25) and absent((day_of_month() >= 25) and (day_of_week() == 0)))
+        or
+        (vector(1) and (month() == 10 and (day_of_month() - day_of_week()) < 25) and absent((day_of_month() >= 25) and (day_of_week() == 0)))
+        or
+        (vector(1) and ((month() == 10 and hour() < 1) or (month() == 3 and hour() > 0)) and ((day_of_month() >= 25) and (day_of_week() == 0)))
+        or
+        vector(0)
+  - record: middle_european_time
+    expr: time() + 3600 * (1 + european_summer_time_offset)
+
+  - alert: PendingUpgradesTrigger
+    # Condition for alerting
+    expr: apt_upgrades_pending > 0
+    annotations:
+        title: "New upgrades are available from the apt repositories"
+    labels:
+      autoup: trigger
+
+  - alert: PendingUpgradesInhibitor
+    # Condition for alerting
+    expr: up == 1
+    annotations:
+        title: 'Pending upgrades may be disregarded'
+    labels:
+      autoup: inhibitor
+
+
+  - alert: "Es ist 9 Uhr"
+    expr: |
+        (hour(middle_european_time) == 9)
+    labels:
+        severity: critical
+        instance: test-lxc-1
+    annotations:
+        summary: "It is between midnight and 0:10 AM"
+        description: "This alert fires when the time falls between midnight and 0:10 AM."
+

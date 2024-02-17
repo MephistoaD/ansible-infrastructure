@@ -20,14 +20,31 @@
   - debug:
       var: dependency_map
 
-  - name: Place prometheus configuration
-    template:
-      src: "prometheus.yml.j2"
-      dest: "/etc/prometheus/prometheus.yml"
-      owner: root
-      group: root
-      mode: '0644'
-    register: prometheus_config
+  - name: Configure prometheus
+    vars:
+      rules_files:
+        - rules-autoup.yml
+        - rules.yml
+    block:
+
+    - name: Place prometheus configuration
+      template:
+        src: "prometheus.yml.j2"
+        dest: "/etc/prometheus/prometheus.yml"
+        owner: root
+        group: root
+        mode: '0644'
+      register: prometheus_config
+
+    - name: Place prometheus rules
+      template:
+        src: "{{ item }}.j2"
+        dest: "/etc/prometheus/{{ item }}"
+        owner: root
+        group: root
+        mode: '0644'
+      register: prometheus_rules
+      loop: "{{ rules_files }}"
 
 - name: Execute promtool script
   shell: /bin/promtool check config /etc/prometheus/prometheus.yml
@@ -45,4 +62,4 @@
     name: prometheus
     state: reloaded
   when: >
-    prometheus_config.changed
+    prometheus_config.changed or prometheus_rules.changed
