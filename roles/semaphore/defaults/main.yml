@@ -1,4 +1,5 @@
 ---
+role_name: semaphore
 semaphore_upstream_repo: ansible-semaphore/semaphore
 
 semaphore_config_path: /etc/semaphore/config.json
@@ -16,32 +17,60 @@ semaphore_config_user:
   email: "semaphore_config_user@invalid"
   admin: true
 
-semaphore_add_current_project: true
 semaphore_add_local_ssh_key: false
 
-semaphore_inventory: netbox # the path in inventory/ where the inventory is stored
-semaphore_project: infrastructure # the project name shown in the semaphore gui
-
-semaphore_repository_git_url: git@github.com:MephistoaD/ansible-infrastructure.git #git@github.com:youruser/yourrepo.git
-semaphore_repository_git_branch: master
-semaphore_repository_name: "{{ semaphore_project }}-{{ semaphore_repository_git_branch }}"
-
-semaphore_tasks:
-  - view: config
-    name: "CONFIG: generic_playbook"
-    description: "ansible role without updates"
-    playbook: playbooks/generic_playbook.yml
-    arguments: '["-e","target=_debian"]'
-    environment: '{ "deploy_guest": true }'
-  - view: upgrade
-    name: "UPGRADE: generic_playbook"
-    description: " ansible role with updates"
-    playbook: playbooks/generic_playbook.yml
-    arguments: '["-e","target=_debian"]'
-    environment: '{ "upgrade": true, "deploy_guest": true }'
-
-# views sind z.T. bei der Erstellung von Task templates hardcoded in Verwendung
-semaphore_views:
-  - name: "config"
-  - name: "upgrade"
-  - name: "other"
+semaphore_projects: # sample, overwritten in group vars
+  - name: infrastructure
+    #max_parallel_tasks: "5" # implemented, but optional
+    keystore: # ssh only
+      name: "ansible-ssh-key"
+      local_path: "~/.ssh/id_rsa"
+    repositories:
+      - name: "ansible-infrastructure"
+        url: git@github.com:MephistoaD/ansible-infrastructure.git
+        revision: master
+        ssh_key: "ansible-ssh-key"
+    inventories:
+      - name: "netbox"
+        type: "file"
+        path: "{{ inventory_file.replace(playbook_dir.replace('playbooks', ''), '') }}"
+    views:
+      - name: "setup"
+        position: 0
+      - name: "upgrade"
+        position: 1
+      - name: "other"
+        position: 3
+    task_templates:
+      - name: "Setup machine"
+        description: "Job which creates and installs a machine"
+        playbook_filename: "playbooks/generic_playbook.yml"
+        inventory: "netbox"
+        repository: "ansible-infrastructure"
+        view: "setup"
+        vars: # implemented, optional
+          - name: "target"
+            title: "Target (required)"
+            description: "The target system or group of the playbook"
+            type: "string"
+            required: false
+        environment:
+          upgrade: false
+          deploy_guest: true
+      - name: "Machine maintainance"
+        description: "Job which upgrades and reboots a machine"
+        playbook_filename: "playbooks/generic_playbook.yml"
+        inventory: "netbox"
+        repository: "ansible-infrastructure"
+        view: "upgrade"
+        vars: # implemented, optional
+          - name: "target"
+            title: "Target (required)"
+            description: "The target system or group of the playbook"
+            type: "string"
+            required: false
+        environment:
+          upgrade: true
+          deploy_guest: true
+        #schedule: "*/30 * * * *" # every 30 minutes # implemented
+    

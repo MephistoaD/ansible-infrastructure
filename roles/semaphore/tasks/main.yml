@@ -2,13 +2,26 @@
 - name: SEMAPHORE block
   vars:
     semaphore_users_: "{{ local_context_data[0].semaphore_users if local_context_data[0] is defined else semaphore_users }}"
+    semaphore_projects_: "{{ local_context_data[0]['semaphore_projects'] | default(semaphore_projects) }}"
+  when:
+    - only_role is undefined or only_role == role_name
   block:
   - include_tasks: latest_version.yml
+    when:
+      - not quick
+
   - include_tasks: install.yml
+    when:
+      - not quick
+      
   - include_tasks: users.yml
+ 
   - include_tasks: ansible_local.yml
 
   - include_tasks: configure_project.yml
     vars:
       admin_user: "{{ ansible_local.semaphore.users | dict2items | map(attribute='value') | selectattr('Admin', 'equalto', 'true') | first }}"
-    when: semaphore_add_current_project
+    loop_control:
+      label: "{{ project.name }}"
+      loop_var: "project"
+    loop: "{{ semaphore_projects_ }}"
