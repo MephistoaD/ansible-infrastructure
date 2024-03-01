@@ -1,0 +1,56 @@
+---
+semaphore_projects:
+  - name: infrastructure
+    #max_parallel_tasks: "5" # implemented, but optional
+    keystore: # ssh only
+      name: "ansible-ssh-key"
+      local_path: "~/.ssh/id_rsa"
+    repositories:
+      - name: "ansible-infrastructure"
+        url: git@github.com:MephistoaD/ansible-infrastructure.git
+        revision: master
+        ssh_key: "ansible-ssh-key"
+    inventories:
+      - name: "netbox"
+        type: "file"
+        path: "{{ inventory_file.replace(playbook_dir.replace('playbooks', ''), '') }}"
+    views:
+      - name: "setup"
+        position: 0
+      - name: "upgrade"
+        position: 1
+      - name: "other"
+        position: 3
+    task_templates:
+      - name: "Setup machine"
+        description: "Job which creates and installs a machine"
+        playbook_filename: "playbooks/generic_playbook.yml"
+        inventory: "netbox"
+        repository: "ansible-infrastructure"
+        view: "setup"
+        vars: # implemented, optional
+          - name: "target"
+            title: "Target (required)"
+            description: "The target system or group of the playbook"
+            type: "string"
+            required: false
+        environment:
+          upgrade: false
+          deploy_guest: true
+      - name: "Machine maintainance"
+        description: "Job which upgrades and reboots a machine"
+        playbook_filename: "playbooks/generic_playbook.yml"
+        inventory: "netbox"
+        repository: "ansible-infrastructure"
+        view: "upgrade"
+        vars: # implemented, optional
+          - name: "target"
+            title: "Target (required)"
+            description: "The target system or group of the playbook"
+            type: "string"
+            required: false
+        environment:
+          upgrade: true
+          deploy_guest: true
+        #schedule: "*/30 * * * *" # every 30 minutes # implemented
+    
