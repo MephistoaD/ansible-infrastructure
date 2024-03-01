@@ -1,11 +1,15 @@
 ---
 dependencies:
   - role: debian
+    when: 
+      - not configure_dns_job
   
   - role: keepalived
     when:
       - cluster_leader is defined
+      - not configure_dns_job
 
   - role: unbound
     when: 
       - pihole_as_recursive_dns
+      - not configure_dns_job

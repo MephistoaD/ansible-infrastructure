@@ -9,18 +9,21 @@
     assert:
       that: 
         - cluster_leaders | length <= 1
-
-  - import_tasks: ansible_local.yml
-
-  - import_tasks: install.yml
-
-  - import_tasks: upgrade.yml
+  - name: Tasks outside configure_dns_job
     when:
-      - upgrade
+      - not configure_dns_job
+    block:
+    - import_tasks: ansible_local.yml
 
-  - import_tasks: tests.yml
+    - import_tasks: install.yml
 
-  - import_tasks: prometheus_exporter.yml
+    - import_tasks: upgrade.yml
+      when:
+        - upgrade
+
+    - import_tasks: tests.yml
+
+    - import_tasks: prometheus_exporter.yml
 
   - import_tasks: local_dns.yml
 
