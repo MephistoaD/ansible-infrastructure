@@ -35,8 +35,8 @@ semaphore_projects:
             type: "string"
             required: false
         environment:
-          upgrade: false
           deploy_guest: true
+
       - name: "Machine maintainance"
         description: "Job which upgrades and reboots a machine"
         playbook_filename: "playbooks/generic_playbook.yml"
@@ -52,5 +52,20 @@ semaphore_projects:
         environment:
           upgrade: true
           deploy_guest: true
+          
+      - name: "Configure DNS"
+        description: "Job which updates the local dns configuration"
+        playbook_filename: "playbooks/generic_playbook.yml"
+        inventory: "netbox"
+        repository: "ansible-infrastructure"
+        view: "other"
+        vars: # implemented, optional
+          - name: "target"
+            title: "Target (required)"
+            description: "The target system or group of the playbook"
+            type: "string"
+            required: false
+        environment:
+          configure_dns_job: true
         #schedule: "*/30 * * * *" # every 30 minutes # implemented
     
