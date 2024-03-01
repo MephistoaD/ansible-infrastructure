@@ -7,25 +7,25 @@ DOCUMENTATION = r'''
 ---
 module: semaphore_view
 
-short_description: Manage task schedules in semaphore
+short_description: Manage views in semaphore
 
 # If this is part of a collection, you need to use semantic versioning,
 # i.e. the version is of the form "2.5.0" and not "2.4".
 version_added: "1.0.0"
 
-description: Create, list or delete task schedules in ansible semaphore.
+description: Create, list or delete views in ansible semaphore.
 
         api_endpoint=dict(type='str', required=True),
         api_token=dict(type='str', required=True),
         project=dict(type='str', required=True),
-        task_template=dict(type='str', required=True),
-        schedule=dict(type='str', required=False),
+        name=dict(type='str', required=True),
+        position=dict(type='int', required=False),
         state=dict(type='str', required=False, default="present"),
 
 options:
     api_endpoint:
         description: The URL to the Semaphore API.
-        required: false
+        required: true
         type: str
     api_token:
         description: The API token for the Semaphore instance
@@ -35,14 +35,14 @@ options:
         description: The project name.
         required: true
         type: str
-    task_template:
-        description: The name of the task template.
+    name:
+        description: The name of the view.
         required: true
         type: str
-    schedule:
-        description: The schedule in cron syntax.
+    position:
+        description: The position (from left to right) where the view should be placed.
         required: false
-        type: str
+        type: int
     state:
         description: The desired presece or absence of the entry.
         required: false
@@ -57,20 +57,20 @@ author:
 '''
 
 EXAMPLES = r'''
-- name: Schedule tasks
-  semaphore_task_schedule:
+- name: Create view 'updates'
+  semaphore_view:
     api_endpoint: "http://localhost:3000"
-    api_token: "xxxx"
-    task_template: "Run Updates"
-    project: "administration"
-    schedule: "0 0 * * *"
+    api_token: "{{ admin_user.api_token }}"
+    name: "updates"
+    project: "my-project"
+    position: 5
 
-- name: Unschedule tasks
-  semaphore_task_schedule:
+- name: Delete view 'updates'
+  semaphore_view:
     api_endpoint: "http://localhost:3000"
-    api_token: "xxxx"
-    task_template: "Run Updates"
-    project: "administration"
+    api_token: "{{ admin_user.api_token }}"
+    name: "updates"
+    project: "my-project"
     state: absent
 '''
 
@@ -81,18 +81,29 @@ msg:
     description: A human-readable description of the changes done
     type: str
     returned: change
-    sample: "Updated schedule '1 1 1 * *' -> '0 * * * *' for task 'Run Updates'"
-schedule:
-    description: The schedule currently set for the task.
+    sample: "Updated viev 'updates'"
+views:
+    description: The views currently set in this project.
     type: dict
     returned: always
     sample: [
             {
-                "id": 8,
-                "project_id": 10,
-                "template_id": 23,
-                "cron_format": "0 * * * *",
-                "repository_id": null
+                "id": 1,
+                "project_id": 1,
+                "title": "setup",
+                "position": 0
+            },
+            {
+                "id": 2,
+                "project_id": 1,
+                "title": "upgrade",
+                "position": 1
+            },
+            {
+                "id": 3,
+                "project_id": 1,
+                "title": "other",
+                "position": 3
             }
         ]
 '''

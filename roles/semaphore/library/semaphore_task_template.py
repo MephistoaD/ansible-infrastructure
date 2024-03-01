@@ -17,7 +17,15 @@ description: Create, list or delete task_templates in ansible semaphore.
 
         api_endpoint=dict(type='str', required=True),
         api_token=dict(type='str', required=True),
-        task_template=dict(type='dict', required=False),
+        name=dict(type='str', required=True),
+        environment=dict(type='str', required=True),
+        description=dict(type='str', required=False),
+        inventory=dict(type='str', required=True),
+        playbook=dict(type='str', required=True),
+        project=dict(type='str', required=True),
+        repository=dict(type='str', required=True),
+        view=dict(type='str', required=False),
+        vars=dict(type='list', required=False),
         state=dict(type='str', required=False, default="present"),
 
 options:
@@ -29,8 +37,44 @@ options:
         description: The API token for the Semaphore instance
         required: true
         type: str
-    task_template:
-        description: The task_templates configuration.
+    name:
+        description: The name of the task_template.
+        required: true
+        type: str
+    environment:
+        description: The name of the related environment.
+        required: true
+        type: str
+    description:
+        description: The description of the task_template.
+        required: true
+        type: str
+    inventory:
+        description: The name of the related inventory.
+        required: true
+        type: str
+    repository:
+        description: The name of the related repository.
+        required: true
+        type: str
+    playbook:
+        description: The relative path of the playbook within the repository.
+        required: true
+        type: str
+    project:
+        description: The name of the related project.
+        required: true
+        type: str
+    view:
+        description: The name of the related view.
+        required: false
+        type: str
+    vars:
+        description: The survey_vars in api-compatible format.
+        required: false
+        type: str
+    state:
+        description: The desired presence / absence of the task template.
         required: false
         type: str
 # Specify this value according to your collection
@@ -43,34 +87,35 @@ author:
 '''
 
 EXAMPLES = r'''
-- name: "Configure task_template '{{ task_template.name }}'"
+- name: Create task templates 'update host'
   semaphore_task_template:
     api_endpoint: "http://localhost:3000"
-    api_token: "xxx"
-    task_template:
-      name: "{{ task_template.name }}"
-      description: "{{ task_template.description }}" # optional
-      playbook: "{{ task_template.playbook_filename }}"
-      inventory: "{{ inventory.name }}"
-      repository: "{{ repository.name }}"
-      environment: "{{ environment.name }}"
-      project: "{{ project.name}}"
-      view: "other" # optional
-      vars:  # optional
-        - name: "target" # the name of the var in ansible
-          title: "Target" # the Title the field gets in the webui
-          description: "The target system or group of the playbook"
-          type: "string" # string, int
-          required: true
-    state: present
+    api_token: "{{ admin_user.api_token }}"
+    name: "update host"
+    description: "updates a host" # optional
+    project: "my-project"
+    playbook: "playbooks/update_host.yml"
+    inventory: "test-inventory"
+    repository: "ansible-repository"
+    environment: "default-env"
+    view: "updates" # optional
+    vars: # optional
+      - name: "target"
+        title: "Target (required)"
+        description: "The target system or group of the playbook"
+        type: "string"
+        required: false
 
-- name: "Delete task_template '{{ task_template.name }}'"
+- name: Delete obsolete task template 'update host'
   semaphore_task_template:
     api_endpoint: "http://localhost:3000"
-    api_token: "xxx"
-    task_template:
-      name: "{{ task_template.name }}"
-      project: "{{ project.name }}"
+    api_token: "{{ admin_user.api_token }}"
+    name: "update host"
+    project: "my-project"
+    playbook: "some"
+    inventory: "ignored"
+    repository: "data"
+    environment: "lol"
     state: absent
 '''
 

@@ -7,25 +7,25 @@ DOCUMENTATION = r'''
 ---
 module: semaphore_environment
 
-short_description: Manage task schedules in semaphore
+short_description: Manage environments in semaphore
 
 # If this is part of a collection, you need to use semantic versioning,
 # i.e. the version is of the form "2.5.0" and not "2.4".
 version_added: "1.0.0"
 
-description: Create, list or delete task schedules in ansible semaphore.
+description: Create, list or delete environments in ansible semaphore.
 
         api_endpoint=dict(type='str', required=True),
         api_token=dict(type='str', required=True),
         project=dict(type='str', required=True),
-        task_template=dict(type='str', required=True),
-        schedule=dict(type='str', required=False),
+        name=dict(type='str', required=True),
+        vars=dict(type='dict', required=False),
         state=dict(type='str', required=False, default="present"),
 
 options:
     api_endpoint:
         description: The URL to the Semaphore API.
-        required: false
+        required: true
         type: str
     api_token:
         description: The API token for the Semaphore instance
@@ -35,14 +35,14 @@ options:
         description: The project name.
         required: true
         type: str
-    task_template:
-        description: The name of the task template.
+    name:
+        description: The name of the environment.
         required: true
         type: str
-    schedule:
-        description: The schedule in cron syntax.
+    vars:
+        description: The variables stored in the environment.
         required: false
-        type: str
+        type: dict
     state:
         description: The desired presece or absence of the entry.
         required: false
@@ -57,20 +57,22 @@ author:
 '''
 
 EXAMPLES = r'''
-- name: Schedule tasks
-  semaphore_task_schedule:
+- name: Create environment default
+  semaphore_environment:
     api_endpoint: "http://localhost:3000"
-    api_token: "xxxx"
-    task_template: "Run Updates"
-    project: "administration"
-    schedule: "0 0 * * *"
+    api_token: "{{ admin_user.api_token }}"
+    name: "default"
+    project: "my-project"
+    vars: 
+      key1: value
+      key2: value
 
-- name: Unschedule tasks
-  semaphore_task_schedule:
+- name: Delete environment default-env
+  semaphore_environment:
     api_endpoint: "http://localhost:3000"
-    api_token: "xxxx"
-    task_template: "Run Updates"
-    project: "administration"
+    api_token: "{{ admin_user.api_token }}"
+    name: "default-env"
+    project: "my-project}"
     state: absent
 '''
 
@@ -81,18 +83,27 @@ msg:
     description: A human-readable description of the changes done
     type: str
     returned: change
-    sample: "Updated schedule '1 1 1 * *' -> '0 * * * *' for task 'Run Updates'"
-schedule:
-    description: The schedule currently set for the task.
-    type: dict
+    sample: "Updated environment 'default-env'"
+environments:
+    description: The environments within the given project.
+    type: list
     returned: always
     sample: [
             {
-                "id": 8,
-                "project_id": 10,
-                "template_id": 23,
-                "cron_format": "0 * * * *",
-                "repository_id": null
+                "id": 2,
+                "name": "Machine maintainance",
+                "project_id": 1,
+                "password": null,
+                "json": "{\"upgrade\": true, \"deploy_guest\": true}",
+                "env": null
+            },
+            {
+                "id": 1,
+                "name": "Setup machine",
+                "project_id": 1,
+                "password": null,
+                "json": "{\"upgrade\": false, \"deploy_guest\": true}",
+                "env": null
             }
         ]
 '''

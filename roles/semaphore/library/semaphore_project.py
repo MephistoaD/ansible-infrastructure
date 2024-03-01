@@ -23,7 +23,7 @@ description: Create, list or delete projects in ansible semaphore.
 options:
     api_endpoint:
         description: The URL to the Semaphore API.
-        required: false
+        required: true
         type: str
     api_token:
         description: The API token for the Semaphore instance
