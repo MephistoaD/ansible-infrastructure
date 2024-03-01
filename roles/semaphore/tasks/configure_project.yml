@@ -94,7 +94,7 @@
 
   - name: Fail if Key is not created
     fail:
-      msg: "ssh Key from {{ project.keystore.local_path }} has not been imported did you pass the `semaphore_key_ansible_created` variable?"
+      msg: "ssh Key from {{ project.keystore.local_path }} has not been imported did you pass the `semaphore_add_local_ssh_key=true` variable?"
     when: 
       - "semaphore_keystores.json | selectattr('name', 'equalto', project.keystore.name) | length == 0"
 
