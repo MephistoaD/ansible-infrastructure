@@ -1,25 +1,5 @@
 ---
-role_name: semaphore
-semaphore_upstream_repo: ansible-semaphore/semaphore
-
-semaphore_config_path: /etc/semaphore/config.json
-semaphore_max_parralel_tasks: 10
-
-semaphore_users:
-  - name: "Test User"
-    login: "testuser"
-    email: "test.user@foo.bar"
-    admin: true
-
-semaphore_config_user:
-  name: "Ansible"
-  login: semaphore_config_user 
-  email: "semaphore_config_user@invalid"
-  admin: true
-
-semaphore_add_local_ssh_key: false
-
-semaphore_projects: # sample, overwritten in group vars
+semaphore_projects:
   - name: infrastructure
     #max_parallel_tasks: "5" # implemented, but optional
     keystore: # ssh only
