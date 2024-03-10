@@ -1,448 +1,399 @@
 ---
+- debug:
+    var: project
+
 - name: "Configure Project"
   block:
-    - name: "Get list of current projects"
-      changed_when: false
-      check_mode: false
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/projects"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        status_code: 200
-        timeout: 5
-      register: semaphore_projects
+  - name: "Configure project '{{ project.name }}'"
+    semaphore_project:
+      api_endpoint: "http://localhost:3000"
+      api_token: "{{ admin_user.api_token }}"
+      project:
+        name: "{{ project.name }}"
+        max_parallel_tasks: "{{ project.max_parallel_tasks | default(0) }}"
+      state: present
+    register: existing_projects
 
-    - name: "Create project '{{ semaphore_project }}'"
-      changed_when: "semaphore_project_created.status == 201"
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/projects"
-        method: POST
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        body:
-          name: "{{ semaphore_project }}"
-        body_format: json
-        status_code: 201
-        timeout: 5
-      register: semaphore_project_created
-      when:
-        - "semaphore_project not in (semaphore_projects.json | map(attribute='name'))"
-
-    - name: "Get updated list of current projects"
-      changed_when: false
-      check_mode: false
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/projects"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        status_code: 200
-        timeout: 5
-      register: semaphore_projects
-
-    - name: "Set fact semaphore_project_id"
-      ansible.builtin.set_fact:
-        semaphore_project_id: >-
-          {{ (semaphore_projects.json | selectattr('name', 'equalto', semaphore_project) | map(attribute='id') | first)
-           | default(semaphore_project_created.json.id) }}
+  - name: "Set fact project_id"
+    ansible.builtin.set_fact:
+      project_id: "{{ 
+                      existing_projects.projects 
+                      | selectattr('name', 'equalto', project.name) 
+                      | map(attribute='id') 
+                      | first 
+                    }}"
 
 
-- name: "Configure Keystores"
+- name: "Configure keystore"
+  when:
+    - semaphore_add_local_ssh_key
   block:
-    - name: "Get list of keystores in project {{ semaphore_project }}"
-      changed_when: false
-      check_mode: false
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/keys"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        status_code: 200
-        timeout: 5
-      register: semaphore_keystores
-      when:
-        - semaphore_add_local_ssh_key
+  - name: "Get list of keystores in project {{ project.name }}"
+    changed_when: false
+    check_mode: false
+    ansible.builtin.uri:
+      use_proxy: false
+      url: "http://localhost:3000/api/project/{{ project_id }}/keys"
+      method: GET
+      headers:
+        Authorization: "Bearer {{ admin_user.api_token }}"
+      status_code: 200
+      timeout: 5
+    register: semaphore_keystores
   
-    # SSH key for ansible user
-    - name: "Read local ssh key"
-      become: false
-      no_log: true
-      local_action:
-        module: ansible.builtin.slurp
-        path: "~/.ssh/id_rsa"
-      register: ssh_key_ansible
-      when: semaphore_add_local_ssh_key
+  # SSH key for ansible user
+  - name: "Read local ssh key"
+    become: false
+    no_log: true
+    local_action:
+      module: ansible.builtin.slurp
+      path: "{{ project.keystore.local_path }}"
+    register: ssh_key_ansible
 
-    - name: "Create SSH key for ansible"
-      changed_when: "semaphore_key_ansible_created.status == 204"
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/keys"
-        method: POST
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        # project_id must be integer
-        body: >-
-          {
-            "project_id": {{ semaphore_project_id | int }},
-            "name": "ansible-ssh-key",
-            "type": "ssh",
-            "ssh":
-              {
-                "private_key": {{ ssh_key_ansible.content | b64decode | to_json }}
-              }
+  - name: "Create SSH key for ansible, if not already existing"
+    changed_when: "semaphore_key_ansible_created.status == 204"
+    ansible.builtin.uri:
+      use_proxy: false
+      url: "http://localhost:3000/api/project/{{ project_id }}/keys"
+      method: POST
+      headers:
+        Authorization: "Bearer {{ admin_user.api_token }}"
+      # project_id must be integer
+      body: >-
+        {
+          "project_id": {{ project_id | int }},
+          "name": "{{ project.keystore.name }}",
+          "type": "ssh",
+          "ssh":
+            {
+              "private_key": {{ ssh_key_ansible.content | b64decode | to_json }}
             }
-        body_format: json
-        status_code: 204
-        timeout: 5
-      register: semaphore_key_ansible_created
-      when:
-        - semaphore_add_local_ssh_key
-        - "semaphore_keystores.json | selectattr('name', 'equalto', 'ansible-ssh-key') | length == 0"
+          }
+      body_format: json
+      status_code: 204
+      timeout: 5
+    register: semaphore_key_ansible_created
+    when:
+      - "semaphore_keystores.json | selectattr('name', 'equalto', project.keystore.name) | length == 0"
 
-    - name: "Get updated list of keystores in project {{ semaphore_project }}"
-      changed_when: false
-      check_mode: false
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/keys"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        status_code: 200
-        timeout: 5
-      register: semaphore_keystores
 
-    - name: Fail if Key is not created
-      fail:
-        msg: "ssh Key from ~/.ssh/id_rsa has not been imported did you pass the `semaphore_key_ansible_created` variable?"
-      when: 
-        - "semaphore_keystores.json | selectattr('name', 'equalto', 'ansible-ssh-key') | length == 0"
+- name: "Get keystore"
+  block:
+  - name: "Get updated list of keystores in project {{ project.name }}"
+    changed_when: false
+    check_mode: false
+    ansible.builtin.uri:
+      use_proxy: false
+      url: "http://localhost:3000/api/project/{{ project_id }}/keys"
+      method: GET
+      headers:
+        Authorization: "Bearer {{ admin_user.api_token }}"
+      status_code: 200
+      timeout: 5
+    register: semaphore_keystores
 
-    - name: "Set fact semaphore_ssh_key_id"
-      ansible.builtin.set_fact:
-        semaphore_ssh_key_id: "{{ semaphore_keystores.json | selectattr('name', 'equalto', 'ansible-ssh-key') | map(attribute='id') | first }}"
+  - name: Fail if Key is not created
+    fail:
+      msg: "ssh Key from {{ project.keystore.local_path }} has not been imported did you pass the `semaphore_add_local_ssh_key=true` variable?"
+    when: 
+      - "semaphore_keystores.json | selectattr('name', 'equalto', project.keystore.name) | length == 0"
+
+  - name: "Set fact semaphore_ssh_key_id"
+    ansible.builtin.set_fact:
+      keystore_id: "{{ 
+                      semaphore_keystores.json 
+                      | selectattr('name', 'equalto', project.keystore.name) 
+                      | map(attribute='id') 
+                      | first 
+                    }}"
 
 
 - name: Configure upstream repo
   block:
-    - name: "Get list of repositories in project {{ semaphore_project }}"
-      changed_when: false
-      check_mode: false
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/repositories"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        status_code: 200
-        timeout: 5
-      register: semaphore_repositories
+  - name: "Get list of repositories in project {{ project.name }}"
+    changed_when: false
+    check_mode: false
+    ansible.builtin.uri:
+      use_proxy: false
+      url: "http://localhost:3000/api/project/{{ project_id }}/repositories"
+      method: GET
+      headers:
+        Authorization: "Bearer {{ admin_user.api_token }}"
+      status_code: 200
+      timeout: 5
+    register: semaphore_repositories
     
-    - name: "Create Repository"
-      changed_when: "semaphore_repository_created.status == 204"
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/repositories"
-        method: POST
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        # project_id must be integer
-        body: >-
-          {
-            "project_id": {{ semaphore_project_id | int }},
-            "name": "{{ semaphore_repository_name }}",
-            "git_url": "{{ semaphore_repository_git_url }}",
-            "git_branch": "{{ semaphore_repository_git_branch }}",
-            "ssh_key_id": {{ semaphore_ssh_key_id | int }}
-          }
-        body_format: json
-        status_code: 204
-        timeout: 5
-      register: semaphore_repository_created
-      when:
-        - "semaphore_repositories.json | selectattr('name', 'equalto', semaphore_repository_name) | length == 0"
-    
-    - name: "Get updated list of repositories in project {{ semaphore_project }}"
-      changed_when: false
-      check_mode: false
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/repositories"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        status_code: 200
-        timeout: 5
-      register: semaphore_repositories
-
-    - name: "Set fact semaphore_repository_id"
-      ansible.builtin.set_fact:
-        semaphore_repository_id: "{{ semaphore_repositories.json \
-          | selectattr('name', 'equalto', semaphore_repository_name) \
-          | map(attribute='id') | first }}"
-
-
-- name: "Configure environments"
-  block:
-    - name: "Get list of environments"
-      changed_when: false
-      check_mode: false
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/environment"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        status_code: 200
-        timeout: 5
-      register: semaphore_environments
-      
-    - name: "Create environments"
-      changed_when: "semaphore_environment_created.status == 204"
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/environment"
-        method: POST
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        # project_id must be integer
-        body: >-
-          {
-            "project_id": {{ semaphore_project_id | int }},
-            "name": "{{ item.view }}",
-            "json": '{{ item.environment }}'
-          }
-        body_format: json
-        status_code: 204
-        timeout: 5
-      register: semaphore_environment_created
-      when:
-        - "semaphore_environments.json | selectattr('name', 'equalto', item.view) | length == 0"
-      loop: "{{ semaphore_tasks }}"
-    
-    - name: "Get updated list of environments"
-      changed_when: false
-      check_mode: false
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/environment"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        status_code: 200
-        timeout: 5
-      register: "semaphore_environments"
+  - name: "Create Repository"
+    changed_when: "semaphore_repository_created.status == 204"
+    vars:
+      repo_not_in_project: "{{ semaphore_repositories.json | selectattr('name', 'equalto', repository.name) | length == 0 }}"
+    ansible.builtin.uri:
+      use_proxy: false
+      url: "http://localhost:3000/api/project/{{ project_id }}/repositories"
+      method: POST
+      headers:
+        Authorization: "Bearer {{ admin_user.api_token }}"
+      # project_id must be integer
+      body: >-
+        {
+          "project_id": {{ project_id | int }},
+          "name": "{{ repository.name }}",
+          "git_url": "{{ repository.url }}",
+          "git_branch": "{{ repository.revision }}",
+          "ssh_key_id": {{ keystore_id | int }}
+        }
+      body_format: json
+      status_code: 204
+      timeout: 5
+    register: semaphore_repository_created
+    when:
+      - repo_not_in_project
+    loop_control:
+      loop_var: "repository"
+      label: "{{ repository.name }}"
+    loop: "{{ project.repositories }}"
 
 
 - name: "Configure Inventory"
   block:
-    - name: "Get list of inventories in project '{{ semaphore_project }}'"
-      changed_when: false
-      check_mode: false
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/inventory"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        status_code: 200
-        timeout: 5
-      register: semaphore_inventories
+  - name: "Get list of inventories in project '{{ project.name }}'"
+    changed_when: false
+    check_mode: false
+    ansible.builtin.uri:
+      use_proxy: false
+      url: "http://localhost:3000/api/project/{{ project_id }}/inventory"
+      method: GET
+      headers:
+        Authorization: "Bearer {{ admin_user.api_token }}"
+      status_code: 200
+      timeout: 5
+    register: semaphore_inventories
 
-    - name: "Create inventories"
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/inventory"
-        method: POST
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        # project_id must be integer
-        body: >-
-          {
-            "project_id": {{ semaphore_project_id | int }},
-            "name": "{{ semaphore_inventory }}",
-            "ssh_key_id": {{ semaphore_ssh_key_id }},
-            "type": "file",
-            "inventory": "inventory/{{ semaphore_inventory }}/hosts.yml"
-          }
-        body_format: json
-        status_code: 201
-        timeout: 5
-      register: semaphore_inventory_created
-      when:
-        - "semaphore_inventories.json | selectattr('name', 'equalto', semaphore_inventory) | length == 0"
-      
-    - name: "Set fact semaphore_inventory_id"
-      ansible.builtin.set_fact:
-        semaphore_inventory_id: >-
-          {{ (semaphore_inventories.json | selectattr('name', 'equalto', semaphore_inventory) | map(attribute='id') | first)
-            | default(semaphore_inventory_created.json.id) }}
+  - name: "Create inventories"
+    vars:
+      inventory_absent: "{{ semaphore_inventories.json | selectattr('name', 'equalto', inventory.name) | length == 0 }}"
+    ansible.builtin.uri:
+      use_proxy: false
+      url: "http://localhost:3000/api/project/{{ project_id }}/inventory"
+      method: POST
+      headers:
+        Authorization: "Bearer {{ admin_user.api_token }}"
+      # project_id must be integer
+      body: >-
+        {
+          "project_id": {{ project_id | int }},
+          "name": "{{ inventory.name }}",
+          "ssh_key_id": {{ keystore_id }},
+          "type": "file",
+          "inventory": "{{ inventory.path }}"
+        }
+      body_format: json
+      status_code: 201
+      timeout: 5
+    register: semaphore_inventory_created
+    when:
+      - inventory_absent
+    loop_control:
+      loop_var: "inventory"
+      label: "{{ inventory.name }}"
+    loop: "{{ project.inventories }}"
 
 
 - name: "Configure Views"
   block:
-    - name: "Get list of current views"
-      changed_when: false
-      check_mode: false
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/views"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        status_code: 200
-        timeout: 5
-      register: sempahore_existing_views
+  - name: Create views
+    semaphore_view:
+      api_endpoint: "http://localhost:3000"
+      api_token: "{{ admin_user.api_token }}"
+      name: "{{ view.name }}"
+      project: "{{ project.name }}"
+      position: "{{ view.position }}"
+    register: create_views
+    loop_control:
+      loop_var: "view"
+      label: "{{ view.name }}"
+    loop: "{{ project.views }}"
 
-    - name: "Create views"
-      changed_when: "semaphore_view_created.status == 201"
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/views"
-        method: POST
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        body: >-
-          {{ {
-            "project_id": semaphore_project_id |int,
-            "title": item.name |string
-          } }}
-        body_format: json
-        status_code: 201
-        timeout: 5
-      register: semaphore_view_created
-      when:
-        - "sempahore_existing_views.json | selectattr('title', 'equalto', item.name) | length == 0"
-      loop_control:
-        label: "Task {{ item.name }}"
-      loop: "{{ semaphore_views }}"
-
-    - name: "Get updated list of current views"
-      changed_when: false
-      check_mode: false
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/views"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        status_code: 200
-        timeout: 5
-      register: sempahore_existing_views
-
-    - name: "Set fact semaphore_view_config_id"
-      ansible.builtin.set_fact:
-        semaphore_view_id: "{{ semaphore_view_id | default({}) | combine({item.title: item.id}) }}"
-      loop_control:
-        label: "View: {{ item.title }}"
-      loop: "{{ sempahore_existing_views.json }}"
+  - name: Delete obsolete views
+    vars:
+      list_of_allowed_views: "{{ project.views | map(attribute='name') | list }}"
+      single_creation_run: "{{ create_views.results | first }}"
+      existing_views: "{{ single_creation_run.views }}"
+      to_delete: "{{ 
+                    existing_views 
+                    | rejectattr('name', 'in', list_of_allowed_views)
+                    | list
+                  }}"
+    semaphore_view:
+      api_endpoint: "http://localhost:3000"
+      api_token: "{{ admin_user.api_token }}"
+      name: "{{ view.name }}"
+      project: "{{ project.name }}"
+      state: absent
+    register: views_deleted
+    loop_control:
+      loop_var: "view"
+      label: "{{ view.name }}"
+    loop: "{{ to_delete }}"
 
 
 - name: "Configure task templates"
   block:
-    - name: "Get list of current task templates"
-      changed_when: false
-      check_mode: false
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/templates"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        status_code: 200
-        timeout: 5
-      register: semaphore_task_templates
+  - name: Create environments
+    semaphore_environment:
+      api_endpoint: "http://localhost:3000"
+      api_token: "{{ admin_user.api_token }}"
+      name: "{{ task_template.name }}"
+      project: "{{ project.name }}"
+      vars: "{{ dict(task_template.vars | default([]) | selectattr('default', 'defined') | map(attribute='name') | zip(task_template.vars | default([]) | map(attribute='default'))) | combine(task_template.environment | default({})) }}"
+    register: create_environments
+    loop_control:
+      loop_var: "task_template"
+      label: "{{ task_template.name }}"
+    loop: "{{ project.task_templates }}"
 
-    - name: "Create task templates"
-      changed_when: "semaphore_task_created.status == 201"
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/templates"
-        method: POST
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        # prevent coercion, see https://stackoverflow.com/a/70990069
-        body: >-
-          {{ {
-            "project_id": semaphore_project_id | int,
-            "repository_id": semaphore_repository_id | int,
-            "inventory_id": semaphore_inventory_id | int,
-            "environment_id": semaphore_environment_id | int,
-            "name": item.name | string,
-            "description": item.description | string,
-            "playbook": item.playbook | string,
-            "arguments": item.arguments | string,
-            "allow_override_args_in_task": true,
-            "view_id": semaphore_view_id[item.view]
-          } }}
-        body_format: json
-        status_code: 201
-        timeout: 5
-      vars:
-        semaphore_environment_id: "{{ semaphore_environments.json \
-          | selectattr('name', 'equalto', item.view) \
-          | map(attribute='id') | first }}"
-      register: semaphore_task_created
-      when:
-        - "semaphore_task_templates.json | selectattr('name', 'equalto', item.name) | length == 0"
-      loop_control:
-        label: "Task {{ item.name }}"
-      loop: "{{ semaphore_tasks }}"
+  - name: Create task templates
+    semaphore_task_template:
+      api_endpoint: "http://localhost:3000"
+      api_token: "{{ admin_user.api_token }}"
+      name: "{{ task_template.name }}"
+      description: "{{ task_template.description }}"
+      project: "{{ project.name }}"
+      playbook: "{{ task_template.playbook_filename }}"
+      inventory: "{{ task_template.inventory }}"
+      repository: "{{ task_template.repository }}"
+      environment: "{{ task_template.name }}"
+      view: "{{ task_template.view }}" # optional
+      vars: "{{ task_template.vars | default([]) }}" # optional
+    register: create_task_templates
+    loop_control:
+      label: "{{ task_template.name }}"
+      loop_var: "task_template"
+    loop: "{{ project.task_templates }}"
+
+  - name: Delete obsolete task templates
+    vars:
+      list_of_allowed_tasks: "{{ project.task_templates | map(attribute='name') | list }}"
+      single_creation_run: "{{ create_task_templates.results | first }}"
+      existing_task_templates: "{{ single_creation_run.task_templates }}"
+      to_delete: "{{ 
+                    existing_task_templates 
+                    | rejectattr('name', 'in', list_of_allowed_tasks)
+                    | list
+                  }}"
+    semaphore_task_template:
+      api_endpoint: "http://localhost:3000"
+      api_token: "{{ admin_user.api_token }}"
+      name: "{{ task_template.name }}"
+      project: "{{ project.name }}"
+      playbook: "some"
+      inventory: "ignored"
+      repository: "data"
+      environment: "lol"
+      state: absent
+    register: delete_task_templates
+    loop_control:
+      label: "{{ task_template.name }}"
+      loop_var: "task_template"
+    loop: "{{ to_delete }}"
+
+  - name: Delete obsolete environments
+    vars:
+      list_of_allowed_envs: "{{ project.task_templates | map(attribute='name') | list }}"
+      single_creation_run: "{{ create_environments.results | first }}"
+      existing_environments: "{{ single_creation_run.environments }}"
+      to_delete: "{{ 
+                    existing_environments 
+                    | rejectattr('name', 'in', list_of_allowed_envs)
+                    | list
+                  }}"
+    semaphore_environment:
+      api_endpoint: "http://localhost:3000"
+      api_token: "{{ admin_user.api_token }}"
+      name: "{{ task_template.name }}"
+      project: "{{ project.name }}"
+      state: absent
+    register: delete_environments
+    loop_control:
+      loop_var: "task_template"
+      label: "{{ task_template.name }}"
+    loop: "{{ to_delete }}"
+
+  - name: Schedule tasks
+    semaphore_task_schedule:
+      api_endpoint: "http://localhost:3000"
+      api_token: "{{ admin_user.api_token }}"
+      task_template: "{{ task_template.name }}"
+      project: "{{ project.name }}"
+      schedule: "{{ task_template.schedule }}"
+      state: present
+    register: task_schedules
+    loop_control:
+      label: "{{ task_template.name }}"
+      loop_var: "task_template"
+    loop: "{{ project.task_templates | selectattr('schedule', 'defined') | list }}"
+
+  - name: Unschedule tasks
+    semaphore_task_schedule:
+      api_endpoint: "http://localhost:3000"
+      api_token: "{{ admin_user.api_token }}"
+      task_template: "{{ task_template.name }}"
+      project: "{{ project.name }}"
+      state: absent
+    register: task_schedules
+    loop_control:
+      label: "{{ task_template.name }}"
+      loop_var: "task_template"
+    loop: "{{ project.task_templates | rejectattr('schedule', 'defined') }}"
 
 
 - name: "Add users to Project"
   block:
-    - name: "Get list of current users in project {{ semaphore_project }}"
-      changed_when: false
-      check_mode: false
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/users"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        status_code: 200
-        timeout: 5
-      register: semaphore_project_users
+  - name: "Get list of current users in project {{ project.name }}"
+    changed_when: false
+    check_mode: false
+    ansible.builtin.uri:
+      use_proxy: false
+      url: "http://localhost:3000/api/project/{{ project_id }}/users"
+      method: GET
+      headers:
+        Authorization: "Bearer {{ admin_user.api_token }}"
+      status_code: 200
+      timeout: 5
+    register: semaphore_project_users
 
-    - name: "Get list of current users in semaphore"
-      changed_when: false
-      check_mode: false
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/users"
-        method: GET
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        status_code: 200
-        timeout: 5
-      register: semaphore_existing_users
+  - name: "Get list of current users in semaphore"
+    changed_when: false
+    check_mode: false
+    ansible.builtin.uri:
+      use_proxy: false
+      url: "http://localhost:3000/api/users"
+      method: GET
+      headers:
+        Authorization: "Bearer {{ admin_user.api_token }}"
+      status_code: 200
+      timeout: 5
+    register: semaphore_existing_users
 
-    - name: "Add users to project {{ semaphore_project }}"
-      changed_when: "semaphore_project_created.status == 204"
-      ansible.builtin.uri:
-        use_proxy: false
-        url: "http://localhost:3000/api/project/{{ semaphore_project_id }}/users"
-        method: POST
-        headers:
-          Authorization: "Bearer {{ admin_user.api_token }}"
-        body: |
-          {
-            "user_id": {{ item.id }},
-            "role":"task_runner",
-            "project_id": {{ semaphore_project_id }}
-          }
-        body_format: json
-        status_code: 204
-        timeout: 5
-      register: semaphore_project_created
-      when:
-        - "item.username in (semaphore_users_ | map(attribute='login'))"
-        - "item.username not in (semaphore_project_users.json | map(attribute='username'))"
-      loop: "{{ semaphore_existing_users.json }}"
+  - name: "Add users to project {{ project.name }}"
+    changed_when: "semaphore_project_created.status == 204"
+    ansible.builtin.uri:
+      use_proxy: false
+      url: "http://localhost:3000/api/project/{{ project_id }}/users"
+      method: POST
+      headers:
+        Authorization: "Bearer {{ admin_user.api_token }}"
+      body: |
+        {
+          "user_id": {{ item.id }},
+          "role":"task_runner",
+          "project_id": {{ project_id }}
+        }
+      body_format: json
+      status_code: 204
+      timeout: 5
+    register: semaphore_project_created
+    when:
+      - "item.username in (semaphore_users_ | map(attribute='login'))"
+      - "item.username not in (semaphore_project_users.json | map(attribute='username'))"
+    loop: "{{ semaphore_existing_users.json }}"
