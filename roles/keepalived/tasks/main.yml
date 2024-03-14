@@ -24,10 +24,10 @@
     debug:
       var: cluster_leader
 
-  - import_tasks: install.yml
+  - incude_tasks: install.yml
     when:
       - not quick
 
-  - import_tasks: ansible_local.yml
+  - incude_tasks: ansible_local.yml
 
-  - import_tasks: configure.yml
+  - incude_tasks: configure.yml
