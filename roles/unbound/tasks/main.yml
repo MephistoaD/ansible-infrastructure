@@ -3,12 +3,12 @@
   when:
     - only_role is undefined or only_role == "unbound"
   block:
-  - incude_tasks: install_unbound.yml
+  - include_tasks: install_unbound.yml
     when:
       - not quick
 
-  - incude_tasks: configure_unbound.yml
+  - include_tasks: configure_unbound.yml
 
-  - incude_tasks: prometheus_exporter.yml
+  - include_tasks: prometheus_exporter.yml
     when:
       - not quick

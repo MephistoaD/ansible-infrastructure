@@ -5,10 +5,10 @@
   when:
   - (only_role is not defined or only_role == "pbs")
   block:
-  - incude_tasks: install.yml
+  - include_tasks: install.yml
     when:
       - not quick
 
-  - incude_tasks: nag_box.yml
+  - include_tasks: nag_box.yml
 
-  - incude_tasks: dark_theme.yml
+  - include_tasks: dark_theme.yml

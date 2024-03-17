@@ -20,11 +20,11 @@
   # Scripts
 
   # Tasks
-  - incude_tasks: install.yml
+  - include_tasks: install.yml
     when:
       - not quick
   
-  - incude_tasks: ansible_local.yml
+  - include_tasks: ansible_local.yml
     when:
       - not quick
 
@@ -37,9 +37,9 @@
 
   - vars:
       wireguard_interfaces: "{{ ipam_info.instances[inventory_hostname].keys() | select('match', '^wg') | list }}"
-    incude_tasks: configure.yml
+    include_tasks: configure.yml
 
-  - incude_tasks: proxy_traffic.yml
+  - include_tasks: proxy_traffic.yml
     when:
       - proxy_routes_ is defined
 

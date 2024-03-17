@@ -13,19 +13,19 @@
     when:
       - not configure_dns_job
     block:
-    - incude_tasks: ansible_local.yml
+    - include_tasks: ansible_local.yml
 
-    - incude_tasks: install.yml
+    - include_tasks: install.yml
 
-    - incude_tasks: upgrade.yml
+    - include_tasks: upgrade.yml
       when:
         - upgrade
 
-    - incude_tasks: tests.yml
+    - include_tasks: tests.yml
 
-    - incude_tasks: prometheus_exporter.yml
+    - include_tasks: prometheus_exporter.yml
 
-  - incude_tasks: local_dns.yml
+  - include_tasks: local_dns.yml
 
   - run_once: true
     debug:
