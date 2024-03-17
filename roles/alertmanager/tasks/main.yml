@@ -1,5 +1,7 @@
 ---
-- name: "Role: prometheus"
+- name: "Role: alertmanager"
+  vars:
+    alertmanager_autoup_instances_: "{{ local_context_data[0].alertmanager_autoup_instances | default(alertmanager_autoup_instances) }}"
   when:
     - (only_role is not defined or only_role == "alertmanager")
   block:

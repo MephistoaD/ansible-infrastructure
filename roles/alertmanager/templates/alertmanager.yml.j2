@@ -3,8 +3,8 @@ global:
 
 route:
   group_wait: 30s
-  group_interval: 5m
-  repeat_interval: 1h
+  group_interval: 30s
+  repeat_interval: 30s
   receiver: 'default'
 
   routes:
@@ -23,4 +23,6 @@ receivers:
   - name: 'default'
   - name: 'autoup'
     webhook_configs:
-      - url: 'http://127.0.0.1:5000/webhook'
+{% for instance in alertmanager_autoup_instances_ %}
+      - url: 'http://{{ instance }}:8000/webhooks/alertmanager'
+{% endfor %}
