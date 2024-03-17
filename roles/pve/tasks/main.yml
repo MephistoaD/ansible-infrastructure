@@ -20,34 +20,34 @@
   # Scripts
 
   # Tasks
-  - import_tasks: prepare.yml
+  - incude_tasks: prepare.yml
     when:
       - not quick
 
-  - import_tasks: install.yml
+  - incude_tasks: install.yml
     when:
       - not quick
 
-  - import_tasks: ansible_local.yml
+  - incude_tasks: ansible_local.yml
 
-  - import_tasks: drain_node.yml
+  - incude_tasks: drain_node.yml
     when: 
       - (drain_node or upgrade)
 
-  - import_tasks: upgrade.yml
+  - incude_tasks: upgrade.yml
     when: 
       - upgrade
 
-  - import_tasks: configure.yml
+  - incude_tasks: configure.yml
 
-  - import_tasks: join_cluster.yml
+  - incude_tasks: join_cluster.yml
     when:
       - cluster is defined
       - not is_virtual
 
-  - import_tasks: prometheus_exporter.yml
+  - incude_tasks: prometheus_exporter.yml
 
-  - import_tasks: undrain_node.yml
+  - incude_tasks: undrain_node.yml
     when:
       - (undrain_node or upgrade)
 

@@ -1,0 +1,78 @@
+---
+- name: Ensure the alertmanager group exists
+  ansible.builtin.group:
+    name: alertmanager
+    state: present
+
+- name: Ensure the alertmanager user exists
+  ansible.builtin.user:
+    name: alertmanager
+    group: alertmanager
+    shell: /bin/false
+    createhome: no
+
+- name: Create the alertmanager templates directory
+  ansible.builtin.file:
+    path: /etc/alertmanager/templates
+    state: directory
+
+- name: Create the alertmanager data directory
+  ansible.builtin.file:
+    path: /var/lib/alertmanager
+    state: directory
+
+- name: Set ownership for /etc/alertmanager directory
+  ansible.builtin.file:
+    path: /etc/alertmanager
+    owner: alertmanager
+    group: alertmanager
+    state: directory
+
+- name: Set ownership for /var/lib/alertmanager directory
+  ansible.builtin.file:
+    path: /var/lib/alertmanager
+    owner: alertmanager
+    group: alertmanager
+    state: directory
+
+- name: Get latest alertmanager release
+  become: false
+  local_action:
+    module: github_latest_release_info
+    upstream_repo: https://github.com/prometheus/alertmanager
+  register: alertmanager_release
+
+- name: Check if /usr/local/bin/alertmanager exists
+  ansible.builtin.stat:
+    path: /usr/local/bin/alertmanager
+  register: alertmanager_binary
+
+- name: Install Alertmanager
+  vars:
+    latest: "{{ alertmanager_release.latest_release }}"
+  when:
+    - upgrade or not alertmanager_binary.stat.exists
+  block:
+  - name: Download alertmanager release
+    ansible.builtin.unarchive:
+      src: "https://github.com/prometheus/alertmanager/releases/download/v{{ latest }}/alertmanager-{{ latest }}.linux-amd64.tar.gz"
+      dest: "/root"
+      remote_src: true
+
+  - name: Install alertmanager binary
+    ansible.builtin.copy:
+      src: /root/alertmanager-{{ latest }}.linux-amd64/{{ item }}
+      dest: /usr/local/bin/{{ item }}
+      mode: '0755'
+      remote_src: true
+    loop:
+      - alertmanager
+      - amtool
+
+- name: Place systemd service
+  template:
+    src: usr_lib_systemd_system_alertmanager.service.j2
+    dest: /usr/lib/systemd/system/alertmanager.service
+    owner: root
+    group: root
+    mode: 664

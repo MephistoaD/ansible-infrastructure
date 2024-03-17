@@ -1,0 +1,28 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_wait: 30s
+  group_interval: 30s
+  repeat_interval: 30s
+  receiver: 'default'
+
+  routes:
+    # the webhook is triggered for each instance if no inhibitor is active for this instance
+    - matchers:
+        - autoup=~"trigger|inhibitor"
+      group_by:
+        - 'instance'
+      group_wait: 30s
+      group_interval: 1m
+      repeat_interval: 1m
+      receiver: 'autoup'
+      
+
+receivers:
+  - name: 'default'
+  - name: 'autoup'
+    webhook_configs:
+{% for instance in alertmanager_autoup_instances_ %}
+      - url: 'http://{{ instance }}:8000/webhooks/alertmanager'
+{% endfor %}
