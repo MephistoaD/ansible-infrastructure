@@ -57,7 +57,7 @@ semaphore_projects: # sample, overwritten in group vars
         environment:
           upgrade: false
           deploy_guest: true
-      - name: "Machine maintainance"
+      - name: "Machine maintenance"
         description: "Job which upgrades and reboots a machine"
         playbook_filename: "playbooks/generic_playbook.yml"
         inventory: "netbox"

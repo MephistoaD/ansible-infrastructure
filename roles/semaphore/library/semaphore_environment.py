@@ -91,7 +91,7 @@ environments:
     sample: [
             {
                 "id": 2,
-                "name": "Machine maintainance",
+                "name": "Machine maintenance",
                 "project_id": 1,
                 "password": null,
                 "json": "{\"upgrade\": true, \"deploy_guest\": true}",
