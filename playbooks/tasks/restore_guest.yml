@@ -54,4 +54,5 @@
   - debug:
       var: vm_restore_raw.stdout_lines
 
-  
+  - fail:
+      msg: "Upgrade job failed, previous state was restored"
