@@ -18,11 +18,37 @@
     setup:
       filter: ansible_local
 
+  - name: BACKUP GUEST
+    vars:
+      delegate_to_guest_pve_instance: "{{ ansible_local.pve_node.guests_by_id[vmid].node }}"
+    when: 
+      - vmid | string in ansible_local.pve_node.guests_by_id
+      - deploy_guest in ["redeploy", "purge", "backup"] or upgrade
+    block:
+    - name: Create backup
+      delegate_to: "{{ delegate_to_guest_pve_instance }}"
+      ansible.builtin.shell: 
+        executable: /bin/bash
+        cmd: |
+          /usr/bin/pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/vzdump \
+            --storage backups-{{ pool }} \
+            --vmid {{ vmid }} \
+            --mode snapshot \
+            --notes-template "{{ backup_note }}"
+      register: backup_raw
+
+    - debug:
+        var: backup_raw.stdout_lines
+      
+    - name: Finish play if deploy_guest == "backup"
+      meta: end_play
+      when:
+      - deploy_guest == "backup"
 
   - name: STOP OR REMOVE GUEST
     block:
     - when:
-      - vmid | string in ansible_local.pve_node['guests_by_id']
+      - vmid | string in ansible_local.pve_node.guests_by_id
       - deploy_guest in ["redeploy", "purge"] or status.value in ['offline', 'decommissioning']
       block:
       - name: Manage guest

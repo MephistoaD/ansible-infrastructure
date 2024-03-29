@@ -30,6 +30,7 @@ debian_global_packages:
 quick: false # optionally allows to ignore tasks which are not necessary in every run
 deploy_guest: false # false, true, redeploy, purge
 upgrade: false
+backup_note: "Ansible initiated backup"
 
 available_platforms:
   # only for oracle
