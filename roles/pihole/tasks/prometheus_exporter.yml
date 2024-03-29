@@ -17,14 +17,6 @@
   # returns 0 even when nothing was installed
   changed_when: install_pihole_exporter.stdout != ""
 
-- name: Update prometheus-pihole-exporter
-  shell:
-    executable: /usr/bin/bash
-    cmd: |
-      go get -u
-  when:
-    - upgrade
-
 - name: Copy pihole-exporter binary to /usr/local/bin
   become: true
   copy:
