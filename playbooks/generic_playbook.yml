@@ -13,9 +13,22 @@
     - name: Gather Facts
       setup:
 
-    - name: Configure hosts
-      include_role:
-        name: "{{ current_role | regex_replace('^_', '') }}"
-      loop: "{{ include_roles | default(device_roles) }}"
-      loop_control:
-        loop_var: current_role
+    - name: APPLY ROLES
+      block:
+      - name: Configure hosts
+        include_role:
+          name: "{{ current_role | regex_replace('^_', '') }}"
+        loop: "{{ include_roles | default(device_roles) }}"
+        loop_control:
+          loop_var: current_role
+
+      rescue:
+      - debug:
+          msg: here comes the rescue task
+
+      - name: Restore guest
+        include_tasks: "tasks/restore_guest.yml"
+        when:
+          - is_virtual
+          - custom_fields.technology is defined
+          - deploy_guest == "backup" or upgrade

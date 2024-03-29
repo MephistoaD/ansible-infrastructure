@@ -1,0 +1,57 @@
+---
+- name: RESTORE GUEST
+  vars:
+    vmid: "{{ custom_fields.vmid }}"
+    technology: "{{ custom_fields.technology }}"
+    pool: "{{ custom_fields.pool }}"
+    guest_storage: "node-local"
+    delegate_to_pve_instance: "{{ groups['_pve'][0] }}" # the node where the lxc is created / the guest list is scraped
+    delegate_to_guest_pve_instance: "{{ ansible_local.pve_node.guests_by_id[vmid].node }}"
+  block:
+  - name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
+    delegate_to: "{{ delegate_to_pve_instance }}"
+    setup:
+      filter: ansible_local
+
+  - debug:
+      var: ansible_local.pve_node.guests_by_id[vmid]
+
+  - name: Get list of backups for this guest
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    ansible.builtin.shell:
+      executable: /bin/bash
+      cmd: |
+        pvesh get /nodes/{{ delegate_to_guest_pve_instance }}/storage/backups-{{ pool }}/content \
+          --content backup \
+          --output-format json | jq 'map(select(.vmid=={{ vmid }} and .notes=="{{ backup_note }}")) | last'
+    register: vm_existing_backup_raw
+
+  - debug:
+      var: vm_existing_backup_raw.stdout | from_json
+
+  - name: "Stop guest"
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    ansible.builtin.shell:
+      executable: /bin/bash
+      cmd: pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/{{ technology }}/{{ vmid }}/status/stop
+
+  - name: "Restore guest from '{{ backup.volid }}'"
+    vars:
+      backup: "{{ vm_existing_backup_raw.stdout | from_json }}"
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    ansible.builtin.shell:
+      executable: /bin/bash
+      cmd: |
+        pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/{{ technology }} \
+          --vmid {{ vmid }} \
+          --storage "{{ guest_storage }}" \
+          --ostemplate "{{ backup.volid }}" \
+          --force \
+          --start \
+          --restore
+    register: vm_restore_raw
+  
+  - debug:
+      var: vm_restore_raw.stdout_lines
+
+  

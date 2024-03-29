@@ -15,3 +15,12 @@
     register: pihole_test_resolution
     changed_when: false
     failed_when: pihole_test_resolution.rc != 0
+
+  - name: Check if webinterface is available
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        curl --fail http://localhost/admin
+    register: pihole_test_webui
+    changed_when: false
+    failed_when: pihole_test_webui.rc != 0
