@@ -15,14 +15,6 @@
   # returns 0 even when nothing is installed
   changed_when: install_unbound_exporter.stdout != ""
 
-- name: Update prometheus-unbound-exporter
-  shell:
-    executable: /usr/bin/bash
-    cmd: |
-      go get -u
-  when:
-    - upgrade
-
 - name: Copy unbound-exporter binary to /usr/local/bin
   become: true
   copy:
