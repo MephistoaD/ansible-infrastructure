@@ -6,4 +6,6 @@
   - include_tasks: install.yml
     when:
       - not quick
+      - not configure_prometheus_job
+      
   - include_tasks: configure.yml

@@ -67,5 +67,20 @@ semaphore_projects:
             required: false
         environment:
           configure_dns_job: true
+
+      - name: "Configure Prometheus"
+        description: "Job which updates prometheus configuration"
+        playbook_filename: "playbooks/generic_playbook.yml"
+        inventory: "netbox"
+        repository: "ansible-infrastructure"
+        view: "other"
+        vars: # implemented, optional
+          - name: "target"
+            title: "Target (required)"
+            description: "The target system or group of the playbook"
+            type: "string"
+            required: false
+        environment:
+          configure_prometheus_job: true
         #schedule: "*/30 * * * *" # every 30 minutes # implemented
     
