@@ -1,4 +1,9 @@
 dependencies:
   - role: debian
+    when: not configure_prometheus_job
+
   - role: nginx
+    when: not configure_prometheus_job
+
   - role: alertmanager
+    when: not configure_prometheus_job
