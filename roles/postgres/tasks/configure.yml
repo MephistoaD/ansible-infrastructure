@@ -20,7 +20,9 @@
     name: "{{ item.name }}"
     password: "{{ item.password }}"
     state: present
-  with_items: "{{ ansible_local.postgres.users }}"
+  loop_control:
+    label: "{{ item.name }}"
+  loop: "{{ ansible_local.postgres.users }}"
 
 - name: Create PostgreSQL databases
   become: true
