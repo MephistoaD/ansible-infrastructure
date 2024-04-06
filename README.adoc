@@ -13,6 +13,8 @@
 
   prometheus_role_exporter_port_{role_name}: (false, int) set for each role in its vars, this determines the port of the roles dedicated promethtus exporter
 
+  configure_promeetheus_job: (false, true) skips the guests setup and only updates the prometheus configuration on the target host
+
 ## PVE Nodes:
 
   drain_node (false, true): weather the node should be drained or not
