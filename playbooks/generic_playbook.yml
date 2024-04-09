@@ -1,6 +1,7 @@
 ---
 - hosts: "{{ target | default('all') }}"
   gather_facts: false
+  serial: "{{ serial | default(false) | bool }}"
   tasks:
     - name: Manage guest
       include_tasks: "tasks/manage_guest.yml"
@@ -32,3 +33,7 @@
           - is_virtual
           - custom_fields.technology is defined
           - deploy_guest == "backup" or upgrade
+
+      - fail:
+          msg: "rescue operation is not appropiate"
+        # only reaches this point if nothing was restored

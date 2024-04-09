@@ -8,10 +8,13 @@
   quick: (false, true) skipps installs, and most time costly operations (never interferes with upgrade)
   deploy_guest: (false, "true", "redeploy", "purge", "backup", "only") deploys the vm or ct from the stats given in the netbox instance, purge ignores the status in netbox, if set to "only" the roles are skipped
   only_role: (undefined, role name) skipps non vital tasks from all other roles (useful for debugging)
+  serial: (false, true): allows optional serial execution of the roles
 
 ## Prometheus:
 
   prometheus_role_exporter_port_{role_name}: (false, int) set for each role in its vars, this determines the port of the roles dedicated promethtus exporter
+
+  configure_promeetheus_job: (false, true) skips the guests setup and only updates the prometheus configuration on the target host
 
 ## PVE Nodes:
 

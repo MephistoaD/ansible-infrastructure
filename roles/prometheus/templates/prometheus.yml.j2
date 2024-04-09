@@ -75,6 +75,23 @@ scrape_configs:
         - {{ item }}
 {% endfor %}
 
+  - job_name: node_exporter_lxc
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target] # make sure the port is not shown behind the address
+        target_label: instance
+      - source_labels: [__address__] # add the port 9100 behind the targets
+        regex: (.*)
+        replacement: $1:9100
+        target_label: __address__
+        action: replace
+    static_configs:
+      - targets:
+    {% for item in node_exporter_lxc %}
+        - {{ item }}
+    {% endfor %}
+
   - job_name: 'netbox_exporter' # might not work yet
     static_configs:
       - targets:

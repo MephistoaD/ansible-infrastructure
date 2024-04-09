@@ -52,6 +52,7 @@ semaphore_projects:
         environment:
           upgrade: true
           deploy_guest: true
+          serial: true
           
       - name: "Configure DNS"
         description: "Job which updates the local dns configuration"

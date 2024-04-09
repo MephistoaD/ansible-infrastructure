@@ -9,9 +9,11 @@
 
 - name: CONFIGURE PROMETHEUS
   vars:
-    guests: "{{ groups.all | map('extract', hostvars) | selectattr('custom_fields.technology', 'defined') | map(attribute='inventory_hostname') | list }}"
+    vms: "{{ groups.all | map('extract', hostvars) | selectattr('custom_fields.technology', 'defined') | selectattr('custom_fields.technology', 'ne', 'lxc') | map(attribute='inventory_hostname') | list }}"
+    lxc: "{{ groups.all | map('extract', hostvars) | selectattr('custom_fields.technology', 'defined') | selectattr('custom_fields.technology', 'ne', 'vm') | map(attribute='inventory_hostname') | list }}"
     devices: "{{ groups.all | difference(groups.is_virtual) }}"
-    node_exporter_hosts: "{{ devices | union(guests) }}"
+    node_exporter_hosts: "{{ devices | union(vms) }}"
+    node_exporter_lxc: "{{ lxc }}"
     dependency_map: "{{ role_dependencies.dependency_map }}"
   block:
   - debug:
