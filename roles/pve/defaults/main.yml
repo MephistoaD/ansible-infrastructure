@@ -1,6 +1,7 @@
 ---
 role_name: pve
 prometheus_role_exporter_port_pve: 9221
+prometheus_role_exporter_path_pve: /pve
 
 pve_discord_dark: false
 
