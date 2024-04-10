@@ -41,6 +41,10 @@ scrape_configs:
         replacement: $1:{{ dependency_map[role].exporter_port }}
         target_label: __address__
         action: replace
+{% if dependency_map[role].exporter_path %}
+    metrics_path: '{{ dependency_map[role].exporter_path }}'
+{# defaults to /metrics #}
+{% endif %}
     static_configs:
       - targets:
 {% for group in dependency_map[role].dependent_roles | sort %}
