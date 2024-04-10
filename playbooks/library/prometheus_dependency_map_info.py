@@ -80,13 +80,15 @@ dependency_map:
                     "nginx",
                     "prometheus"
                 ],
-                "exporter_port": 9113
+                "exporter_port": 9113,
+                "exporter_path": "/metrics"
             },
             "prometheus": {
                 "dependent_roles": [
                     "prometheus"
                 ],
-                "exporter_port": false
+                "exporter_port": false,
+                "exporter_path": false
             }
         }
 '''
@@ -173,6 +175,41 @@ def get_prometheus_exporter_port(role_name, roles_dir, inventory_dir):
 
     return port  # Return None if the value is not found
 
+def get_prometheus_exporter_path(role_name, roles_dir, inventory_dir):
+    role_path = os.path.join(roles_dir, role_name)
+
+    extracted_path = False
+    varname = f'prometheus_role_exporter_path_{role_name}'
+
+    # Check if defaults/main.yml exists
+    defaults_path = os.path.join(role_path, 'defaults', 'main.yml')
+    if os.path.exists(defaults_path):
+        with open(defaults_path, 'r') as file:
+            defaults_data = yaml.safe_load(file)
+            result = defaults_data.get(varname)
+            if result is not None:
+                extracted_path = result 
+
+    # Check if vars/main.yml exists
+    vars_path = os.path.join(role_path, 'vars', 'main.yml')
+    if os.path.exists(vars_path):
+        with open(vars_path, 'r') as file:
+            vars_data = yaml.safe_load(file)
+            result = vars_data.get(varname)
+            if result is not None:
+                extracted_path = result 
+
+    # Check if group_vars/main.yml exists
+    group_vars_path = os.path.join(inventory_dir, 'group_vars', f'{role_name}.yml')
+    if os.path.exists(group_vars_path):
+        with open(group_vars_path, 'r') as file:
+            vars_data = yaml.safe_load(file)
+            result = vars_data.get(varname)
+            if result is not None:
+                extracted_path = result 
+
+    return extracted_path  # Return None if the value is not found
+
 def run_module():
     # define available arguments/parameters a user can pass to the module
     module_args = dict(
@@ -213,9 +250,12 @@ def run_module():
     for role_name in all_roles:
         dependent_roles = list_dependent_roles(role_name, all_roles, first_level_dependencies)
         exporter_port = get_prometheus_exporter_port(role_name, module.params['roles_dir'], module.params['inventory_dir'])
+        exporter_path = get_prometheus_exporter_path(role_name, module.params['roles_dir'], module.params['inventory_dir'])
+        
         dependency_map[role_name] = { 
             "dependent_roles": dependent_roles,
-            "exporter_port": exporter_port
+            "exporter_port": exporter_port,
+            "exporter_path": exporter_path
         }
 
     result['dependency_map'] = dependency_map

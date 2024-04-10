@@ -1,0 +1,10 @@
+[Unit]
+Description=Execute sessions exporter script every minute
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/sh /usr/local/bin/sessions_exporter.sh
+StandardOutput=file:/var/lib/prometheus/node-exporter/sessions.prom
+
+[Install]
+WantedBy=multi-user.target

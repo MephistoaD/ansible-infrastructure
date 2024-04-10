@@ -12,8 +12,9 @@
   - name: Install prometheus-pve-exporter
     pip:
       name: "{{ item }}"
+      state: "{{ 'latest' if upgrade else 'present'}}"
       executable: pip3
-      extra_args: "{{ '--break-system-packages' if ansible_distribution_major_version | int >= 12 else '' }} {{ '--upgrade' if upgrade else '' }}"
+      extra_args: "{{ '--break-system-packages' if ansible_distribution_major_version | int >= 12 else '' }}"
     loop:
       - prometheus-pve-exporter
 
@@ -70,9 +71,14 @@
     register: pve_exporter_service
 
   - name: Restart and enable pve_exporter
+    vars:
+      exporter_changed: "{{ 
+          pve_exporter_service.changed or
+          pve_exporter_config.changed
+        }}"
     systemd:
       name: pve_exporter.service
-      state: restarted
+      state: "{{ 'restarted' if exporter_changed else 'started' }}"
       enabled: yes
     when: >
       pve_exporter_service.changed or

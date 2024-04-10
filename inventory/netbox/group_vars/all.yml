@@ -27,6 +27,8 @@ debian_global_packages:
   # delayed job execution
   - at
 
+timezone: Europe/Berlin
+
 quick: false # optionally allows to ignore tasks which are not necessary in every run
 deploy_guest: false # false, true, redeploy, purge
 upgrade: false
