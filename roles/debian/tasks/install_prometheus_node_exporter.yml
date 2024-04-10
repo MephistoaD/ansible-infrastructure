@@ -11,3 +11,59 @@
     name: prometheus-node-exporter
     state: started
     enabled: yes
+
+- name: CUSTOM EXPORTERS
+  block:
+  - name: UPTIME EXPORTER
+    block:
+    - name: Place uptime exporter binaries
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      register: uptime_exporter
+      loop_control:
+        label: "{{ item.dest }}"
+      loop:
+        - src: usr_local_bin_uptime_exporter.py
+          dest: /usr/local/bin/uptime_exporter.py
+        - src: etc_systemd_system_uptime_exporter.service
+          dest: /etc/systemd/system/uptime_exporter.service
+        - src: etc_systemd_system_uptime_exporter.timer
+          dest: /etc/systemd/system/uptime_exporter.timer
+
+    - name: Start and enable uptime exporter
+      systemd:
+        name: "{{ item }}"
+        state: restarted
+        enabled: yes
+      when: uptime_exporter.changed
+      loop:
+        - uptime_exporter.timer
+        - uptime_exporter.service
+  
+  - name: SESSIONS EXPORTER
+    block:
+    - name: Place sessions exporter binaries
+      copy:
+        src: "{{ item.src }}"
+        dest: "{{ item.dest }}"
+      register: sessions_exporter
+      loop_control:
+        label: "{{ item.dest }}"
+      loop:
+        - src: usr_local_bin_sessions_exporter.sh
+          dest: /usr/local/bin/sessions_exporter.sh
+        - src: etc_systemd_system_sessions_exporter.service
+          dest: /etc/systemd/system/sessions_exporter.service
+        - src: etc_systemd_system_sessions_exporter.timer
+          dest: /etc/systemd/system/sessions_exporter.timer
+
+    - name: Start and enable sessions exporter
+      systemd:
+        name: "{{ item }}"
+        state: restarted
+        enabled: yes
+      when: sessions_exporter.changed
+      loop:
+        - sessions_exporter.timer
+        - sessions_exporter.service

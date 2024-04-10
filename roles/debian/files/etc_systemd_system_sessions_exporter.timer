@@ -1,0 +1,11 @@
+[Unit]
+Description=Execute sessions exporter script every minute
+
+[Timer]
+OnBootSec=0min
+OnUnitActiveSec=1min
+Persistent=true
+Unit=sessions_exporter.service
+
+[Install]
+WantedBy=multi-user.target
