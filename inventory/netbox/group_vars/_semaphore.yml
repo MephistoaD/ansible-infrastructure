@@ -87,7 +87,7 @@ semaphore_projects:
 
       - name: "Daily Updates"
         description: "Job which updates the apt cache on a daily basis"
-        playbook_filename: "playbooks/generic_playbookperiodic_package_chach_update.yml"
+        playbook_filename: "playbooks/periodic_package_chache_update.yml"
         inventory: "netbox"
         repository: "ansible-infrastructure"
         view: "upgrade"
