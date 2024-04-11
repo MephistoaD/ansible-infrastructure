@@ -24,12 +24,12 @@
       loop_control:
         label: "{{ item.dest }}"
       loop:
-        - src: usr_local_bin_uptime_exporter.py
-          dest: /usr/local/bin/uptime_exporter.py
-        - src: etc_systemd_system_uptime_exporter.service
-          dest: /etc/systemd/system/uptime_exporter.service
-        - src: etc_systemd_system_uptime_exporter.timer
-          dest: /etc/systemd/system/uptime_exporter.timer
+        - src: usr_local_bin_prometheus-node-exporter-uptime-plugin.py
+          dest: /usr/local/bin/prometheus-node-exporter-uptime-plugin.py
+        - src: etc_systemd_system_prometheus-node-exporter-uptime-plugin.service
+          dest: /etc/systemd/system/prometheus-node-exporter-uptime-plugin.service
+        - src: etc_systemd_system_prometheus-node-exporter-uptime-plugin.timer
+          dest: /etc/systemd/system/prometheus-node-exporter-uptime-plugin.timer
 
     - name: Start and enable uptime exporter
       systemd:
@@ -38,8 +38,8 @@
         enabled: yes
       when: uptime_exporter.changed
       loop:
-        - uptime_exporter.timer
-        - uptime_exporter.service
+        - prometheus-node-exporter-uptime-plugin.timer
+        - prometheus-node-exporter-uptime-plugin.service
   
   - name: SESSIONS EXPORTER
     block:
@@ -51,12 +51,12 @@
       loop_control:
         label: "{{ item.dest }}"
       loop:
-        - src: usr_local_bin_sessions_exporter.sh
-          dest: /usr/local/bin/sessions_exporter.sh
-        - src: etc_systemd_system_sessions_exporter.service
-          dest: /etc/systemd/system/sessions_exporter.service
-        - src: etc_systemd_system_sessions_exporter.timer
-          dest: /etc/systemd/system/sessions_exporter.timer
+        - src: usr_local_bin_prometheus-node-exporter-sessions-plugin.sh
+          dest: /usr/local/bin/prometheus-node-exporter-sessions-plugin.sh
+        - src: etc_systemd_system_prometheus-node-exporter-sessions-plugin.service
+          dest: /etc/systemd/system/prometheus-node-exporter-sessions-plugin.service
+        - src: etc_systemd_system_prometheus-node-exporter-sessions-plugin.timer
+          dest: /etc/systemd/system/prometheus-node-exporter-sessions-plugin.timer
 
     - name: Start and enable sessions exporter
       systemd:
@@ -65,5 +65,5 @@
         enabled: yes
       when: sessions_exporter.changed
       loop:
-        - sessions_exporter.timer
-        - sessions_exporter.service
+        - prometheus-node-exporter-sessions-plugin.timer
+        - prometheus-node-exporter-sessions-plugin.service

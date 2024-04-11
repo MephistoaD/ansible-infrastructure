@@ -3,7 +3,7 @@ Description=Execute boot time script every minute
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/python3 /usr/local/bin/uptime_exporter.py
+ExecStart=/usr/bin/python3 /usr/local/bin/prometheus-node-exporter-uptime-plugin.py
 StandardOutput=file:/var/lib/prometheus/node-exporter/uptime.prom
 
 [Install]

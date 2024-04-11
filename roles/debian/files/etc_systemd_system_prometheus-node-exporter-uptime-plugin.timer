@@ -1,11 +1,11 @@
 [Unit]
-Description=Execute sessions exporter script every minute
+Description=Execute boot time script every minute
 
 [Timer]
 OnBootSec=0min
 OnUnitActiveSec=1min
 Persistent=true
-Unit=sessions_exporter.service
+Unit=prometheus-node-exporter-uptime-plugin.service
 
 [Install]
 WantedBy=multi-user.target
