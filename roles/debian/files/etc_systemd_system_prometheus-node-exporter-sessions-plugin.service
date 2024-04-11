@@ -3,7 +3,7 @@ Description=Execute sessions exporter script every minute
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/sh /usr/local/bin/sessions_exporter.sh
+ExecStart=/usr/bin/sh /usr/local/bin/prometheus-node-exporter-sessions-plugin.sh
 StandardOutput=file:/var/lib/prometheus/node-exporter/sessions.prom
 
 [Install]
