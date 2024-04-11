@@ -84,4 +84,14 @@ semaphore_projects:
         environment:
           configure_prometheus_job: true
         #schedule: "*/30 * * * *" # every 30 minutes # implemented
+
+      - name: "Daily Updates"
+        description: "Job which updates the apt cache on a dily basis"
+        playbook_filename: "playbooks/generic_playbookperiodic_package_chach_update.yml"
+        inventory: "netbox"
+        repository: "ansible-infrastructure"
+        view: "upgrade"
+        environment:
+          serial: true
+        schedule: "0 0 * * *" # every midnight
     
