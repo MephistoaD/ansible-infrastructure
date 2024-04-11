@@ -86,7 +86,7 @@ semaphore_projects:
         #schedule: "*/30 * * * *" # every 30 minutes # implemented
 
       - name: "Daily Updates"
-        description: "Job which updates the apt cache on a dily basis"
+        description: "Job which updates the apt cache on a daily basis"
         playbook_filename: "playbooks/generic_playbookperiodic_package_chach_update.yml"
         inventory: "netbox"
         repository: "ansible-infrastructure"
