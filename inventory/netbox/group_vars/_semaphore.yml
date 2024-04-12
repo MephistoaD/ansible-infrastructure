@@ -92,6 +92,6 @@ semaphore_projects:
         repository: "ansible-infrastructure"
         view: "upgrade"
         environment:
-          serial: true
+          foo: bar
         schedule: "0 0 * * *" # every midnight
     
