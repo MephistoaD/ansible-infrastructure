@@ -326,7 +326,7 @@
       task_template: "{{ task_template.name }}"
       project: "{{ project.name }}"
       schedule: "{{ task_template.schedule }}"
-      state: present
+      state: "{{ 'absent' if task_template.schedule == '' else 'present' }}"
     register: task_schedules
     loop_control:
       label: "{{ task_template.name }}"

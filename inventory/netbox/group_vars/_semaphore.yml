@@ -93,5 +93,5 @@ semaphore_projects:
         view: "upgrade"
         environment:
           foo: bar
-        schedule: "0 0 * * *" # every midnight
+        schedule: "{{ '0 0 * * *' if custom_fields.pool == 'infra' else '' }}" # every midnight
     
