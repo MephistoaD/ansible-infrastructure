@@ -9,11 +9,17 @@
     - sudo # for become_user to get root
 #    - debian-goodies # ansible find out if restart is needed (playbooks)
 
-- name: Install useful packages for administration
+- name: Install debian_global_packages
   apt:
     pkg: "{{ item }}"
     state: present
   loop: "{{ debian_global_packages }}"
+
+- name: Uninstall debian_global_absent_packages
+  apt:
+    pkg: "{{ item }}"
+    state: absent
+  loop: "{{ debian_global_absent_packages }}"
 
 - name: install guest agent
   apt:
