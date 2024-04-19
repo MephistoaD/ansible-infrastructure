@@ -3,6 +3,7 @@
   hosts: "{{ target | default('all') }}"
   gather_facts: true
   serial: "{{ serial | default(false) | bool }}"
+  ignore_unreachable: true
 
   tasks:
     - name: Run apt update
