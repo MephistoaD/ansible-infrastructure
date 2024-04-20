@@ -1,0 +1,15 @@
+[Unit]
+Description=AutoUp Service
+After=network.target
+
+[Service]
+User=autoup
+Group=autoup
+Type=simple
+WorkingDirectory={{ autoup_dir }}
+ExecStart={{ autoup_dir }}/venv/bin/python3 {{ autoup_dir }}/main.py {{ autoup_dir }}/config.yml
+StandardOutput=file:/tmp/autoup.log
+StandardError=file:/tmp/autoup.error.log
+
+[Install]
+WantedBy=multi-user.target

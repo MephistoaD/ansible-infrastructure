@@ -1,0 +1,39 @@
+---
+role_name: "autoup"
+
+autoup_dir: /opt/autoup
+
+upstream_repo: https://github.com/MephistoaD/AutoUP
+
+
+config_yml:
+  netbox:
+    url: https://netbox.infra.lab
+    token: "9ifook"
+    verify_certs: false
+
+  alertmanager:
+    url: https://alertmanager.prometheus.infra.lab
+    verify_certs: false
+
+  history: 
+    file: history.yml
+    retention: 365 # max number of entries the history may have
+
+  semaphore:
+    url: http://192.168.2.218:3000
+    token: foo=
+    template_id: 4
+    project_id: 1
+
+  html:
+    dir: "."
+    file: "index.html.j2"
+    dest: "/var/www/html/index.html"
+
+  settings:
+    trigger_jobs: false
+    debug: false
+    severity_factors: # an int for each pool, might as well migrate to netbox
+      servers: 4
+      testing: 2
