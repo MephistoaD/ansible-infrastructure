@@ -1,8 +1,10 @@
+{% if 'proxy_targets' in vhost %}
 upstream {{ vhost.name }}.upstream {
 {% for proxy_target in vhost['proxy_targets'] %}
     server "{{ proxy_target }}";
 {% endfor %}
 }
+{% endif %}
 
 {% if 'https' in vhost and vhost['https']%}
 server {
@@ -65,6 +67,7 @@ server {
     }
 {% endif %} #}
 
+{% if 'proxy_targets' in vhost %}
     location / {
         proxy_pass          {{ 'http' if vhost.proxy_to_http is defined and vhost.proxy_to_http else 'https' }}://{{ vhost.name }}.upstream;
         proxy_set_header    Host $host;
@@ -73,6 +76,7 @@ server {
         proxy_set_header    X-Forwarded-Proto https;
         proxy_ssl_name      $host;
     }
+{% endif %}
 }
 {% endif %}
 
