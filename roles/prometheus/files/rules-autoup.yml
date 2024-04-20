@@ -24,6 +24,7 @@ groups:
       (apt_upgrades_pending > 0)
     annotations:
       title: "New upgrades are available from the apt repositories"
+      count: "{{ $value }}"
     labels:
       autoup: trigger
 
@@ -32,6 +33,7 @@ groups:
       (node_reboot_required > 0)
     annotations:
       title: "The instance requires a reboot"
+      count: "{{ $value }}"
     labels:
       autoup: trigger
 
@@ -42,6 +44,7 @@ groups:
       (node_exporter_system_uptime - 86400 < 0)
     annotations:
       title: "System started recently"
+      count: "{{ $value }}"
     labels:
       autoup: inhibitor
 
@@ -50,5 +53,6 @@ groups:
       (node_exporter_open_user_shells > 0)
     annotations:
       title: "User is logged in on the system"
+      count: "{{ $value }}"
     labels:
       autoup: inhibitor
