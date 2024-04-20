@@ -1,0 +1,10 @@
+[Unit]
+Description=AutoUp Timer
+
+[Timer]
+OnBootSec=0min
+OnUnitActiveSec=1min
+Unit=autoup.service
+
+[Install]
+WantedBy=timers.target

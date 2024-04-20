@@ -1,0 +1,48 @@
+---
+- debug:
+    msg: "install {{ role_name }}"
+
+- name: Install dependencies
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - python3
+    - python3-pip
+    - python3-virtualenv
+    - git
+
+- name: Create autoup group
+  group:
+    name: autoup
+    state: present
+
+- name: Create autoup system user
+  user:
+    name: autoup
+    system: yes
+    group: autoup
+    home: "{{ autoup_dir }}"
+    create_home: false
+    shell: /bin/false
+
+- name: Clone GitHub repository
+  git:
+    repo: "{{ upstream_repo }}"
+    dest: "{{ autoup_dir }}"
+    clone: yes
+    update: "{{ upgrade }}"
+    force: "{{ upgrade }}"
+
+- name: Install python dependencies
+  ansible.builtin.pip:
+    requirements: "{{ autoup_dir }}/requirements.txt"
+    virtualenv: "{{ autoup_dir }}/venv"
+
+- name: Give ownership to autoup user
+  ansible.builtin.file:
+    path: "{{ autoup_dir }}"
+    owner: autoup
+    group: autoup
+    recurse: true
+    

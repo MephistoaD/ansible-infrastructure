@@ -1,0 +1,34 @@
+---
+- debug:
+    msg: "configure {{ role_name }}"
+
+- name: Create webroot
+  file:
+    path: /var/www/html
+    state: directory
+    owner: "{{ nginx_process_user | default('nginx') }}"
+    group: "{{ nginx_process_user | default('nginx') }}"
+    mode: 755
+
+- name: Template config
+  template:
+    src: config.yml.j2
+    dest: "{{ autoup_dir }}/config.yml"
+    owner: "autoup"
+    group: "autoup"
+    mode: 400
+
+- name: Template systemd files
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "root"
+    group: "root"
+  register: services
+  loop_control:
+    label: "{{ item.dest }}"
+  loop:
+    - src: etc_systemd_system_autoup.service.j2
+      dest: /etc/systemd/system/autoup.service
+    - src: etc_systemd_system_autoup.timer.j2
+      dest: /etc/systemd/system/autoup.timer

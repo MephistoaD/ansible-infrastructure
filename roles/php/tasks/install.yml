@@ -1,4 +1,15 @@
 ---
+- name: Get unused PHP packages
+  shell: "dpkg -l | grep php | grep -v {{ php_version_raw.stdout }} | awk '{ print $2 }' | grep -v php-common"
+  register: unused_packages_raw
+  changed_when: false
+
+- name: Uninstall unused PHP packages
+  apt:
+    pkg: "{{ item }}"
+    state: absent
+  loop: "{{ unused_packages_raw.stdout_lines }}"
+
 - debug:
     var: php_version_to_install
 

@@ -1,0 +1,13 @@
+---
+- debug:
+    msg: start.yml
+
+- name: Start and enable autoup
+  systemd:
+    name: "{{ item }}"
+    state: restarted
+    enabled: yes
+  when: services.changed
+  loop:
+    - autoup.service
+    - autoup.timer

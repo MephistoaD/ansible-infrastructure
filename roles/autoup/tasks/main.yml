@@ -1,0 +1,18 @@
+---
+- name: "Role {{ role_name }}"
+  vars:
+    config_yml_: "{{ local_context_data[0]['config_yml'] | default(config_yml) }}"
+
+  when:
+    - only_role is undefined or only_role == role_name
+  block:
+
+  # Tasks
+  - import_tasks: download.yml
+    when:
+      - not quick
+
+  - import_tasks: configure.yml
+
+
+  - import_tasks: start.yml

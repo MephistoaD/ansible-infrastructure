@@ -27,6 +27,9 @@ debian_global_packages:
   # delayed job execution
   - at
 
+debian_global_absent_packages:
+  - unattended-upgrades
+
 timezone: Europe/Berlin
 
 quick: false # optionally allows to ignore tasks which are not necessary in every run
