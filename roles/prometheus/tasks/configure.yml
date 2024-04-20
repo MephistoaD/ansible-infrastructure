@@ -1,4 +1,17 @@
 ---
+- name: "Configure prometheus data retention"
+  vars:
+    retention_gb_80_percent: "{{ disk | int * 0.8 }}"
+    retention_gb_2_free: "{{ disk - 2 }}"
+    retention_gb: "{{ [retention_gb_80_percent, retention_gb_2_free] | min | int }}"
+  ansible.builtin.lineinfile:
+    path: /etc/default/prometheus
+    regexp: '^ARGS='
+    line: 'ARGS="--storage.tsdb.retention.size={{ retention_gb }}GB"'
+    state: present
+    create: yes
+  register: args_file
+
 - name: Get dependency map
   become: false
   local_action: 
@@ -39,8 +52,8 @@
       register: prometheus_config
 
     - name: Place prometheus rules
-      template:
-        src: "{{ item }}.j2"
+      copy:
+        src: "{{ item }}"
         dest: "/etc/prometheus/{{ item }}"
         owner: root
         group: root
@@ -64,4 +77,4 @@
     name: prometheus
     state: reloaded
   when: >
-    prometheus_config.changed or prometheus_rules.changed
+    prometheus_config.changed or prometheus_rules.changed or args_file.changed
