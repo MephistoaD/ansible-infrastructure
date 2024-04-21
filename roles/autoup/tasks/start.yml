@@ -1,7 +1,4 @@
 ---
-- debug:
-    msg: start.yml
-
 - name: Start and enable autoup
   systemd:
     name: "{{ item }}"

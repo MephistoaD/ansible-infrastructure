@@ -1,7 +1,4 @@
 ---
-- debug:
-    msg: "configure {{ role_name }}"
-
 - name: Create webroot
   file:
     path: /var/www/html

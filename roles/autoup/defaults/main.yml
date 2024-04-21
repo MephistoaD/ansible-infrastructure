@@ -1,7 +1,7 @@
 ---
 role_name: "autoup"
 
-autoup_dir: /opt/autoup
+autoup_dir: /opt/autoup/autoup
 
 upstream_repo: https://github.com/MephistoaD/AutoUP
 
