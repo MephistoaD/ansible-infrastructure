@@ -8,6 +8,8 @@
   block:
   # Assertions
   - name: "Preventive assertions of role {{ role_name }}"
+    vars:
+      nr_other_active_nodes: "{{ ansible_local.pve.guests_by_node | dict2items | map(attribute='value') | rejectattr('node', 'equalto', inventory_hostname) | selectattr('node_state', 'equalto', 'ACTIVE') | length }}"
     assert:
       that:
         - "{{ item.check }}"
@@ -15,8 +17,10 @@
     loop_control:
       label: "{{ item.msg }}"
     loop:
-      - { check: "{{ not is_virtual or custom_fields.technology == 'vm' }}", msg: "Assert that the PVE host is either a phisical device or a vm." }
-
+      - check: "{{ not is_virtual or custom_fields.technology == 'vm' }}"
+        msg: "Assert that the PVE host is either a phisical device or a vm."
+      - check: "{{ not upgrade or nr_other_active_nodes | int >= 1 }}"
+        msg: "Assert that on an upgrade other nodes are 'ACTIVE'"
   # Scripts
 
   # Tasks
