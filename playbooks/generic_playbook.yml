@@ -33,6 +33,7 @@
           - is_virtual
           - custom_fields.technology is defined
           - deploy_guest == "backup" or upgrade
+          - not prohibit_restore
 
       - fail:
           msg: "rescue operation is not appropiate"
