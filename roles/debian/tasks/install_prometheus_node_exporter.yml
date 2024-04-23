@@ -20,12 +20,13 @@
       copy:
         src: "{{ item.src }}"
         dest: "{{ item.dest }}"
+        mode: 755
       register: uptime_exporter
       loop_control:
         label: "{{ item.dest }}"
       loop:
-        - src: usr_local_bin_prometheus-node-exporter-uptime-plugin.py
-          dest: /usr/local/bin/prometheus-node-exporter-uptime-plugin.py
+        - src: usr_local_bin_prometheus-node-exporter-uptime-plugin.sh
+          dest: /usr/local/bin/prometheus-node-exporter-uptime-plugin.sh
         - src: etc_systemd_system_prometheus-node-exporter-uptime-plugin.service
           dest: /etc/systemd/system/prometheus-node-exporter-uptime-plugin.service
         - src: etc_systemd_system_prometheus-node-exporter-uptime-plugin.timer
@@ -33,6 +34,7 @@
 
     - name: Start and enable uptime exporter
       systemd:
+        daemon_reload: true
         name: "{{ item }}"
         state: restarted
         enabled: yes
@@ -47,6 +49,7 @@
       copy:
         src: "{{ item.src }}"
         dest: "{{ item.dest }}"
+        mode: 755
       register: sessions_exporter
       loop_control:
         label: "{{ item.dest }}"
@@ -60,6 +63,7 @@
 
     - name: Start and enable sessions exporter
       systemd:
+        daemon_reload: true
         name: "{{ item }}"
         state: restarted
         enabled: yes
