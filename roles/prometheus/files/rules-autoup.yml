@@ -39,9 +39,9 @@ groups:
 
 - name: Inhibitors
   rules:
-  - alert: StartedRecentlyInhibitor
+  - alert: StartedRecentlyInhibitor(48h)
     expr: |
-      (node_exporter_system_uptime - 86400 < 0)
+      (node_exporter_system_uptime - 48 < 0)
     annotations:
       title: "System started recently"
       count: "{{ $value }}"
