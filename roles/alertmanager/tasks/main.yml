@@ -1,7 +1,7 @@
 ---
 - name: "Role: alertmanager"
   vars:
-    alertmanager_autoup_instances_: "{{ local_context_data[0].alertmanager_autoup_instances | default(alertmanager_autoup_instances) }}"
+    foo_: "{{ local_context_data[0].foo | default(foo) }}"
   when:
     - (only_role is not defined or only_role == "alertmanager")
   block:

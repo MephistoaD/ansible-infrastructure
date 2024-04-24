@@ -21,8 +21,3 @@ route:
 
 receivers:
   - name: 'default'
-  - name: 'autoup'
-    webhook_configs:
-{% for instance in alertmanager_autoup_instances_ %}
-      - url: 'http://{{ instance }}:8000/webhooks/alertmanager'
-{% endfor %}
