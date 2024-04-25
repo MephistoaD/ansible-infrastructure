@@ -16,8 +16,9 @@ route:
       group_wait: 30s
       group_interval: 1m
       repeat_interval: 1m
-      receiver: 'default'
+      receiver: 'autoup'
       
 
 receivers:
   - name: 'default'
+  - name: 'autoup'
