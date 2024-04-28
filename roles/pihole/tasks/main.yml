@@ -1,7 +1,10 @@
 ---
 - name: "Role pihole"
   vars:
-    foo: bar
+    # 1. instance defined
+    # 2. cluster defined
+    # 3. role defined
+    pihole_block_lists_: "{{ local_context_data[0].pihole_block_lists | default(hostvars[cluster_leader].local_context_data[0].pihole_block_lists | default(pihole_block_lists)) }}"
   when:
     - only_role is undefined or only_role == "pihole"
   block:
@@ -20,6 +23,8 @@
     - include_tasks: upgrade.yml
       when:
         - upgrade
+
+    - include_tasks: addlists.yml
 
     - include_tasks: tests.yml
 

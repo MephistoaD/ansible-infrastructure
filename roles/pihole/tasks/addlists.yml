@@ -1,0 +1,73 @@
+---
+- name: Get current lists
+  shell:
+    executable: /usr/bin/python3
+    cmd: |
+      #!/usr/bin/env python3
+      import sqlite3
+      import json
+
+      # Function to execute SQL query and retrieve addresses from database
+      def get_addresses():
+          conn = sqlite3.connect('/etc/pihole/gravity.db')
+          cursor = conn.cursor()
+          cursor.execute("SELECT address FROM adlist")
+          addresses = cursor.fetchall()
+          conn.close()
+          return [address[0] for address in addresses]
+
+      # List of desired URLs
+      desired_urls = {{ pihole_block_lists_ }}
+
+      # Retrieve addresses from database
+      present_urls = get_addresses()
+
+      # Initialize lists for URLs to add and remove
+      to_add = [url for url in desired_urls if url not in present_urls]
+      to_remove = [url for url in present_urls if url not in desired_urls]
+
+      # Output JSON dataset
+      json_data = {
+          "present": present_urls,
+          "desired": desired_urls,
+          "to_add": to_add,
+          "to_remove": to_remove
+      }
+
+      print(json.dumps(json_data, indent=4))
+  register: pihole_lists_raw
+  changed_when: false
+
+- name: Add list to pihole
+  vars:
+    pihole_lists: "{{ pihole_lists_raw.stdout | from_json }}"
+  shell:
+    executable: /usr/bin/bash
+    cmd: |
+      sqlite3 /etc/pihole/gravity.db \
+        "INSERT INTO adlist (address, enabled, comment) VALUES ('{{ item }}', 1, 'Ansible managed');"
+  loop: "{{ pihole_lists.to_add }}"
+
+- name: Remove list from pihole
+  vars:
+    pihole_lists: "{{ pihole_lists_raw.stdout | from_json }}"
+  shell:
+    executable: /usr/bin/bash
+    cmd: |
+      sqlite3 /etc/pihole/gravity.db \
+        "DELETE FROM adlist WHERE address = '{{ item }}';"
+  loop: "{{ pihole_lists.to_remove }}"
+
+- name: Reload gravity.db
+  vars:
+    pihole_lists: "{{ pihole_lists_raw.stdout | from_json }}"
+  shell:
+    executable: /usr/bin/bash
+    cmd: |
+      /usr/local/bin/pihole updateGravity
+  register: reload_gravity
+  when: pihole_lists.to_add | length > 0 or pihole_lists.to_remove | length > 0
+
+- debug:
+    var: reload_gravity.stdout_lines
+  when: reload_gravity.changed
