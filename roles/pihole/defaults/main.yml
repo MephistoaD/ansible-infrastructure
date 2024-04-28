@@ -5,3 +5,6 @@ configure_dns_job: false
 
 pihole_block_lists:
   - https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+
+pihole_whitelisted_domains:
+  - foo.bar

@@ -5,6 +5,7 @@
     # 2. cluster defined
     # 3. role defined
     pihole_block_lists_: "{{ local_context_data[0].pihole_block_lists | default(hostvars[cluster_leader].local_context_data[0].pihole_block_lists | default(pihole_block_lists)) }}"
+    pihole_whitelisted_domains_: "{{ local_context_data[0].pihole_whitelisted_domains | default(hostvars[cluster_leader].local_context_data[0].pihole_whitelisted_domains | default(pihole_whitelisted_domains)) }}"
   when:
     - only_role is undefined or only_role == "pihole"
   block:

@@ -71,3 +71,66 @@
 - debug:
     var: reload_gravity.stdout_lines
   when: reload_gravity.changed
+
+- name: Get current whitelisted domains
+  shell:
+    executable: /usr/bin/python3
+    cmd: |
+      import subprocess
+      import json
+
+      # Function to get whitelisted domains from pihole
+      def get_whitelisted_domains():
+          # Run the command to get whitelisted domains
+          result = subprocess.run(["pihole", "whitelist", "--list"], capture_output=True, text=True)
+          output = result.stdout.strip().split('\n')[1:]  # Skip the header and get the domain entries
+          # Extract domain names from each entry
+          domains = [entry.split()[1] for entry in output]
+          return domains
+
+      # List of held domains
+      desired_domains = {{ pihole_whitelisted_domains_ }}
+
+      # Retrieve whitelisted domains from pihole
+      whitelisted_domains = get_whitelisted_domains()
+
+      # Initialize lists for domains to add and remove
+      to_add = [domain for domain in desired_domains if domain not in whitelisted_domains]
+      to_remove = [domain for domain in whitelisted_domains if domain not in desired_domains]
+
+      # Output JSON dataset
+      json_data = {
+          "present": whitelisted_domains,
+          "desired": desired_domains,
+          "to_add": to_add,
+          "to_remove": to_remove
+      }
+
+      print(json.dumps(json_data, indent=4))
+  register: pihole_whitelist_raw
+  changed_when: false
+
+- vars:
+    pihole_whitelist: "{{ pihole_whitelist_raw.stdout | from_json }}"
+  debug:
+    var: pihole_whitelist
+
+- name: Add whitelisted domains
+  vars:
+    pihole_whitelist: "{{ pihole_whitelist_raw.stdout | from_json }}"
+  shell:
+    executable: /usr/bin/bash
+    cmd: |
+      /usr/local/bin/pihole whitelist {{ item }}
+  register: add_whitelisted
+  loop: "{{ pihole_whitelist.to_add }}"
+
+- name: Remove obsolete whitelisted domains
+  vars:
+    pihole_whitelist: "{{ pihole_whitelist_raw.stdout | from_json }}"
+  shell:
+    executable: /usr/bin/bash
+    cmd: |
+      /usr/local/bin/pihole whitelist --delmode {{ item }}
+  register: remove_whitelisted
+  loop: "{{ pihole_whitelist.to_remove }}"
