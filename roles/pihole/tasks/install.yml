@@ -1,4 +1,11 @@
 ---
+- name: Install dependencies
+  apt:
+    pkg: "{{ item }}"
+    state: present
+  loop:
+    - sqlite3
+
 - name: Create pihole config directory
   file:
     path: "/etc/pihole"
