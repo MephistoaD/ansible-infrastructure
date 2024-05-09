@@ -31,3 +31,6 @@
   - include_tasks: ansible_local.yml
 
   - include_tasks: configure.yml
+
+  - include_tasks: maintenance.yml
+    when: upgrade

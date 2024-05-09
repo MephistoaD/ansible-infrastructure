@@ -1,0 +1,6 @@
+---
+- name: Stop keepalived service
+  systemd:
+    name: keepalived
+    state: stopped
+  notify: Restart keepalived service
