@@ -1,2 +1,5 @@
 ---
 unbound_port: 5335
+
+keepalived_ha_checks:
+  pihole_dns_resolution: "/usr/bin/dig {{ inventory_hostname }}.{{ custom_fields.pool }}.{{ dns_local_tld }} @127.0.0.1" # this dns name is not in the /etc/hosts

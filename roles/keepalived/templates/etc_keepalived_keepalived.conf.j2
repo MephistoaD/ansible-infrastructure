@@ -5,13 +5,18 @@ global_defs {
     max_auto_priority 50 # The time interval in which keepalived increases the priority of the vrrp process, measured in a mysterious unit
 }
 
-{# {% for check in ha_checks %}
+{% if keepalived_ha_checks is defined %}
+{% for check in keepalived_ha_checks %}
 vrrp_script {{ check }} {
-    script  "{{ ha_checks[check] }}"
-    interval 3
-    weight   50
+    script  "{{ keepalived_ha_checks[check] }}"
+    interval 1   # check every 1 seconds
+    fall 1       # require 1 failures for KO
+    rise 4       # require 4 successes for OK
+    weight 100
 }
-{% endfor %} #}
+
+{% endfor %}
+{% endif %}
 
 vrrp_instance VI_1 {
   {# state is not necessary since keepalived automatically determines that from the priority #}
@@ -37,9 +42,11 @@ vrrp_instance VI_1 {
     {{ keepalived_virtual_ip_ }}/24
   }
 
-  {# track_script {
-{% for check in ha_checks %}
+{% if keepalived_ha_checks is defined %}
+  track_script {
+{% for check in keepalived_ha_checks %}
     {{ check }}
 {% endfor %}
-  } #}
+  }
+{% endif %}
 }
