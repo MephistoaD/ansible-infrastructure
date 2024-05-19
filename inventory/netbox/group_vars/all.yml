@@ -27,6 +27,9 @@ debian_global_packages:
   # delayed job execution
   - at
 
+  # to asynchronously get upgrades
+  - apt-config-auto-update
+
 debian_global_absent_packages:
   - unattended-upgrades
 
