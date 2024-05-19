@@ -57,7 +57,7 @@
   - name: Locking instance for future automated upgrades
     shell:
       executable: /usr/bin/python3
-      cmd: /usr/local/bin/autoup lock
+      cmd: /usr/local/bin/autoup lock Last system upgrade failed
     register: lock_autoup_raw
   
   - debug:
