@@ -56,3 +56,12 @@ groups:
       count: "{{ $value }}"
     labels:
       autoup: inhibitor
+
+  - alert: AutoUpLockedInhibitor
+    expr: |
+      (node_exporter_autoup_locked > 0)
+    annotations:
+      title: "AutoUp is manually locked on that system"
+      count: "{{ $value }}"
+    labels:
+      autoup: inhibitor
