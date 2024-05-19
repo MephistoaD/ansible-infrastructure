@@ -17,6 +17,8 @@
 
   - name: DEB debian packages
     include_tasks: packages.yml
+    when:
+      - not quick
 
   - name: Files and directories
     include_tasks: files_and_dirs.yml
@@ -28,3 +30,8 @@
     include_tasks: install_prometheus_node_exporter.yml
     when:
       - install_prometheus_node_exporter
+
+  - name: Install autoup local locking mechanism
+    include_tasks: install_autoup_local_locking.yml
+    when: 
+      - install_autoup_local_locking

@@ -6,6 +6,7 @@ debian_global_packages:
 timezone: Europe/Berlin
 
 install_prometheus_node_exporter: true
+install_autoup_local_locking: true
 
 shell_color: "{% if is_virtual and 'vm' == custom_fields.technology %}red{% elif 'is_virtual' in group_names and 'lxc' == custom_fields.technology %}blue{% elif '_pve' in group_names %}yellow{% else %}green{% endif %}"
 # vm -> red, lxc -> blue, pve_node -> yellow, else -> green
