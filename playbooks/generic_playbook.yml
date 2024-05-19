@@ -3,6 +3,21 @@
   gather_facts: false
   serial: "{{ serial | default(false) | bool }}"
   tasks:
+    # Assertions
+    - name: "Preventive assertions of generic_playbook"
+      vars:
+        foo: bar
+      assert:
+        that:
+          - "{{ item.check }}"
+        fail_msg: "{{ item.msg }}"
+      loop_control:
+        label: "{{ item.msg }}"
+      loop:
+        - check: "{{ device_roles is defined }}"
+          msg: "Assert that the host has the device_roles field defined"
+
+    # Prepare
     - name: Manage guest
       include_tasks: "tasks/manage_guest.yml"
       when: 
@@ -10,10 +25,11 @@
         - custom_fields.technology is defined
         - deploy_guest is defined
         - deploy_guest
- 
+
     - name: Gather Facts
       setup:
 
+    # Run
     - name: APPLY ROLES
       block:
       - name: Configure hosts
