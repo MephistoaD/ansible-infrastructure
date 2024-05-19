@@ -54,5 +54,14 @@
   - debug:
       var: vm_restore_raw.stdout_lines
 
+  - name: Locking instance for future automated upgrades
+    shell:
+      executable: /usr/bin/python3
+      cmd: /usr/local/bin/autoup lock
+    register: lock_autoup_raw
+  
+  - debug:
+      var: lock_autoup_raw.stdout_lines
+
   - fail:
       msg: "Upgrade job failed, previous state was restored"
