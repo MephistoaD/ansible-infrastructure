@@ -38,7 +38,7 @@
     when: 
       - (drain_node or upgrade)
 
-  - include_tasks: upgrade.yml
+  - include_tasks: ../../debian/tasks/upgrade.yml
     when: 
       - upgrade
 
