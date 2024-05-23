@@ -38,7 +38,8 @@
     when: 
       - (drain_node or upgrade)
 
-  - include_tasks: ../../debian/tasks/upgrade.yml
+  - include_role:
+      name: debian
     when: 
       - upgrade
 
