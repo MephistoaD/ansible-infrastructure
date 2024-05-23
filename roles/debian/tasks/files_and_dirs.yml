@@ -26,3 +26,4 @@
   notify: Reboot vm
   when:
     - not is_virtual
+    - ansible_hostname != inventory_hostname
