@@ -1,0 +1,21 @@
+- name: "Role {{ role_name }}"
+  vars:
+    foo: "{{ local_context_data[0]['foo'] | default(foo) }}"
+    
+  when:
+    - only_role is undefined or only_role == role_name
+  block:
+  - name: Install docker
+    apt:
+      pkg: "{{ item }}"
+      state: present
+    when:
+      - not quick
+    loop:
+      - docker.io
+      - docker-compose
+
+  - name: Ensure /opt/docker-deployments exists
+    file:
+      path: /opt/docker-deployments
+      state: directory
