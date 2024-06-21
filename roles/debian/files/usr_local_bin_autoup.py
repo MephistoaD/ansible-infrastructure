@@ -10,7 +10,7 @@ node_exporter_autoup_locked{{origin="{reason}"}} 1
 """
 UNLOCKED_CONTENT = """# HELP node_exporter_autoup_locked State of last maintenance job on the machine (0 = unlocked, 1 = locked)
 # TYPE node_exporter_autoup_locked gauge
-node_exporter_autoup_locked{{origin=""}} 0
+node_exporter_autoup_locked{origin=""} 0
 """
 
 def print_help():
