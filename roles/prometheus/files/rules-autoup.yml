@@ -19,7 +19,7 @@ groups:
 
 - name: Triggers
   rules:
-  - alert: PendingUpgradesTrigger
+  - alert: PendingAptUpgradesTrigger
     expr: |
       (apt_upgrades_pending > 0)
     annotations:
@@ -33,6 +33,15 @@ groups:
       (node_reboot_required > 0)
     annotations:
       title: "The instance requires a reboot"
+      count: "{{ $value }}"
+    labels:
+      autoup: trigger
+
+  - alert: PendingNextcloudUpgradeTrigger
+    expr: |
+      (node_exporter_nextcloud_upgrade_pending > 0)
+    annotations:
+      title: "A new nextcloud upgrade is available"
       count: "{{ $value }}"
     labels:
       autoup: trigger
