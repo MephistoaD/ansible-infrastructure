@@ -1,0 +1,10 @@
+[Unit]
+Description=Execute nextcloud update checker script every minute
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/prometheus-node-exporter-nextcloud-plugin.sh
+StandardOutput=file:/var/lib/prometheus/node-exporter/nextcloud_pending_upgrades.prom
+
+[Install]
+WantedBy=multi-user.target

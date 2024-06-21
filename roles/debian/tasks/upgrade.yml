@@ -7,7 +7,7 @@
   changed_when: dpkg_reconfigure.stdout != ""
 
 - name: Dry run apt full-upgrade
-  shell: apt-get -s -o Debug::NoLocking=true dist-upgrade
+  shell: apt-get -s -o Debug::NoLocking=true dist-upgrade --auto-remove
   register: upgrade_output
   changed_when: false
   failed_when: false
