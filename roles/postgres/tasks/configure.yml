@@ -1,4 +1,11 @@
 ---
+- name: Set custom settings
+  ansible.builtin.template:
+    src: ansible_defined.conf.j2
+    dest: /etc/postgresql/{{ postgres_major_version }}/main/conf.d/ansible_defined.conf
+    mode: '0644'
+  register: ansible_defined_conf
+
 - name: Disable root user access to PostgreSQL
   lineinfile:
     path: /etc/postgresql/{{ postgres_major_version }}/main/pg_hba.conf
@@ -7,11 +14,34 @@
     state: present
   register: disable_root
 
+- name: "Allow access to tcp socket from {{ postgres_client_address }}"
+  lineinfile:
+    path: /etc/postgresql/{{ postgres_major_version }}/main/pg_hba.conf
+    regexp: "^host +all +all +{{ postgres_listen_address }}"
+    line: "host    all             all             {{ postgres_client_address }}            scram-sha-256"
+    state: present
+  register: allow_listen_address
+
+- name: Confirm postgres config is valid
+  become: true
+  become_user: postgres
+  shell: "/usr/lib/postgresql/{{ postgres_major_version }}/bin/postgres --config-file=/etc/postgresql/{{ postgres_major_version }}/main/postgresql.conf -C data_directory"
+  register: confirm_config
+  failed_when: false
+  changed_when: false
+
+- name: Fail if config is invalid
+  fail:
+    msg: "{{ confirm_config.stderr }}"
+  when: confirm_config.rc != 0
+
 - name: Restart postgres
   systemd:
     name: postgresql
     state: restarted
-  when: disable_root is defined and disable_root.changed
+  when: ((disable_root is defined and disable_root.changed) or
+    ansible_defined_conf.changed or
+    allow_listen_address.changed)
 
 - name: Create PostgreSQL users
   become: true

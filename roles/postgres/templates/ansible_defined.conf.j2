@@ -1,0 +1,5 @@
+
+
+{% for option in postgres_settings %}
+{{ option }} = '{{ postgres_settings[option] }}'
+{% endfor %}
