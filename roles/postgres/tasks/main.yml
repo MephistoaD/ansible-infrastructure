@@ -9,11 +9,6 @@
   when:
     - only_role is undefined or only_role == "postgres"
 
-- name: Tune postgres settings
-  include_tasks: tune.yml
-  when:
-    - only_role is undefined or only_role == "postgres"
-
 - name: Apply basic config
   include_tasks: configure.yml
   when:

@@ -11,3 +11,19 @@ postgres_databases:
 
 # don't touch below
 postgres_listen_address: "127.0.0.1" #"{{ ansible_default_ipv4.address }}"
+postgres_client_address: "127.0.0.1/32" # the address a client connects from
+
+postgres_settings:
+  listen_addresses: "{{ postgres_listen_address }}"
+  max_connections: '200'
+  shared_buffers: "{{ (ansible_memory_mb['real']['total'] * 0.25) | int }}MB" # Factor comes from https://pgtune.leopard.in.ua
+  effective_cache_size: "{{ (ansible_memory_mb['real']['total'] * 0.75) | int }}MB"
+  maintenance_work_mem: "{{ (ansible_memory_mb['real']['total'] * 0.0625) | int }}MB"
+  checkpoint_completion_target: '0.9'
+#  wal_buffers: '7864kB' # default is based on shared_buffers
+  default_statistics_target: '100'
+  random_page_cost: '1.5'
+  effective_io_concurrency: '100'
+  work_mem: "{{([(ansible_memory_mb['real']['total']*1024 /16384) | int, 64] | max) }}kB"
+  min_wal_size: '1GB'
+  max_wal_size: '4GB'
