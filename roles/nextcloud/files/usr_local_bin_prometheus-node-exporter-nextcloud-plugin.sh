@@ -4,15 +4,20 @@
 LATEST_NEXTCLOUD_RELEASE=""
 NEXTCLOUD_LOCAL_VERSION=""
 
+TEMPFILE=/tmp/nextcloud_pending_upgrades.prom
+OUTPUT=/var/lib/prometheus/node-exporter/nextcloud_pending_upgrades.prom
+
 function write_to_exporter {
     local value=$1
     local origin=$2
     local local_version=$3
     local latest_version=$4
 
-    echo "# HELP node_exporter_nextcloud_upgrade_pending Shows the need for an upgrade of nextcloud (0 = Everything up to date, 1 = upgrade available)"
-    echo -e "# TYPE node_exporter_nextcloud_upgrade_pending gauge"
-    echo -e "node_exporter_nextcloud_upgrade_pending{origin=\"$origin\",local_version=\"$local_version\",latest_version=\"$latest_version\"} $value\n"
+    echo "# HELP node_exporter_nextcloud_upgrade_pending Shows the need for an upgrade of nextcloud (0 = Everything up to date, 1 = upgrade available)" > $TEMPFILE
+    echo -e "# TYPE node_exporter_nextcloud_upgrade_pending gauge" >> $TEMPFILE
+    echo -e "node_exporter_nextcloud_upgrade_pending{origin=\"$origin\",local_version=\"$local_version\",latest_version=\"$latest_version\"} $value\n" >> $TEMPFILE
+
+    mv $TEMPFILE $OUTPUT
 }
 
 function get_local_nextcloud_version {
