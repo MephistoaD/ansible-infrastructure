@@ -19,11 +19,11 @@ groups:
 
 - name: Triggers
   rules:
-  - alert: PendingAptUpgradesTrigger
+  - alert: PendingAptUpgradeTrigger
     expr: |
-      (apt_upgrades_pending > 0)
+      (upgradable_package > 0)
     annotations:
-      title: "New upgrades are available from the apt repositories"
+      title: "Pending upgrade"
       count: "{{ $value }}"
     labels:
       autoup: trigger
