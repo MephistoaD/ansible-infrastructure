@@ -318,18 +318,6 @@
       when: false
 
 
-  - name: "Update the hostname on the vm"
-    vars: 
-      current_vm_config: "{{ ansible_local.pve_node['guests_by_id'][vmid] }}"
-    ansible.builtin.shell:
-      cmd: |
-        sed -i 's/oldname/newname/g' /etc/hosts /etc/hostname
-      executable: /usr/bin/bash
-    when: 
-      - current_vm_config['name'] != inventory_hostname
-      - technology == "vm"
-
-
   - name: NOTIFY ON NOT YET IMPLEMENTED CASES
     vars:
       current_guest_config: "{{ ansible_local.pve_node['guests_by_id'][vmid] }}"

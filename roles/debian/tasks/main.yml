@@ -9,6 +9,15 @@
       force_apt_get: yes
     changed_when: false # does not count as change
 
+  - name: "Update the hostname on the vm"
+    ansible.builtin.shell:
+      cmd: |
+        sed -i 's/{{ ansible_hostname }}/{{ inventory_hostname }}/g' /etc/hosts /etc/hostname
+      executable: /usr/bin/bash
+    when: 
+      - ansible_hostname != inventory_hostname
+      - technology == "vm"
+
   # INCLUDES
   - name: Run upgrades
     include_tasks: upgrade.yml
