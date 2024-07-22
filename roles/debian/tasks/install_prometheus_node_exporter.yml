@@ -12,62 +12,11 @@
     state: started
     enabled: yes
 
-- name: CUSTOM EXPORTERS
-  block:
-  - name: UPTIME EXPORTER
-    block:
-    - name: Place uptime exporter binaries
-      copy:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
-        mode: 755
-      register: uptime_exporter
-      loop_control:
-        label: "{{ item.dest }}"
-      loop:
-        - src: usr_local_bin_prometheus-node-exporter-uptime-plugin.sh
-          dest: /usr/local/bin/prometheus-node-exporter-uptime-plugin.sh
-        - src: etc_systemd_system_prometheus-node-exporter-uptime-plugin.service
-          dest: /etc/systemd/system/prometheus-node-exporter-uptime-plugin.service
-        - src: etc_systemd_system_prometheus-node-exporter-uptime-plugin.timer
-          dest: /etc/systemd/system/prometheus-node-exporter-uptime-plugin.timer
-
-    - name: Start and enable uptime exporter
-      systemd:
-        daemon_reload: true
-        name: "{{ item }}"
-        state: restarted
-        enabled: yes
-      when: uptime_exporter.changed
-      loop:
-        - prometheus-node-exporter-uptime-plugin.timer
-        - prometheus-node-exporter-uptime-plugin.service
-  
-  - name: SESSIONS EXPORTER
-    block:
-    - name: Place sessions exporter binaries
-      copy:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
-        mode: 755
-      register: sessions_exporter
-      loop_control:
-        label: "{{ item.dest }}"
-      loop:
-        - src: usr_local_bin_prometheus-node-exporter-sessions-plugin.sh
-          dest: /usr/local/bin/prometheus-node-exporter-sessions-plugin.sh
-        - src: etc_systemd_system_prometheus-node-exporter-sessions-plugin.service
-          dest: /etc/systemd/system/prometheus-node-exporter-sessions-plugin.service
-        - src: etc_systemd_system_prometheus-node-exporter-sessions-plugin.timer
-          dest: /etc/systemd/system/prometheus-node-exporter-sessions-plugin.timer
-
-    - name: Start and enable sessions exporter
-      systemd:
-        daemon_reload: true
-        name: "{{ item }}"
-        state: restarted
-        enabled: yes
-      when: sessions_exporter.changed
-      loop:
-        - prometheus-node-exporter-sessions-plugin.timer
-        - prometheus-node-exporter-sessions-plugin.service
+- name: Install custom exporter plugins
+  include: install_prometheus_exporter_plugin.yml
+  loop_control:
+    loop_var: plugin
+  loop:
+    - uptime
+    - session
+    - upgrade

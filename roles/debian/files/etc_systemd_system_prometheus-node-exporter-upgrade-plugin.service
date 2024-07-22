@@ -1,0 +1,9 @@
+[Unit]
+Description=Execute upgrade exporter script every minute
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/prometheus-node-exporter-upgrade-plugin.sh
+
+[Install]
+WantedBy=multi-user.target
