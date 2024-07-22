@@ -1,0 +1,31 @@
+- name: CUSTOM EXPORTER
+  block:
+  - name: Place {{ plugin }} exporter binaries
+    copy:
+      src: "{{ item.src }}"
+      dest: "{{ item.dest }}"
+      mode: 755
+    register: plugin_exporter
+    loop_control:
+      label: "{{ item.dest }}"
+    loop:
+      - src: usr_local_bin_prometheus-node-exporter-{{ plugin }}-plugin.sh
+        dest: /usr/local/bin/prometheus-node-exporter-{{ plugin }}-plugin.sh
+      - src: etc_systemd_system_prometheus-node-exporter-{{ plugin }}-plugin.service
+        dest: /etc/systemd/system/prometheus-node-exporter-{{ plugin }}-plugin.service
+
+  - name: Template systemd timer for {{ plugin }} plugin
+    template:
+      src: etc_systemd_system_prometheus-node-exporter-plugin-plugin.timer.j2
+      dest: /etc/systemd/system/prometheus-node-exporter-{{ plugin }}-plugin.timer
+
+  - name: Start and enable {{ plugin }} exporter
+    systemd:
+      daemon_reload: true
+      name: "{{ item }}"
+      state: restarted
+      enabled: yes
+    when: plugin_exporter.changed
+    loop:
+      - prometheus-node-exporter-{{ plugin }}-plugin.timer
+      - prometheus-node-exporter-{{ plugin }}-plugin.service
