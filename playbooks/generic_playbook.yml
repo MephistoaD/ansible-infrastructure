@@ -28,6 +28,7 @@
 
     - name: Gather Facts
       setup:
+      when: '"nixos" not in platforms'
 
     # Run
     - name: APPLY ROLES
