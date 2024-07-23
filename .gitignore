@@ -1,0 +1,16 @@
+# any kind of certificates:
+*.key
+*.pem
+
+# workdirs of software
+venv
+.vscode
+
+# temporary stuff
+tmp/
+
+# legacy vars
+inventory/netbox/host_vars
+
+# temporary files
+*.tmp
