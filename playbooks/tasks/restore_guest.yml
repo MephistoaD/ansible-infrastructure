@@ -1,7 +1,6 @@
 ---
 - name: RESTORE GUEST
   vars:
-    vmid: "{{ custom_fields.vmid }}"
     technology: "{{ custom_fields.technology }}"
     pool: "{{ custom_fields.pool }}"
     guest_storage: "node-local"

@@ -1,7 +1,6 @@
 ---
 - name: MANAGE GUEST
   vars:
-    vmid: "{{ custom_fields.vmid }}"
     technology: "{{ custom_fields.technology }}"
     pool: "{{ custom_fields.pool }}"
     guest_storage: "node-local"
@@ -22,7 +21,7 @@
     vars:
       delegate_to_guest_pve_instance: "{{ ansible_local.pve_node.guests_by_id[vmid].node }}"
     when: 
-      - vmid | string in ansible_local.pve_node.guests_by_id
+      - vmid in ansible_local.pve.guests_by_id
       - deploy_guest in ["redeploy", "purge", "backup"] or upgrade
     block:
     - name: Create backup
@@ -48,7 +47,7 @@
   - name: STOP OR REMOVE GUEST
     block:
     - when:
-      - vmid | string in ansible_local.pve_node.guests_by_id
+      - vmid in ansible_local.pve.guests_by_id
       - deploy_guest in ["redeploy", "purge"] or status.value in ['offline', 'decommissioning']
       block:
       - name: Manage guest
