@@ -1,0 +1,55 @@
+---
+- debug:
+    msg: "configure {{ role_name }}"
+
+- name: Ensure tempfolder for config is present
+  delegate_to: "{{ delegate_to_guest_pve_instance }}"
+  file:
+    path: "{{ tempfolder }}"
+    state: directory
+
+- name: "Pull configuration from lxc {{ vmid }}"
+  delegate_to: "{{ delegate_to_guest_pve_instance }}"
+  shell:
+    executable: /bin/bash
+    cmd: |
+      # To avoid weird bugs from previous deployments, remove old config
+      rm {{ tempfolder }}/{{ item }}.nix
+
+      pct exec {{ vmid }} sh <<-EOT
+      source /etc/set-environment
+      [ -f /etc/nixos/{{ item }}.nix ]
+      EOT
+      if [ $? -eq 0 ]; then # only pulls the file if it's present
+        pct pull {{ vmid }} /etc/nixos/{{ item }}.nix {{ tempfolder }}/{{ item }}.nix
+      fi
+  changed_when: false
+  loop: "{{ nix_config_files + device_roles }}"
+
+- name: "Template configuration"
+  delegate_to: "{{ delegate_to_guest_pve_instance }}"
+  template:
+    src: "{{ item }}.nix.j2"
+    dest: "{{ tempfolder }}/{{ item }}.nix"
+  register: template_configuration
+  loop: "{{ nix_config_files }}"
+
+- name: "Initially deploy stub config for {{ device_roles }}"
+  delegate_to: "{{ delegate_to_guest_pve_instance }}"
+  ansible.builtin.copy:
+    src: role_default.nix
+    dest: "{{ tempfolder }}/{{ item }}.nix"
+    force: false
+  register: stub_config
+  loop: "{{ device_roles }}"
+
+- name: "Push configuration to lxc {{ vmid }}"
+  delegate_to: "{{ delegate_to_guest_pve_instance }}"
+  vars:
+    files: "{{ nix_config_files + device_roles if stub_config.changed else nix_config_files }}"
+  shell:
+    executable: /bin/bash
+    cmd: |
+      pct push {{ vmid }} {{ tempfolder }}/{{ item }}.nix /etc/nixos/{{ item }}.nix
+  when: template_configuration.changed or stub_config.changed
+  loop: "{{ files }}"

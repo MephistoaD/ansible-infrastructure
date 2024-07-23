@@ -1,0 +1,4 @@
+---
+role_name: nixos-vaultwarden
+
+tempfolder: "/tmp/nixos-deployments/{{ custom_fields.vmid }}"

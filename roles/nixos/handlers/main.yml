@@ -1,0 +1,6 @@
+---
+
+- name: "APPLY CONFIG"
+  vars:
+    delegate_to_guest_pve_instance: "{{ ansible_local.pve['guests_by_id'][vmid]['node'] }}"
+  include_tasks: apply_config.yml
