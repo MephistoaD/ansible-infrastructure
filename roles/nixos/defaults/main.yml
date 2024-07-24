@@ -14,4 +14,3 @@ nixos_ssl_cert_dir: /etc/ssl
 
 nixos_provide_ssl_cert: false
 nixos_ssl_hostname: "_"
-nixos_ssl_cert_user: "nginx"
