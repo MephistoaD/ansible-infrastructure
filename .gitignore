@@ -7,10 +7,7 @@ venv
 .vscode
 
 # temporary stuff
-tmp/
+*tmp*
 
 # legacy vars
 inventory/netbox/host_vars
-
-# temporary files
-*.tmp
