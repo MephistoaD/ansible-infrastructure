@@ -1,4 +1,17 @@
 ---
 role_name: nixos-vaultwarden
 
-tempfolder: "/tmp/nixos-deployments/{{ custom_fields.vmid }}"
+delegate_to_pve_instance: "{{ groups['_pve'][0] }}" # the node where the the guest list is scraped
+delegate_to_guest_pve_instance: "{{ ansible_local.pve['guests_by_id'][vmid]['node'] }}" # the node where the lxc is running currently
+
+nixos_apply_config: false
+nixos_config_files:
+  - "flake"
+  - "configuration"
+
+nixos_tempfolder: "/tmp/nixos-deployments/{{ custom_fields.vmid }}"
+nixos_ssl_cert_dir: /etc/ssl
+
+nixos_provide_ssl_cert: false
+nixos_ssl_hostname: "_"
+nixos_ssl_cert_user: "nginx"

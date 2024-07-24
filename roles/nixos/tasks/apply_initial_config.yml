@@ -1,0 +1,18 @@
+# This 'special' apply config block originated from the bug described in the nixos threads listed below:
+# "Failed to start transient service unit: Access denied"
+# - https://discourse.nixos.org/t/nixos-proxmox-lxc-not-rebuilding-using-wiki-provided-configuration/47104/8
+# Apparently the only workaround is to reboot the lxc AFTER the error surfaced :-(
+---
+- name: APPLY CONFIG
+  block:
+  - include_tasks: apply_config.yml
+    
+  rescue:
+  - name: "Reboot on failure"
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    shell:
+      executable: /bin/bash
+      cmd: |
+        pct reboot {{ vmid }}
+
+  - include_tasks: apply_config.yml

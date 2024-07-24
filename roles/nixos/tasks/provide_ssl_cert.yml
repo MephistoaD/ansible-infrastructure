@@ -1,0 +1,28 @@
+---
+- name: "Provide ssl certificate"
+  delegate_to: "{{ delegate_to_guest_pve_instance }}"
+  shell:
+    executable: /bin/bash
+    cmd: |
+      export upgrade={{ upgrade }}
+
+
+      pct exec {{ vmid }} sh <<-EOT
+      source /etc/set-environment
+
+      if $upgrade || [ ! -f {{ nixos_ssl_cert_dir }}/cert.key ]; then
+        rm {{ nixos_ssl_cert_dir }}/cert.key {{ nixos_ssl_cert_dir }}/cert.crt
+        nix-shell \
+          --packages openssl \
+          --command 'openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -days 90 -nodes \
+                    -keyout {{ nixos_ssl_cert_dir }}/cert.key -out {{ nixos_ssl_cert_dir }}/cert.crt \
+                    -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost,IP:127.0.0.1,IP:{{ primary_ip4 }}{{ ',DNS:' + nixos_ssl_hostname if nixos_ssl_hostname != '_' }}"'
+        chown {{ nixos_ssl_cert_user }}:{{ nixos_ssl_cert_user }} {{ nixos_ssl_cert_dir }}/cert.*
+        exit 1
+      fi
+
+      exit 0
+      EOT
+  register: create_ssl_cert
+  failed_when: create_ssl_cert.rc > 1
+  changed_when: create_ssl_cert.rc == 1
