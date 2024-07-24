@@ -41,7 +41,7 @@
     allowedTCPPorts = [ 
       80
       443
-      9113 # prometheus nginx exporter
+      {{ prometheus_role_exporter_port_nginx }}
     ];
 #    allowedUDPPortRanges = [
  #     { from = 4000; to = 4007; }
