@@ -1,7 +1,6 @@
 ---
 - name: "Role {{ role_name }}"
   when:
-    - only_role is undefined or only_role == role_name
     - not nixos_apply_config
   block:
   # Assertions
@@ -21,17 +20,22 @@
     setup:
       filter: ansible_local
 
-  # Tasks
-  - import_tasks: deploy_config.yml
+  - name: "Role {{ role_name }}"
+    when:
+      - only_role is undefined or only_role == role_name
+    block:
+    # Tasks
+    - import_tasks: deploy_config.yml
+      when: not quick
 
-  - import_tasks: apply_initial_config.yml
-    when: stub_config.changed
+    - import_tasks: apply_initial_config.yml
+      when: stub_config.changed
 
-  # generic preparations for other roles
-  - include_tasks: provide_ssl_cert.yml
-    when: nixos_provide_ssl_cert
+    # generic preparations for other roles
+    - include_tasks: provide_ssl_cert.yml
+      when: nixos_provide_ssl_cert
 
-  # Tests
+    # Tests
 
 
 - name: "Role {{ role_name }} (apply_config)"
