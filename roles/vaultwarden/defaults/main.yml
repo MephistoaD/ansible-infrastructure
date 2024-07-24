@@ -1,0 +1,8 @@
+---
+role_name: vaultwarden
+prometheus_role_exporter_port_nginx: 9113
+
+vaultwarden_nginx_hostname: "_"
+
+# including vars from netbox
+vaultwarden_nginx_hostname_: "{{ local_context_data[0]['vaultwarden_nginx_hostname'] | default(vaultwarden_nginx_hostname) }}"

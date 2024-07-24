@@ -1,0 +1,13 @@
+---
+- name: "Role {{ role_name }}"    
+  when:
+    - only_role is undefined or only_role == role_name
+  block:
+
+  # deploy config
+  - include_tasks: deploy_config.yml
+
+  - vars:
+      nixos_apply_config: true
+    include_role:
+      name: "nixos"

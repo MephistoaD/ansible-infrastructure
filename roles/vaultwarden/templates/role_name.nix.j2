@@ -1,0 +1,52 @@
+{ config, pkgs, ... }:
+
+{
+  services = {
+  	
+    vaultwarden = {
+      enable = true;
+      config = {
+        SIGNUPS_ALLOWED = true; # Controls if new users can register
+        
+        ROCKET_ADDRESS = "127.0.0.1";
+        ROCKET_PORT = 8222;
+        ROCKET_LOG = "critical";
+
+        DATABASE_URL = "data/db.sqlite3";
+
+        TRASH_AUTO_DELETE_DAYS = 7;
+      };
+    };
+
+
+    prometheus.exporters.nginx.enable = true;
+
+    nginx = {
+      enable = true;
+      virtualHosts."{{ vaultwarden_nginx_hostname_ }}" = {
+        serverName = "{{ vaultwarden_nginx_hostname_ }}";
+        sslCertificate = "{{ nixos_ssl_cert_dir }}/cert.crt";
+        sslCertificateKey = "{{ nixos_ssl_cert_dir }}/cert.key";
+        forceSSL = true;
+        locations."/" = {
+          proxyPass = "http://127.0.0.1:${toString config.services.vaultwarden.config.ROCKET_PORT}";
+        };
+      };
+    };
+  };
+
+
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [ 
+      80
+      443
+      9113 # prometheus nginx exporter
+    ];
+#    allowedUDPPortRanges = [
+ #     { from = 4000; to = 4007; }
+  #    { from = 8000; to = 8010; }
+   # ];
+  };
+}
+
