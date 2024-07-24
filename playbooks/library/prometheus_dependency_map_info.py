@@ -107,8 +107,8 @@ def get_all_dependencies(all_roles, roles_dir):
 def get_dependencies(role_name, roles_dir):
     dependencies = []
 
+    # direct dependencies via ansible
     meta_file = os.path.join(roles_dir, role_name, 'meta', 'main.yml')
-
     try:
         if os.path.exists(meta_file):
             with open(meta_file, 'r') as f:
@@ -121,6 +121,23 @@ def get_dependencies(role_name, roles_dir):
                         dependencies.append(d['role'])
                     elif isinstance(d, str):
                         dependencies.append(d)
+    except:
+        pass
+
+    # dependencies via prometheus role from defaults/main.yml
+    defaults_file = os.path.join(roles_dir, role_name, 'defaults', 'main.yml')
+    try:
+        if os.path.exists(defaults_file):
+            with open(defaults_file, 'r') as f:
+                default_vars = yaml.safe_load(f)
+                prometheus_roles = default_vars.get('prometheus_roles', [])
+
+                # Check if the specified role_name is in the dependencies
+                for r in prometheus_roles:
+                    if isinstance(r, dict):
+                        dependencies.append(r['role'])
+                    elif isinstance(r, str):
+                        dependencies.append(r)
     except:
         pass
 
