@@ -69,7 +69,9 @@ if [[ "$NEXTCLOUD_LOCAL_VERSION" == "$LATEST_NEXTCLOUD_RELEASE"* ]]; then
         $LATEST_NEXTCLOUD_RELEASE
 else
     write_to_exporter 1 \
-        "Nextcloud has pending upgrade $NEXTCLOUD_LOCAL_VERSION -> $LATEST_NEXTCLOUD_RELEASE" \
+        "Nextcloud has a pending version upgrade $NEXTCLOUD_LOCAL_VERSION -> $LATEST_NEXTCLOUD_RELEASE" \
         $NEXTCLOUD_LOCAL_VERSION \
         $LATEST_NEXTCLOUD_RELEASE
 fi
+
+# FIXME: bug when nextcloud local version is higher than latest version
