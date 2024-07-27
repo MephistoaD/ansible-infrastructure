@@ -8,11 +8,11 @@
   block:
 
   # Tasks
-  - import_tasks: download.yml
+  - include_tasks: download.yml
     when:
       - not quick
 
-  - import_tasks: configure.yml
+  - include_tasks: configure.yml
 
 
-  - import_tasks: start.yml
+  - include_tasks: start.yml

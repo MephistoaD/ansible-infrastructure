@@ -1,7 +1,6 @@
 ---
 - name: MANAGE GUEST
   vars:
-    vmid: "{{ custom_fields.vmid }}"
     technology: "{{ custom_fields.technology }}"
     pool: "{{ custom_fields.pool }}"
     guest_storage: "node-local"
@@ -20,9 +19,9 @@
 
   - name: BACKUP GUEST
     vars:
-      delegate_to_guest_pve_instance: "{{ ansible_local.pve_node.guests_by_id[vmid].node }}"
+      delegate_to_guest_pve_instance: "{{ ansible_local.pve.guests_by_id[vmid].node }}"
     when: 
-      - vmid | string in ansible_local.pve_node.guests_by_id
+      - vmid in ansible_local.pve.guests_by_id
       - deploy_guest in ["redeploy", "purge", "backup"] or upgrade
     block:
     - name: Create backup
@@ -48,12 +47,12 @@
   - name: STOP OR REMOVE GUEST
     block:
     - when:
-      - vmid | string in ansible_local.pve_node.guests_by_id
+      - vmid in ansible_local.pve.guests_by_id
       - deploy_guest in ["redeploy", "purge"] or status.value in ['offline', 'decommissioning']
       block:
       - name: Manage guest
         vars:
-          current_vm_config: "{{ ansible_local.pve_node['guests_by_id'][vmid | string] }}"
+          current_vm_config: "{{ ansible_local.pve['guests_by_id'][vmid | string] }}"
           delegate_to_guest_pve_instance: "{{ current_vm_config['node'] }}" # TODO: make obsolete
           current_guest_type: "{{ 'vm' if current_vm_config.type == 'qemu' else current_vm_config.type }}"
           iterations:
@@ -92,11 +91,11 @@
   - name: CREATE GUEST
     vars:
       # do not touch below
-      template_vmid: "{{ available_platforms[platforms[0]]['vm_template_id'] }}"
-      template_vm: "{{ ansible_local.pve_node['guests_by_id'][template_vmid] }}"
-      delegate_to_template_pve_instance: "{{ template_vm['node'] if template_vm['node'] in groups['_pve'] and technology == 'vm' else delegate_to_pve_instance }}"
+      template_vmid: "{{ available_platforms[platforms[0]]['vm_template_id'] | default(0) }}" # default is necessary since this statement gets evaluated even a lxc is deployed
+      template_vm: "{{ ansible_local.pve['guests_by_id'][template_vmid] }}"
+      delegate_to_template_pve_instance: "{{ template_vm['node'] | default(delegate_to_pve_instance) }}"
     when: 
-      - vmid not in ansible_local.pve_node['guests_by_id']
+      - vmid not in ansible_local.pve['guests_by_id']
     block:    
     - name: "Create new guest"
       vars:
@@ -158,8 +157,8 @@
 
   - name: MODIFY GUEST
     vars:
-      current_guest_config: "{{ ansible_local.pve_node['guests_by_id'][vmid] }}"
-      delegate_to_guest_pve_instance: "{{ ansible_local.pve_node['guests_by_id'][vmid]['node'] }}"
+      current_guest_config: "{{ ansible_local.pve['guests_by_id'][vmid] }}"
+      delegate_to_guest_pve_instance: "{{ ansible_local.pve['guests_by_id'][vmid]['node'] }}"
       current_memory: "{{ current_guest_config.maxmem / 1024 / 1024 | int }}"
     block:
 
@@ -320,7 +319,7 @@
 
   - name: NOTIFY ON NOT YET IMPLEMENTED CASES
     vars:
-      current_guest_config: "{{ ansible_local.pve_node['guests_by_id'][vmid] }}"
+      current_guest_config: "{{ ansible_local.pve['guests_by_id'][vmid] }}"
     block:
     - name: Error on different rootfs sizes
       fail:

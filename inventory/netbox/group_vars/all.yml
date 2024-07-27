@@ -34,6 +34,7 @@ debian_global_absent_packages:
   - unattended-upgrades
 
 timezone: Europe/Berlin
+vmid: "{{ custom_fields.vmid }}"
 
 quick: false # optionally allows to ignore tasks which are not necessary in every run
 deploy_guest: false # false, true, redeploy, purge
