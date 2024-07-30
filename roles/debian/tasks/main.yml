@@ -16,7 +16,7 @@
       executable: /usr/bin/bash
     when: 
       - ansible_hostname != inventory_hostname
-      - technology == "vm"
+      - technology != "lxc"
 
   # INCLUDES
   - name: Run upgrades
