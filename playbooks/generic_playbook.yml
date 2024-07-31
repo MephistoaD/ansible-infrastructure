@@ -48,7 +48,7 @@
         when:
           - is_virtual
           - custom_fields.technology is defined
-          - deploy_guest == "backup" or upgrade
+          - deploy_guest == "backup" or (upgrade and deploy_guest)
           - not prohibit_restore
 
       - fail:

@@ -1,7 +1,7 @@
 ---
 - name: RESTORE GUEST
   vars:
-    technology: "{{ custom_fields.technology }}"
+    api_technology: "{{ 'qemu' if custom_fields.technology == 'vm' else custom_fields.technology }}"
     pool: "{{ custom_fields.pool }}"
     guest_storage: "node-local"
     delegate_to_pve_instance: "{{ groups['_pve'][0] }}" # the node where the lxc is created / the guest list is scraped
@@ -32,7 +32,7 @@
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
     ansible.builtin.shell:
       executable: /bin/bash
-      cmd: pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/{{ technology }}/{{ vmid }}/status/stop
+      cmd: pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/{{ api_technology }}/{{ vmid }}/status/stop
 
   - name: "Restore guest from '{{ backup.volid }}'"
     vars:
@@ -41,7 +41,7 @@
     ansible.builtin.shell:
       executable: /bin/bash
       cmd: |
-        pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/{{ technology }} \
+        pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/{{ api_technology }} \
           --vmid {{ vmid }} \
           --storage "{{ guest_storage }}" \
           --ostemplate "{{ backup.volid }}" \
