@@ -25,5 +25,5 @@
       hostnamectl set-hostname {{ inventory_hostname }}
   notify: Reboot vm
   when:
-    - not is_virtual or technology == "vm"
+    - (not is_virtual) or custom_fields.technology == "vm"
     - ansible_hostname != inventory_hostname
