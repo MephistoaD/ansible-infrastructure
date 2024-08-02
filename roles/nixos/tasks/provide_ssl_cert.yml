@@ -1,13 +1,9 @@
 ---
 - name: "Provide ssl certificate"
-  delegate_to: "{{ delegate_to_guest_pve_instance }}"
   shell:
-    executable: /bin/bash
+    executable: /run/current-system/sw/bin/bash
     cmd: |
       export upgrade={{ upgrade }}
-
-
-      pct exec {{ vmid }} sh <<-EOT
       source /etc/set-environment
 
       if $upgrade || [ ! -f {{ nixos_ssl_cert_dir }}/cert.key ]; then
@@ -22,7 +18,6 @@
       fi
 
       exit 0
-      EOT
   register: create_ssl_cert
   failed_when: create_ssl_cert.rc > 1
   changed_when: create_ssl_cert.rc == 1

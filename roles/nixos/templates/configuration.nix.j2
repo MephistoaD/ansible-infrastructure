@@ -24,6 +24,11 @@
     "sys-fs-fuse-connections.mount"
   ];
 
+  # general packages
+  environment.systemPackages = with  pkgs; [
+    python3 # needed for ansible to run
+  ];
+
   services.prometheus.exporters.node = {
       enable = true;
       enabledCollectors = [ 

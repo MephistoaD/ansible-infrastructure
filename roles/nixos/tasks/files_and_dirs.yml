@@ -1,0 +1,6 @@
+---
+
+- name: Ensure /etc/ansible/facts.d/ directory exists (local facts)
+  ansible.builtin.file:
+    path: /etc/ansible/facts.d/
+    state: directory
