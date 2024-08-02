@@ -1,7 +1,12 @@
 ---
+- name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
+  delegate_to: "{{ delegate_to_pve_instance }}"
+  setup:
+    filter: ansible_local
+
 - name: "Role {{ role_name }}"
   when:
-    - not nixos_apply_config
+    - only_role is undefined or only_role == role_name
   block:
   # Assertions
   - name: "Preventive assertions of role {{ role_name }}"
@@ -14,32 +19,16 @@
     loop:
       - { check: "{{ 'nixos' in platforms }}", msg: "The platform needs to be NixOS" }
 
-  # Scripts
-  - name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
-    delegate_to: "{{ delegate_to_pve_instance }}"
-    setup:
-      filter: ansible_local
+  # Tasks
+  - include_tasks: deploy_config.yml
 
-  - name: "Role {{ role_name }}"
-    when:
-      - only_role is undefined or only_role == role_name
-    block:
-    # Tasks
-    - import_tasks: deploy_config.yml
-      when: not quick
+  - include_tasks: apply_initial_config.yml
+    when: template_configuration.changed or stub_config.changed
 
-    - import_tasks: apply_initial_config.yml
-      when: stub_config.changed
+  - include_tasks: files_and_dirs.yml
 
-    # generic preparations for other roles
-    - include_tasks: provide_ssl_cert.yml
-      when: nixos_provide_ssl_cert
+  # generic preparations for other roles
+  - include_tasks: provide_ssl_cert.yml
+    when: nixos_provide_ssl_cert
 
-    # Tests
-
-
-- name: "Role {{ role_name }} (apply_config)"
-  when:
-    - nixos_apply_config
-  block:
-  - import_tasks: apply_config.yml
+  # Tests
