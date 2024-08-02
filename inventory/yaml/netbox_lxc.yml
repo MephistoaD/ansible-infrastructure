@@ -1,0 +1,25 @@
+all:
+  children:
+    _vaultwarden:
+      hosts:
+        netbox_lxc:
+          ansible_host: 192.168.1.101
+
+          disk: 4
+          vcpus: 2.0
+          memory: 2048
+
+          custom_fields:
+            pool: "infra"
+            technology: "lxc"
+            upgrade_schedule: "* 3 * * 1-5"
+            vmid: 235
+          platforms:
+            - nixos
+          
+          local_context_data: []
+          
+          device_roles: 
+            - netbox
+          is_virtual: true
+          
