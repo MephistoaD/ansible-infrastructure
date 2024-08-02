@@ -1,0 +1,117 @@
+---
+- name: Get current datasources
+  become: false
+  local_action:
+    module: uri
+    validate_certs: false
+    url: "https://{{ primary_ip4 }}/api/core/data-sources/"
+    method: GET
+    headers:
+      Authorization: "Token {{ ansible_local.netbox.api_token }}"
+    status_code:
+      - 200
+  register: get_datasources
+  changed_when: false
+
+- name: SYNC DATASOURCE OBJECTS
+  vars:
+    all_existing_datasources_details: "{{ get_datasources.json.results }}"
+    existing_datasources_names: "{{ all_existing_datasources_details | map(attribute='name') }}"
+    datasource_details: "{{ all_existing_datasources_details | selectattr('name', 'equalto', item) | first }}"
+    datasources_created: "{{ create_datasources.results | map(attribute='json') }}"
+
+    datasources_enabled: true
+  block:
+  - name: Create new datasource objects
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ primary_ip4 }}/api/core/data-sources/"
+      method: POST
+      headers:
+        Authorization: "Token {{ ansible_local.netbox.api_token }}"
+      body_format: json
+      body:
+        name: "{{ item }}"
+        type: "{{ netbox_datasources[item].type }}"
+        source_url: "{{ netbox_datasources[item].source_url }}"
+        enabled: "{{ datasources_enabled }}"
+        description: "{{ netbox_datasources[item].description }}"
+      status_code:
+        - 201
+    register: create_datasources
+    changed_when: true
+    loop: "{{ (netbox_datasources.keys() - existing_datasources_names) | list }}"
+
+  - name: Delete obsolete datasource objects
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ primary_ip4 }}/api/core/data-sources/"
+      method: DELETE
+      headers:
+        Authorization: "Token {{ ansible_local.netbox.api_token }}"
+      body_format: json
+      body:
+        - id: "{{ datasource_details.id }}"
+      status_code:
+        - 204
+    register: delete_datasources
+    changed_when: true
+    loop: "{{ (existing_datasources_names - netbox_datasources.keys()) | list }}"
+
+  - name: Update drifted datasource objects
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ primary_ip4 }}/api/core/data-sources/"
+      method: PATCH
+      headers:
+        Authorization: "Token {{ ansible_local.netbox.api_token }}"
+      body_format: json
+      # body as json block since the id needs to be an int and cannot be passed as string (like it would be with a yaml block)
+      body: |
+        [
+          {
+            "id": {{ datasource_details.id }},
+            "display": "{{ item }}",
+            "name": "{{ item }}",
+            "type": "{{ netbox_datasources[item].type }}",
+            "source_url": "{{ netbox_datasources[item].source_url }}",
+            "enabled": {{ datasources_enabled }},
+            "description": "{{ netbox_datasources[item].description }}",
+          }
+        ]
+      status_code:
+        - 200
+    register: update_datasources
+    changed_when: true
+    when:
+      - item not in (netbox_datasources.keys() - existing_datasources_names) # not newly created
+      - (datasource_details.description != netbox_datasources[item].description or
+        datasource_details.display != item or
+        datasource_details.name != item or
+        datasource_details.type.value != netbox_datasources[item].type or
+        datasource_details.source_url != netbox_datasources[item].source_url or
+        datasource_details.enabled != datasources_enabled)
+    loop: "{{ netbox_datasources.keys() }}"
+
+  - name: Sync datasources against their storage
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ primary_ip4 }}/api/core/data-sources/{{ item.id }}/sync/"
+      method: POST
+      headers:
+        Authorization: "Token {{ ansible_local.netbox.api_token }}"
+      status_code:
+        - 200
+    register: sync_datasources
+    changed_when: false
+    loop_control:
+      label: "{{ item.name }}"
+    loop: "{{ all_existing_datasources_details + datasources_created }}"

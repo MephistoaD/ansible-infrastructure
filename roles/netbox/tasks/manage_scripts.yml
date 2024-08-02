@@ -1,0 +1,25 @@
+---
+- name: "Ensure {{ netbox_scripts_root }} directory exists"
+  ansible.builtin.file:
+    path: "{{ netbox_scripts_root }}"
+    state: directory
+    owner: netbox
+    group: netbox
+
+- name: Copy scripts
+#  delegate_to: "{{ delegate_to_guest_pve_instance }}"
+  copy:
+    src: "{{ item }}"
+    dest: "{{ netbox_scripts_root }}/{{ item | basename }}"
+    owner: netbox
+    group: netbox
+  with_fileglob:
+    - "scripts/*"
+  register: script_files
+
+- vars:
+    INFO:
+      - "There is no REST-API endpint for scripts yet"
+      - "The scripts need to be added manually via GUI :-("
+  debug:
+    var: INFO

@@ -1,0 +1,3 @@
+---
+nixos_provide_ssl_cert: true
+# nixos_ssl_hostname: "_"

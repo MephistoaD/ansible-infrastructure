@@ -1,0 +1,106 @@
+---
+role_name: netbox
+prometheus_role_exporter_port_nginx: 9113
+prometheus_roles:
+  - nginx
+
+netbox_scripts_root: /var/lib/netbox/scripts
+
+
+netbox_nginx_hostname: "_"
+
+# including vars from netbox
+netbox_nginx_hostname_: "{{ local_context_data[0]['netbox_nginx_hostname'] | default(netbox_nginx_hostname) }}"
+
+# netbox config
+netbox_default_site: homelab
+
+netbox_datasources:
+  NetBox Scripts:
+    source_url: "{{ netbox_scripts_root }}"
+    type: local
+    description: "NetBox scripts provided by Ansible"
+
+netbox_custom_fields:
+  # PVE Group
+  vmid:
+    group_name: PVE
+    type: integer
+    required: true
+    content_types:
+      - "virtualization.virtualmachine"
+    description: "The Proxmox VMID"
+    validation_minimum: 100
+
+  pool:
+    group_name: PVE
+    type: select
+    required: true
+    content_types:
+      - "virtualization.virtualmachine"
+    description: "The resource pool in PVE"
+    choices: "{{ pools }}"
+    default: "testing"
+
+  technology:
+    group_name: PVE
+    type: select
+    required: true
+    description: "Virtualization technology used (VM, LXC, ...)"
+    content_types:
+      - "virtualization.virtualmachine"
+    choices:
+      - lxc
+      - vm
+    default: lxc
+
+  pinned_on_node:
+    group_name: PVE
+    content_types:
+      - "virtualization.virtualmachine"
+    type: object
+    object_type: "dcim.device"
+    description: "Used to pin a vm to a virtualization node"
+    required: true
+
+  # Ansible
+  auto_deploy:
+    group_name: Ansible
+    type: boolean
+    required: true
+    content_types:
+      - "virtualization.virtualmachine"
+      - "dcim.device"
+    description: "Semaphore Deployments for the machine"
+#    default: false # false is submitted as "false" (string)
+  
+  upgrade_schedule:
+    group_name: Ansible
+    required: false
+    content_types:
+      - "virtualization.virtualmachine"
+      - "dcim.device"
+    type: text
+    description: "The schedule in cron-syntax of an upgrade"
+
+  upgrade_after:
+    group_name: Ansible
+    required: false
+    content_types:
+      - "virtualization.virtualmachine"
+      - "dcim.device"
+    type: object
+    object_type: "virtualization.virtualmachine"
+    description: "The VM which is upgraded before this host"
+
+  cluster_position:
+    group_name: Ansible
+    content_types:
+      - "virtualization.virtualmachine"
+      - "dcim.device"
+    type: select
+    choices:
+      - leader
+      - replica
+    description: "The position the node fullfills in the application layer cluster"
+    required: false
