@@ -1,0 +1,119 @@
+- hosts: "{{ target }}"
+  gather_facts: true
+  vars:
+    netbox_instance: "nixos-test" # the inventory_hostname of the netbox
+    netbox_api_token: "{{ hostvars[netbox_instance].netbox_api_token }}"
+
+    interface_types:
+      e1000e: "1000Base-T"
+      iwlwifi: "Other (Wireless)"
+      bridge: "bridge"
+      virtio_net: "Virtual"
+
+    # vars:
+
+  tasks:
+  - name: "SYNC {{ key }} {{ site }}"
+    include_tasks: tasks/sync_netbox_object.yml
+    vars:
+      api_endpoint: /dcim/sites/
+      key: site
+      name: "{{ site  }}"
+      data:
+        name: "{{ name }}"
+        slug: "{{ name | regex_replace('[^A-Za-z0-9]', '_') | lower }}"
+
+  - name: "SYNC {{ key }} {{ name }}"
+    include_tasks: tasks/sync_netbox_object.yml
+    vars:
+      api_endpoint: /dcim/manufacturers/
+      key: manufacturer
+      name: "{{ ansible_system_vendor  }}"
+      data:
+        name: "{{ name }}"
+        slug: "{{ name | regex_replace('[^A-Za-z0-9]', '_') | lower }}"
+    when:
+      - ansible_virtualization_role is defined
+      - ansible_virtualization_role != "guest"
+
+  - name: "SYNC {{ key }} {{ name }}"
+    include_tasks: tasks/sync_netbox_object.yml
+    vars:
+      api_endpoint: /dcim/device-types/
+      key: device_type
+      name: "{{ ansible_product_name if (ansible_virtualization_role is defined and ansible_virtualization_role != 'guest') else 'virtual-machine' }}"
+      name_field_name: model
+      data:
+        model: "{{ name }}"
+        slug: "{{ name | regex_replace('[^A-Za-z0-9]', '_') | lower }}"
+        manufacturer: "{{ stored_objects.manufacturer | int }}"
+    when:
+      - ansible_virtualization_role is defined
+      - ansible_virtualization_role != "guest" # maybe needed when adding vms into the devices section?
+
+  - name: "SYNC {{ key }} {{ name }}"
+    include_tasks: tasks/sync_netbox_object.yml
+    vars:
+      api_endpoint: /dcim/device-roles/
+      key: device_role
+      name: "{{ device_role }}"
+      get_only: true
+
+  - name: "SYNC {{ key }} {{ name }}"
+    include_tasks: tasks/sync_netbox_object.yml
+    vars:
+      api_endpoint: /dcim/devices/
+      key: device
+      name: "{{ ansible_hostname }}"
+      slug_field_name: name
+      data:
+        name: "{{ name }}"
+        device_type: "{{ stored_objects.device_type }}"
+        role: "{{ stored_objects.device_role }}"
+        site: "{{ stored_objects.site }}"
+        serial: "{{ ansible_product_serial }}"
+        asset_tag: "{{ ansible_product_uuid }}"
+        custom_fields:
+          auto_deploy: false
+
+  
+  - name: "SYNC {{ key }} {{ name }}"
+    include_tasks: tasks/sync_netbox_object.yml
+    vars:
+      api_endpoint: /dcim/interfaces/
+      key: device_interface
+      name: "{{ ansible_default_ipv4.interface }}"
+      slug_field_name: name
+      module: "{{ hostvars[inventory_hostname]['ansible_' + name]['module'] if hostvars[inventory_hostname]['ansible_' + name]['module'] is defined else 'bridge' }}"
+      data:
+        name: "{{ name }}"
+        device: "{{ stored_objects.device }}"
+        type: "{{ interface_types[module] }}"
+        # optional:
+        mtu: "{{ hostvars[inventory_hostname]['ansible_' + name]['mtu'] }}"
+        mac_address: "{{ hostvars[inventory_hostname]['ansible_' + name]['macaddress'] }}"
+
+  - name: "SYNC {{ key }} {{ name }}"
+    include_tasks: tasks/sync_netbox_object.yml
+    vars:
+      api_endpoint: /ipam/ip-addresses/
+      key: ip_address
+      name: "{{ ansible_default_ipv4.address }}/{{ ansible_default_ipv4.prefix }}"
+      name_field_name: address
+      slug_field_name: address
+      data:
+        address: "{{ ansible_default_ipv4.address }}/{{ ansible_default_ipv4.prefix }}"
+        dns_name: "{{ ansible_fqdn }}"
+        assigned_object_type: "dcim.interface"
+        assigned_object_id: "{{ stored_objects.device_interface | int }}"
+
+  - name: "SYNC {{ key }} {{ name }} (add primary IP)"
+    include_tasks: tasks/sync_netbox_object.yml
+    vars:
+      api_endpoint: /dcim/devices/
+      key: device
+      name: "{{ ansible_hostname }}"
+      slug_field_name: name
+      data:
+        name: "{{ name }}"
+        primary_ip4: "{{ stored_objects.ip_address }}"

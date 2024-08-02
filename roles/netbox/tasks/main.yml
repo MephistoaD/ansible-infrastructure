@@ -1,0 +1,35 @@
+---
+- name: "Role {{ role_name }}"    
+  when:
+    - only_role is undefined or only_role == role_name
+  block:
+  # prepare
+  - include_tasks: create_secret_key.yml
+    when: not quick
+
+  # deploy config
+  - include_tasks: deploy_config.yml
+    when: not quick
+
+
+  # seemingly this doesn't work with the usage of the only_role parameter
+  - include_role:
+      name: "nixos"
+      tasks_from: apply_config
+
+
+  - name: Gather Facts
+    setup:
+
+  - include_tasks: fail_on_missing_token.yml
+    when: ansible_local.netbox.api_token is undefined
+
+  - wait_for:
+      host: ::1
+      port: 8001
+
+  - include_tasks: manage_platforms.yml
+  - include_tasks: manage_roles.yml
+  - include_tasks: manage_scripts.yml
+  - include_tasks: manage_datasources.yml
+  - include_tasks: manage_custom_fields.yml

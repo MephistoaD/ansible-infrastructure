@@ -1,0 +1,34 @@
+---
+- name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
+  delegate_to: "{{ delegate_to_pve_instance }}"
+  setup:
+    filter: ansible_local
+
+- name: "Role {{ role_name }}"
+  when:
+    - only_role is undefined or only_role == role_name
+  block:
+  # Assertions
+  - name: "Preventive assertions of role {{ role_name }}"
+    assert:
+      that:
+        - "{{ item.check }}"
+      fail_msg: "{{ item.msg }}"
+    loop_control:
+      label: "{{ item.msg }}"
+    loop:
+      - { check: "{{ 'nixos' in platforms }}", msg: "The platform needs to be NixOS" }
+
+  # Tasks
+  - include_tasks: deploy_config.yml
+
+  - include_tasks: apply_initial_config.yml
+    when: template_configuration.changed or stub_config.changed
+
+  - include_tasks: files_and_dirs.yml
+
+  # generic preparations for other roles
+  - include_tasks: provide_ssl_cert.yml
+    when: nixos_provide_ssl_cert
+
+  # Tests

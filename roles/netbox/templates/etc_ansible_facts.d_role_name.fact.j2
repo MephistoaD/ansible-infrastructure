@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+
+import json
+
+# Create a dictionary with the variables
+data = {
+# The NetBox api token used to control it's content
+# expected to be added manually on installation
+#  "api_token": "",
+}
+
+# Convert the dictionary to JSON format
+json_data = json.dumps(data, indent=4)
+
+# Print the JSON
+print(json_data)

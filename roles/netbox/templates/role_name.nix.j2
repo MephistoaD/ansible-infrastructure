@@ -1,0 +1,53 @@
+{ config, pkgs, ... }:
+
+{
+  services = {
+  	
+    netbox = {
+      enable = true;
+      secretKeyFile = "/var/lib/netbox/secret-key-file";
+      package = pkgs.netbox_3_7;
+
+      settings = {
+        SCRIPTS_ROOT = "{{ netbox_scripts_root }}";
+      };
+    };
+
+
+    prometheus.exporters.nginx.enable = true;
+
+    nginx = {
+      enable = true;
+      user = "netbox"; # otherwise nginx cant access netbox files
+      recommendedProxySettings = true; # otherwise you will get CSRF error while login
+      virtualHosts."{{ netbox_nginx_hostname_ }}" = {
+        serverName = "{{ netbox_nginx_hostname_ }}";
+        sslCertificate = "{{ nixos_ssl_cert_dir }}/cert.crt";
+        sslCertificateKey = "{{ nixos_ssl_cert_dir }}/cert.key";
+        forceSSL = true;
+        locations = {
+          "/" = {
+            proxyPass = "http://[::1]:8001";
+            # proxyPass = "http://${config.services.netbox.listenAddress}:${config.services.netbox.port}";
+          };
+          "/static/" = { alias = "${config.services.netbox.dataDir}/static/"; };
+        };
+      };
+    };
+  };
+
+
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [ 
+      80
+      443
+      {{ prometheus_role_exporter_port_nginx }}
+    ];
+#    allowedUDPPortRanges = [
+ #     { from = 4000; to = 4007; }
+  #    { from = 8000; to = 8010; }
+   # ];
+  };
+}
+

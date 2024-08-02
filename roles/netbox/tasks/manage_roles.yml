@@ -1,0 +1,136 @@
+---
+- name: Get names of all available roles (desired state)
+  become: false
+  local_action:
+    module: shell
+    executable: /bin/bash
+    cmd: |
+      cd {{ playbook_dir }}/..
+      ansible-galaxy list | tail -n +2 | cut -d" " -f2 | cut -d"," -f1
+  register: desired_roles
+  changed_when: false
+
+- name: Get names of all roles currently existing in the netbox instance
+  become: false
+  local_action:
+    module: shell
+    executable: "/usr/bin/python3"
+    cmd: |
+      import requests
+      import json
+
+      # Define your NetBox API URL and token
+      NETBOX_URL = "https://{{ primary_ip4 }}/api/dcim/device-roles/"
+      NETBOX_TOKEN = "{{ ansible_local.netbox.api_token }}"
+
+      # Compose request
+      headers = {'Authorization': f"Token {NETBOX_TOKEN}" }  
+      r = requests.get(url=NETBOX_URL, headers=headers, verify=False)                       
+      device_roles = r.json()['results']
+
+      # Extract role names from the list of device roles
+      role_names = [role['name'] for role in device_roles]
+
+      # Print the list of device roles
+      target_state = {{ desired_roles.stdout.split() }}
+      current_state = role_names
+
+      device_roles = {
+        "target_state": target_state,
+        "current_state": device_roles,
+        "to_create": list(set(target_state) - set(current_state)),
+        "to_delete": list(set(current_state) - set(target_state))
+      }
+      print(json.dumps(device_roles))
+  register: device_roles
+  changed_when: false
+
+- name: SYNC ROLES
+  vars:
+    state: "{{ device_roles.stdout | from_json }}"
+    roles_details: "{{ state.current_state | selectattr('name', 'equalto', item) | first }}"
+
+    role_color: "0a6ab6"
+    role_vm_role: true
+    role_description: "Ansible Role"
+  block:
+  - name: Delete obsolete roles
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ primary_ip4 }}/api/dcim/device-roles/"
+      method: DELETE
+      headers:
+        Authorization: "Token {{ ansible_local.netbox.api_token }}"
+      body_format: json
+      body:
+        - id: "{{ roles_details.id }}"
+      status_code:
+        - 204
+    register: delete_roles
+    changed_when: true
+    when:
+      - roles_details.virtualmachine_count == 0
+      - roles_details.device_count == 0
+    loop: "{{ state.to_delete }}"
+
+  - name: Update drifted roles
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ primary_ip4 }}/api/dcim/device-roles/"
+      method: PATCH
+      headers:
+        Authorization: "Token {{ ansible_local.netbox.api_token }}"
+      body_format: json
+      # body as json block since the id needs to be an int and cannot be passed as string (like it would be with a yaml block)
+      body: |
+        [
+          {
+            "id": {{ roles_details.id }},
+            "display": "{{ item }}",
+            "name": "{{ item }}",
+            "slug": "_{{ item }}",
+            "description": "{{ role_description }}",
+            "vm_role": true,
+            "color": "{{ role_color }}"
+          }
+        ]
+      status_code:
+        - 200
+    register: update_roles
+    changed_when: true
+    when:
+      - item not in state.to_create
+      - (roles_details.color != role_color or
+        roles_details.description != role_description or
+        roles_details.display != item or
+        roles_details.name != item or
+        roles_details.slug != ('_' + item) or
+        roles_details.vm_role != role_vm_role)
+    loop: "{{ state.target_state }}"
+
+  - name: Create new roles
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ primary_ip4 }}/api/dcim/device-roles/"
+      method: POST
+      headers:
+        Authorization: "Token {{ ansible_local.netbox.api_token }}"
+      body_format: json
+      body:
+        display: "{{ item }}"
+        name: "{{ item }}"
+        slug: "_{{ item }}"
+        description: "{{ role_description }}"
+        vm_role: true
+        color: "{{ role_color }}"
+      status_code:
+        - 201
+    register: create_roles
+    changed_when: true
+    loop: "{{ state.to_create }}"

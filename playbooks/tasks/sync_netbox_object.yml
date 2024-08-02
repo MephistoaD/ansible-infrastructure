@@ -1,0 +1,107 @@
+---
+- vars:
+    name_field_name_: "{{ name_field_name | default('name')}}"
+    slug_field_name_: "{{ slug_field_name | default('slug')}}"
+  block:
+
+  - name: "Get current entries in {{ api_endpoint }}"
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ hostvars[netbox_instance].ansible_host }}/api{{ api_endpoint }}"
+      method: GET
+      headers:
+        Authorization: "Token {{ netbox_api_token }}"
+      status_code:
+        - 200
+    register: get_objects
+    changed_when: false
+
+  - debug:
+      var: get_objects
+
+  - name: SYNC OBJECT
+    vars:
+      all_existing_objects_details: "{{ get_objects.json.results }}"
+      existing_objects_names: "{{ all_existing_objects_details | map(attribute=slug_field_name_) }}"
+      object_details: "{{ all_existing_objects_details | selectattr(name_field_name_, 'equalto', name) | first }}"
+
+      objects_description: "object deployed by Ansible"
+    when: 
+      - get_only is undefined or not get_only
+    block:
+    - name: "Create new entriy in {{ api_endpoint }}"
+      become: false
+      local_action:
+        module: uri
+        validate_certs: false
+        url: "https://{{ hostvars[netbox_instance].ansible_host }}/api{{ api_endpoint }}"
+        method: POST
+        headers:
+          Authorization: "Token {{ netbox_api_token }}"
+        body_format: json
+        body: |
+          {{ data | to_json }}
+        status_code:
+          - 201
+      register: create_object
+      when: '[data[slug_field_name_]] | difference(existing_objects_names) | list | length == 1'
+
+    - debug:
+        var: create_object
+
+    - name: "Update drifted entry in {{ api_endpoint }}"
+      become: false
+      local_action:
+        module: uri
+        validate_certs: false
+        url: "https://{{ hostvars[netbox_instance].ansible_host }}/api{{ api_endpoint }}"
+        method: PATCH
+        headers:
+          Authorization: "Token {{ netbox_api_token }}"
+        body_format: json
+        # body as json block since the id needs to be an int and cannot be passed as string (like it would be with a yaml block)
+        body: |
+          [
+            {{ data | combine({ 'id': object_details.id }) | to_json}}
+          ]
+        status_code:
+          - 200
+      register: update_update
+      changed_when: true
+      when:
+        - not create_object.changed
+        - object_details is defined
+
+    - debug:
+        var: update_object
+
+  - name: "Get current entries in {{ api_endpoint }}"
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ hostvars[netbox_instance].ansible_host }}/api{{ api_endpoint }}"
+      method: GET
+      headers:
+        Authorization: "Token {{ netbox_api_token }}"
+      status_code:
+        - 200
+    register: get_objects
+    changed_when: false
+
+  - name: Store object
+    vars:
+      all_existing_objects_details: "{{ get_objects.json.results }}"
+      object_details: "{{ all_existing_objects_details | selectattr(name_field_name_, 'equalto', name) | first }}"
+
+      stored_objects_: "{{ stored_objects | default({}) }}"
+    set_fact:
+      stored_objects: >-
+        {{
+          stored_objects_ | combine({ key : object_details.id })
+        }}
+
+  - debug:
+      var: stored_objects

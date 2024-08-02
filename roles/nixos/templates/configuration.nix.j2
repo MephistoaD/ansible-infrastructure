@@ -1,0 +1,53 @@
+{ config, pkgs, modulesPath,  ... }:
+
+{
+  imports = [
+    (modulesPath + "/virtualisation/proxmox-lxc.nix")
+{% for role in device_roles %}
+    ./{{ role }}.nix
+{% endfor %}
+  ];
+  proxmoxLXC = {
+    # manageNetwork = false;
+    # privileged = false;
+  };
+
+  # fix container-related mount issues
+  systemd.mounts = [{
+    where = "/sys/kernel/debug";
+    enable = false;
+  }];
+  boot.isContainer = true;
+  systemd.suppressedSystemUnits = [
+    "dev-mqueue.mount"
+    "sys-kernel-debug.mount"
+    "sys-fs-fuse-connections.mount"
+  ];
+
+  # general packages
+  environment.systemPackages = with  pkgs; [
+    python3 # needed for ansible to run
+  ];
+
+  services.prometheus.exporters.node = {
+      enable = true;
+      enabledCollectors = [ 
+        "systemd"
+      ];
+      disabledCollectors = [
+        "zfs"
+      ];
+    };
+
+  # enable flakes
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+
+  #system.stateVersion = "24.05";
+
+  # Auto update
+  system.autoUpgrade.enable = true;
+
+  # Auto delete old generations
+  nix.gc.automatic = true;
+  nix.gc.options = "--delete-older-than 2d";
+}

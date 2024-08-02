@@ -1,0 +1,263 @@
+---
+- name: Get current custom_choice_sets
+  become: false
+  local_action:
+    module: uri
+    validate_certs: false
+    url: "https://{{ primary_ip4 }}/api/extras/custom-field-choice-sets/"
+    method: GET
+    headers:
+      Authorization: "Token {{ ansible_local.netbox.api_token }}"
+    status_code:
+      - 200
+  register: get_choice_sets
+  changed_when: false
+
+
+- name: SYNC CHOICE SETS
+  vars:
+    all_existing_choice_sets_details: "{{ get_choice_sets.json.results }}"
+    existing_choice_sets_names: "{{ all_existing_choice_sets_details | map(attribute='name') }}"
+    choice_set_details: "{{ all_existing_choice_sets_details | selectattr('name', 'equalto', item) | first }}"
+
+    netbox_choice_sets:  >-
+      {{
+        netbox_custom_fields
+        | dict2items
+        | selectattr('value.choices', 'defined')
+        | items2dict
+      }}
+    extra_choices: |
+      [
+        {% for choice in netbox_choice_sets[item].choices %}
+        [
+          "{{ choice }}",
+          "{{ choice | upper }}"
+        ],
+        {% endfor %}
+      ]
+
+  block:
+  - name: Create new choice set
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ primary_ip4 }}/api/extras/custom-field-choice-sets/"
+      method: POST
+      headers:
+        Authorization: "Token {{ ansible_local.netbox.api_token }}"
+      body_format: json
+      body: |
+        {
+          "name": "{{ item }}",
+          "description": "{{ netbox_choice_sets[item].description | default('') }}",
+          "extra_choices": {{ extra_choices | to_json }},
+        }
+      status_code:
+        - 201
+    register: create_choice_sets
+    changed_when: true
+    loop: "{{ (netbox_choice_sets.keys() - existing_choice_sets_names) | list }}"
+
+  - name: Update drifted choice_sets
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ primary_ip4 }}/api/extras/custom-field-choice-sets/"
+      method: PATCH
+      headers:
+        Authorization: "Token {{ ansible_local.netbox.api_token }}"
+      body_format: json
+      # body as json block since the id needs to be an int and cannot be passed as string (like it would be with a yaml block)
+      body: |
+        [
+          {
+            "id": {{ choice_set_details.id }},
+            "name": "{{ item }}",
+            "display": "{{ item }}",
+            "description": "{{ netbox_choice_sets[item].description | default('') }}",
+            "extra_choices": {{ extra_choices | to_json }},
+          }
+        ]
+      status_code:
+        - 200
+    register: update_choice_sets
+    changed_when: true
+    when:
+      - item not in (netbox_choice_sets.keys() - existing_choice_sets_names) # not newly created
+      - (choice_set_details.description != netbox_choice_sets[item].description or
+        choice_set_details.display != item or
+        choice_set_details.extra_choices != extra_choices or
+        choice_set_details.name != item)
+    loop: "{{ netbox_choice_sets.keys() }}"
+
+
+
+
+
+- name: Get current custom_fields
+  become: false
+  local_action:
+    module: uri
+    validate_certs: false
+    url: "https://{{ primary_ip4 }}/api/extras/custom-fields/"
+    method: GET
+    headers:
+      Authorization: "Token {{ ansible_local.netbox.api_token }}"
+    status_code:
+      - 200
+  register: get_custom_fields
+  changed_when: false
+
+
+- name: SYNC CUSTOM FIELDS
+  vars:
+    all_existing_custom_fields_details: "{{ get_custom_fields.json.results }}"
+    existing_custom_fields_names: "{{ all_existing_custom_fields_details | map(attribute='name') }}"
+    custom_field_details: "{{ all_existing_custom_fields_details | selectattr('name', 'equalto', item) | first }}"
+
+    # choice_sets
+    all_existing_choice_sets_details: "{{ create_choice_sets.results | map(attribute='json') + get_choice_sets.json.results }}"
+    choice_set_details: "{{ all_existing_choice_sets_details | selectattr('name', 'equalto', item) | first }}"
+
+  block:
+  - name: Create new custom field
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ primary_ip4 }}/api/extras/custom-fields/"
+      method: POST
+      headers:
+        Authorization: "Token {{ ansible_local.netbox.api_token }}"
+      body_format: json
+      body: |
+        {
+          "name": "{{ item }}",
+          "type": "{{ netbox_custom_fields[item].type }}",
+          {% if 'group_name' in netbox_custom_fields[item] %}
+          "group_name": "{{ netbox_custom_fields[item].group_name }}",
+          {% endif %}
+          "required": "{{ netbox_custom_fields[item].required | default(false) }}",
+          "content_types": {{ netbox_custom_fields[item].content_types | to_json }},
+          "description": "{{ netbox_custom_fields[item].description | default('') }}",
+          {% if 'validation_minimum' in netbox_custom_fields[item] %}
+          "validation_minimum": "{{ netbox_custom_fields[item].validation_minimum }}",
+          {% endif %}
+          {% if 'choices' in netbox_custom_fields[item] %}
+          "choice_set": {{ choice_set_details.id }},
+          {% endif %}
+          {% if 'default' in netbox_custom_fields[item] %}
+          "default": "{{ netbox_custom_fields[item].default }}",
+          {% endif %}
+          {% if 'object_type' in netbox_custom_fields[item] %}
+          "object_type": "{{ netbox_custom_fields[item].object_type }}",
+          {% endif %}
+        }
+      status_code:
+        - 201
+    register: create_custom_fields
+    changed_when: true
+    loop: "{{ (netbox_custom_fields.keys() - existing_custom_fields_names) | list }}"
+
+  - name: Delete obsolete custom_fields
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ primary_ip4 }}/api/extras/custom-fields/"
+      method: DELETE
+      headers:
+        Authorization: "Token {{ ansible_local.netbox.api_token }}"
+      body_format: json
+      body:
+        - id: "{{ custom_field_details.id }}"
+      status_code:
+        - 204
+    register: delete_custom_fields
+    changed_when: true
+    loop: "{{ (existing_custom_fields_names - netbox_custom_fields.keys()) | list }}"
+
+  - name: Update drifted custom_fields
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ primary_ip4 }}/api/extras/custom-fields/"
+      method: PATCH
+      headers:
+        Authorization: "Token {{ ansible_local.netbox.api_token }}"
+      body_format: json
+      # body as json block since the id needs to be an int and cannot be passed as string (like it would be with a yaml block)
+      body: |
+        [
+          {
+            "id": {{ custom_field_details.id }},
+            "name": "{{ item }}",
+            "display": "{{ item }}",
+            "type": "{{ netbox_custom_fields[item].type }}",
+            {% if 'group_name' in netbox_custom_fields[item] %}
+            "group_name": "{{ netbox_custom_fields[item].group_name }}",
+            {% endif %}
+            "required": "{{ netbox_custom_fields[item].required | default(false) }}",
+            "content_types": {{ netbox_custom_fields[item].content_types | sort | to_json }},
+            "description": "{{ netbox_custom_fields[item].description | default('') }}",
+            {% if 'validation_minimum' in netbox_custom_fields[item] %}
+            "validation_minimum": "{{ netbox_custom_fields[item].validation_minimum }}",
+            {% endif %}
+            {% if 'object_type' in netbox_custom_fields[item] %}
+            "object_type": "{{ netbox_custom_fields[item].object_type }}",
+            {% endif %}
+          }
+        ]
+      status_code:
+        - 200
+    register: update_custom_fields
+    changed_when: true
+    when:
+      - item not in (netbox_custom_fields.keys() - existing_custom_fields_names) # not newly created
+      - (custom_field_details.description != netbox_custom_fields[item].description or
+        custom_field_details.name != item or
+        custom_field_details.type.value != netbox_custom_fields[item].type or
+        custom_field_details.required != netbox_custom_fields[item].required or
+        custom_field_details.content_types != netbox_custom_fields[item].content_types | sort or
+        (custom_field_details.validation_minimum != netbox_custom_fields[item].validation_minimum if 'validation_minimum' in netbox_custom_fields[item] else false) or
+        (custom_field_details.object_type != netbox_custom_fields[item].object_type if 'object_type' in netbox_custom_fields[item] else false) or
+        (custom_field_details.group_name != netbox_custom_fields[item].group_name if 'group_name' in netbox_custom_fields[item] else false))
+    loop: "{{ netbox_custom_fields.keys() }}"
+
+
+- name: REMOVE OBSOLETE CHOICE SETS
+  vars:
+    all_existing_choice_sets_details: "{{ get_choice_sets.json.results }}"
+    existing_choice_sets_names: "{{ all_existing_choice_sets_details | map(attribute='name') }}"
+    choice_set_details: "{{ all_existing_choice_sets_details | selectattr('name', 'equalto', item) | first }}"
+
+    netbox_choice_sets:  >-
+      {{
+        netbox_custom_fields
+        | dict2items
+        | selectattr('value.choices', 'defined')
+        | items2dict
+      }}
+
+  block:
+  - name: Delete obsolete custom_fields
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ primary_ip4 }}/api/extras/custom-field-choice-sets/"
+      method: DELETE
+      headers:
+        Authorization: "Token {{ ansible_local.netbox.api_token }}"
+      body_format: json
+      body:
+        - id: "{{ choice_set_details.id }}"
+      status_code:
+        - 204
+    register: delete_custom_fields
+    changed_when: true
+    loop: "{{ (existing_choice_sets_names - netbox_choice_sets.keys()) | list }}"

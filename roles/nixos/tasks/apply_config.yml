@@ -1,0 +1,17 @@
+---
+- name: "Apply configuration on lxc {{ vmid }} (nixos-rebuild switch)"
+  delegate_to: "{{ delegate_to_guest_pve_instance }}"
+  shell:
+    executable: /bin/bash
+    cmd: |
+      pct exec {{ vmid }} sh <<-EOT
+      source /etc/set-environment
+      nixos-rebuild switch
+      EOT
+  register: apply_config
+  failed_when: false
+
+- debug:
+    var: apply_config.stderr_lines
+  failed_when: apply_config.rc != 0
+ 

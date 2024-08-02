@@ -2,7 +2,7 @@
 - hosts: "{{ target | default('all') }}"
   gather_facts: false
   serial: "{{ serial | default(false) | bool }}"
-  tasks:
+  pre_tasks:
     # Assertions
     - name: "Preventive assertions of generic_playbook"
       vars:
@@ -26,8 +26,10 @@
         - deploy_guest is defined
         - deploy_guest
 
+  tasks:
     - name: Gather Facts
       setup:
+      when: '"nixos" not in platforms'
 
     # Run
     - name: APPLY ROLES

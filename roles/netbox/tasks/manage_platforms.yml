@@ -1,0 +1,96 @@
+---
+- name: Get current platforms
+  become: false
+  local_action:
+    module: uri
+    validate_certs: false
+    url: "https://{{ primary_ip4 }}/api/dcim/platforms/"
+    method: GET
+    headers:
+      Authorization: "Token {{ ansible_local.netbox.api_token }}"
+    status_code:
+      - 200
+  register: get_platforms
+  changed_when: false
+
+- name: SYNC PLATFORMS
+  vars:
+    all_existing_platforms_details: "{{ get_platforms.json.results }}"
+    existing_platforms_names: "{{ all_existing_platforms_details | map(attribute='slug') }}"
+    platform_details: "{{ all_existing_platforms_details | selectattr('name', 'equalto', item) | first }}"
+
+    platforms_description: "Platform deployed by Ansible"
+  block:
+  - name: Create new platform entry
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ primary_ip4 }}/api/dcim/platforms/"
+      method: POST
+      headers:
+        Authorization: "Token {{ ansible_local.netbox.api_token }}"
+      body_format: json
+      body:
+        name: "{{ item }}"
+        slug: "{{ item }}"
+        description: "{{ platforms_description }}"
+      status_code:
+        - 201
+    register: create_platforms
+    changed_when: true
+    loop: "{{ (available_platforms.keys() - existing_platforms_names) | list }}"
+
+  - name: Delete obsolete platforms
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ primary_ip4 }}/api/dcim/platforms/"
+      method: DELETE
+      headers:
+        Authorization: "Token {{ ansible_local.netbox.api_token }}"
+      body_format: json
+      body:
+        - id: "{{ platform_details.id }}"
+      status_code:
+        - 204
+    register: delete_roles
+    changed_when: true
+    when:
+      - platform_details.virtualmachine_count == 0
+      - platform_details.device_count == 0
+    loop: "{{ (existing_platforms_names - available_platforms.keys()) | list }}"
+
+  - name: Update drifted platforms
+    become: false
+    local_action:
+      module: uri
+      validate_certs: false
+      url: "https://{{ primary_ip4 }}/api/dcim/platforms/"
+      method: PATCH
+      headers:
+        Authorization: "Token {{ ansible_local.netbox.api_token }}"
+      body_format: json
+      # body as json block since the id needs to be an int and cannot be passed as string (like it would be with a yaml block)
+      body: |
+        [
+          {
+            "id": {{ platform_details.id }},
+            "display": "{{ item }}",
+            "name": "{{ item }}",
+            "slug": "{{ item }}",
+            "description": "{{ platforms_description }}",
+          }
+        ]
+      status_code:
+        - 200
+    register: update_platforms
+    changed_when: true
+    when:
+      - item not in (available_platforms.keys() - existing_platforms_names)
+      - (platform_details.description != platforms_description or
+        platform_details.display != item or
+        platform_details.name != item or
+        platform_details.slug != item)
+    loop: "{{ available_platforms.keys() }}"

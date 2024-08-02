@@ -1,0 +1,14 @@
+---
+- name: "Role {{ role_name }}"    
+  when:
+    - only_role is undefined or only_role == role_name
+  block:
+
+  # deploy config
+  - include_tasks: deploy_config.yml
+
+  # apply config
+  # seemingly this doesn't work with the usage of the only_role parameter
+  - include_role:
+      name: "nixos"
+      tasks_from: apply_config
