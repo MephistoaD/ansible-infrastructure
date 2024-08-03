@@ -1,7 +1,7 @@
 - hosts: "{{ target }}"
   gather_facts: true
   vars:
-    netbox_instance: "nixos-test" # the inventory_hostname of the netbox
+    netbox_instance: "netbox-test" # the inventory_hostname of the netbox
     netbox_api_token: "{{ hostvars[netbox_instance].netbox_api_token }}"
 
     interface_types:
@@ -82,16 +82,16 @@
     vars:
       api_endpoint: /dcim/interfaces/
       key: device_interface
-      name: "{{ ansible_default_ipv4.interface }}"
+      name: "{{ inventory_hostname}}_{{ ansible_default_ipv4.interface }}"
       slug_field_name: name
-      module: "{{ hostvars[inventory_hostname]['ansible_' + name]['module'] if hostvars[inventory_hostname]['ansible_' + name]['module'] is defined else 'bridge' }}"
+      module: "{{ hostvars[inventory_hostname]['ansible_' + ansible_default_ipv4.interface]['module'] if hostvars[inventory_hostname]['ansible_' + ansible_default_ipv4.interface]['module'] is defined else 'bridge' }}"
       data:
         name: "{{ name }}"
         device: "{{ stored_objects.device }}"
         type: "{{ interface_types[module] }}"
         # optional:
-        mtu: "{{ hostvars[inventory_hostname]['ansible_' + name]['mtu'] }}"
-        mac_address: "{{ hostvars[inventory_hostname]['ansible_' + name]['macaddress'] }}"
+        mtu: "{{ hostvars[inventory_hostname]['ansible_' + ansible_default_ipv4.interface]['mtu'] }}"
+        mac_address: "{{ hostvars[inventory_hostname]['ansible_' + ansible_default_ipv4.interface]['macaddress'] }}"
 
   - name: "SYNC {{ key }} {{ name }}"
     include_tasks: tasks/sync_netbox_object.yml
@@ -103,7 +103,7 @@
       slug_field_name: address
       data:
         address: "{{ ansible_default_ipv4.address }}/{{ ansible_default_ipv4.prefix }}"
-        dns_name: "{{ ansible_fqdn }}"
+        #dns_name: "{{ ansible_fqdn }}" # deserved for custom dns names
         assigned_object_type: "dcim.interface"
         assigned_object_id: "{{ stored_objects.device_interface | int }}"
 
