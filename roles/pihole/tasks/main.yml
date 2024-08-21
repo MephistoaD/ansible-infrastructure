@@ -37,4 +37,3 @@
     debug:
       msg: "To change the pihole webpassword, run `pihole admin password`"
 
-# TODO: Write local dns records
