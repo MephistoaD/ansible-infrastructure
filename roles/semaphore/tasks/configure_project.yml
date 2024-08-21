@@ -155,6 +155,8 @@
 
 
 - name: "Configure Inventory"
+  vars:
+    inventory_path: "{{ semaphore_inventory_path }}/{{ project.name }}"
   block:
   - name: "Get list of inventories in project '{{ project.name }}'"
     changed_when: false
@@ -178,19 +180,19 @@
       method: POST
       headers:
         Authorization: "Bearer {{ admin_user.api_token }}"
-      # project_id must be integer
       body: >-
         {
-          "project_id": {{ project_id | int }},
           "name": "{{ inventory.name }}",
+          "project_id": {{ project_id }},
           "ssh_key_id": {{ keystore_id }},
-          "type": "file",
-          "inventory": "{{ inventory.path }}"
+          "type": "{{ inventory.type }}",
+          "inventory": "{{ inventory_path }}/{{ inventory.name }}.yml"
         }
       body_format: json
       status_code: 201
       timeout: 5
     register: semaphore_inventory_created
+    failed_when: semaphore_inventory_created.status != 201
     when:
       - inventory_absent
     loop_control:
@@ -198,6 +200,24 @@
       label: "{{ inventory.name }}"
     loop: "{{ project.inventories }}"
 
+  - debug:
+      var: semaphore_inventory_created #.results[1] #.invocation.module_args.body | from_json
+
+  - name: "Create inventory dir for project '{{ project.name }}' ({{ inventory_path }})"
+    ansible.builtin.file:
+      path: "{{ inventory_path }}"
+      state: directory
+      mode: '0755'
+
+  - name: Copy inventory files
+    ansible.builtin.copy:
+      src: "{{ inventory.path }}"
+      dest: "{{ inventory_path }}/{{ inventory.name }}.yml"
+      mode: '0644'
+    loop_control:
+      loop_var: "inventory"
+      label: "{{ inventory.name }}"
+    loop: "{{ project.inventories }}"
 
 - name: "Configure Views"
   block:
@@ -286,10 +306,10 @@
       api_token: "{{ admin_user.api_token }}"
       name: "{{ task_template.name }}"
       project: "{{ project.name }}"
-      playbook: "some"
-      inventory: "ignored"
-      repository: "data"
-      environment: "lol"
+      environment: "ignored"
+      inventory: "but"
+      playbook: "required"
+      repository: "fields"
       state: absent
     register: delete_task_templates
     loop_control:

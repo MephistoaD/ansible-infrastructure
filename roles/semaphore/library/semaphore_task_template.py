@@ -293,10 +293,14 @@ def run_module():
                         api_endpoint=api_endpoint,
                         api_token=api_token
                     )
+        task_template['app'] = "ansible"
     
         #print(json.dumps(task_template))
 
+    result['log'].append("After initial get block")
+
     if module.params['state'] == "present":
+        result['log'].append(f"Task template '{module.params['environment']}' already present")
         environment_id = get_with(
                         location=f"/project/{project_id}/environment", 
                         name=module.params['environment'],
@@ -319,6 +323,8 @@ def run_module():
                         api_token=api_token
                     )
 
+        result['log'].append(f"Fetched additional IDs.")
+
         target_task_template = {
                 "type": "",
                 "project_id": project_id,
@@ -327,6 +333,7 @@ def run_module():
                 "environment_id": environment_id,
                 "inventory_id": inventory_id,
                 "repository_id": repository_id,
+                "app": "ansible"
             }
         
         if module.params['description'] is not None:
@@ -343,6 +350,9 @@ def run_module():
                     )
         if module.params['vars'] is not None:
             target_task_template['survey_vars'] = module.params['vars']
+            for var in target_task_template['survey_vars']:
+                if 'values' not in var:
+                    var['values'] = None
 
         #print(json.dumps(target_task_template))
 
@@ -360,6 +370,8 @@ def run_module():
 
         # Update a task template
         elif not all(item in task_template.items() for item in target_task_template.items()):
+            for item in target_task_template.items():
+                result['log'].append(f"{item} -> {item in task_template.items()}")
             modify_task_template(
                 target_task_template=target_task_template,
                 current_task_template_id=task_template['id'],
@@ -369,8 +381,9 @@ def run_module():
             result['msg'] = f"Updated task template '{target_task_template['name']}'"
             result['changed'] = True
         
-    # Delete a task template
+    # Delete a task_template
     elif module.params['state'] == "absent" and task_template:
+        result['log'].append(f"Deleting Task template '{module.params['environment']}'")
         delete_task_template(
             existing_task_template=task_template,
             api_endpoint=api_endpoint,
@@ -386,6 +399,8 @@ def run_module():
                             api_token=api_token
                         )
     result['task_templates'] = task_template_current_state
+
+    result['log'].append("Finished successfully")
 
 
     # in the event of a successful module execution, you will want to
