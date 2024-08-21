@@ -1,8 +1,7 @@
 - hosts: "{{ target }}"
   gather_facts: true
   vars:
-    netbox_instance: "netbox-test" # the inventory_hostname of the netbox
-    netbox_api_token: "{{ hostvars[netbox_instance].netbox_api_token }}"
+    netbox_instance: "netbox" # the inventory_hostname of the netbox
 
     interface_types:
       e1000e: "1000Base-T"
@@ -13,6 +12,16 @@
     # vars:
 
   tasks:
+  - name: Gather token from NetBox
+    delegate_to: "{{ netbox_instance }}"
+    setup:
+      filter: ansible_local
+
+  - name: Store token
+    set_fact:
+      netbox_api_token: "{{ ansible_local.netbox.api_token }}"
+
+
   - name: "SYNC {{ key }} {{ site }}"
     include_tasks: tasks/sync_netbox_object.yml
     vars:
