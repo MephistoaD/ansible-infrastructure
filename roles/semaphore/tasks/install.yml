@@ -15,7 +15,7 @@
     name: "{{ item }}"
     state: present
   with_items:
-    - ansible
+    - ansible-core
     - python3-pip
   when:
     - not quick
@@ -29,15 +29,32 @@
   loop:
     - pytz
 
+
+- name: Get latest semaphore release
+  become: false
+  local_action:
+    module: github_latest_release_info
+    upstream_repo: "https://github.com/{{ semaphore_upstream_repo }}"
+  register: semaphore_latest_version
+
+- debug:
+    var: semaphore_latest_version
+
+- debug:
+    var: semaphore_latest_version.latest_release if upgrade or ansible_local.semaphore.current_version is not defined else ansible_local.semaphore.current_version
+
+- debug:
+    var: ansible_local.semaphore.current_version
+
 - name: Install semaphore package
   vars:
-    install_version: "{{ semaphore_latest_version if upgrade or ansible_local.semaphore.current_version is not defined else ansible_local.semaphore.current_version }}"
-    deb_path: "https://github.com/ansible-semaphore/semaphore/releases/download/v{{ install_version }}/semaphore_{{ install_version }}_linux_amd64.deb"
+    install_version: "{{ semaphore_latest_version.latest_release if upgrade or ansible_local.semaphore.current_version is not defined else ansible_local.semaphore.current_version }}"
+    deb_path: "https://github.com/{{ semaphore_upstream_repo }}/releases/download/v{{ install_version }}/semaphore_{{ install_version }}_linux_amd64.deb"
   apt:
     deb: "{{ item }}"
   register: semaphore_package_install
   loop_control:
-    label: "Install version {{ install_version }}, current version is {{ semaphore_latest_version }}"
+    label: "Install version {{ install_version }}, current version is {{ semaphore_latest_version.latest_release }}"
   loop:
     - "{{ deb_path }}"
   when:

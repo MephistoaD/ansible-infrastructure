@@ -10,7 +10,7 @@ def get_semaphore_version():
         output = subprocess.check_output(['semaphore', 'version'], stderr=subprocess.STDOUT, text=True)
 
         # Strip the 'v' from the version number
-        version = output.strip().strip('v')
+        version = output.strip().strip('v').split('-')[0]
     except subprocess.CalledProcessError as e:
         version = None
     
