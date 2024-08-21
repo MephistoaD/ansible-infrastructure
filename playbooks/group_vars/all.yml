@@ -32,6 +32,7 @@ debian_global_packages:
 
 debian_global_absent_packages:
   - unattended-upgrades
+  - ansible
 
 timezone: Europe/Berlin
 vmid: "{{ custom_fields.vmid }}"
