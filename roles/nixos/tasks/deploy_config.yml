@@ -38,7 +38,7 @@
   delegate_to: "{{ delegate_to_guest_pve_instance }}"
   ansible.builtin.copy:
     src: role_default.nix
-    dest: "{{ nixos_tempfolder }}/{{ item }}.nix"
+    dest: "{{ nixos_tempfolder }}/{{ item | regex_replace('^_', '') }}.nix"
     force: false
   register: stub_config
   loop: "{{ device_roles }}"
