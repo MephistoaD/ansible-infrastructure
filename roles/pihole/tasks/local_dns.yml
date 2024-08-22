@@ -12,9 +12,9 @@
   register: by_pool_list
 
 - nb_ipam_info:
-    api_endpoint: "{{ NB_API_ENDPOINT  }}"
-    token: "{{ NB_API_RO_TOKEN }}"
-    validate_certs: "{{ NB_VALIDATE_CERTS  }}"
+    api_endpoint: "https://{{ hostvars[pihole_netbox_instance_].ansible_host }}"
+    token: "{{ netbox_api_token }}"
+    validate_certs: false
   register: ipam_info
   run_once: true
 

@@ -8,3 +8,5 @@ pihole_block_lists:
 
 pihole_whitelisted_domains:
   - foo.bar
+
+pihole_netbox_instance: netbox # the name of the netbox machine in the inventory

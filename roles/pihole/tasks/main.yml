@@ -6,6 +6,7 @@
     # 3. role defined
     pihole_block_lists_: "{{ local_context_data[0].pihole_block_lists | default(hostvars[cluster_leader].local_context_data[0].pihole_block_lists | default(pihole_block_lists)) }}"
     pihole_whitelisted_domains_: "{{ local_context_data[0].pihole_whitelisted_domains | default(hostvars[cluster_leader].local_context_data[0].pihole_whitelisted_domains | default(pihole_whitelisted_domains)) }}"
+    pihole_netbox_instance_: "{{ local_context_data[0].pihole_netbox_instance | default(hostvars[cluster_leader].local_context_data[0].pihole_netbox_instance | default(pihole_netbox_instance)) }}"
   when:
     - only_role is undefined or only_role == "pihole"
   block:
@@ -30,6 +31,8 @@
     - include_tasks: tests.yml
 
     - include_tasks: prometheus_exporter.yml
+
+  - include_tasks: get_netbox_token.yml
 
   - include_tasks: local_dns.yml
 

@@ -1,8 +1,4 @@
 ---
-NB_API_ENDPOINT: "https://{{ hostvars['netbox'].primary_ip4 }}"
-NB_API_RO_TOKEN: "9ix22jo2AyNeVtVPGZUyhNIt2zpTfm3iZqd3vtzk"
-NB_VALIDATE_CERTS: False
-
 # file: group_vars/all
 debian_global_packages:
   # cpu / mem

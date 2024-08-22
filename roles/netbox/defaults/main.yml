@@ -38,6 +38,7 @@ netbox_custom_fields:
     required: true
     content_types:
       - "virtualization.virtualmachine"
+      - "dcim.device"
     description: "The resource pool in PVE"
     choices: "{{ pools }}"
     default: "testing"
