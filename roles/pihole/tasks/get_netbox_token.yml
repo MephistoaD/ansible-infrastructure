@@ -1,0 +1,11 @@
+---
+- name: Gather token from NetBox
+  delegate_to: "{{ pihole_netbox_instance_ }}"
+  setup:
+    filter: ansible_local
+
+- name: Store token
+  set_fact:
+    netbox_api_token: "{{ ansible_local.netbox.api_token }}"
+
+- setup:
