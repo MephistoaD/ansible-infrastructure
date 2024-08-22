@@ -17,9 +17,6 @@ class CreateGuest(Script):
         name = "Create Guest"
         description = "Create a VM or LXC Guest system"
         scheduling_enabled=False
-        fieldsets = (
-            ('Ressources', ('guest_cpu', 'guest_mem', 'guest_disk'))
-        )
 
     guest_name = StringVar(
         description="Name of the guest",
@@ -34,14 +31,14 @@ class CreateGuest(Script):
     guest_technology = ChoiceVar(
         description="LXC or VM",
         required=True,
-        choices=[(choice,choice) for choice in CustomField.objects.get_for_model(VirtualMachine).get(name='technology').choices],
-        default=("lxc","lxc")
+        choices=[choice for choice in CustomField.objects.get_for_model(VirtualMachine).get(name='technology').choices],
+        default=CustomField.objects.get_for_model(VirtualMachine).get(name='technology').default
     )
     guest_pool = ChoiceVar(
         description="Proxmox Pool of the guest",
         required=True,
-        choices=[(choice,choice) for choice in CustomField.objects.get_for_model(VirtualMachine).get(name='pool').choices],
-        default=("testing","testing")
+        choices=[choice for choice in CustomField.objects.get_for_model(VirtualMachine).get(name='pool').choices],
+        default=CustomField.objects.get_for_model(VirtualMachine).get(name='pool').default
     )
     guest_status = ChoiceVar(
         description="Status of the guest",
@@ -88,12 +85,12 @@ class CreateGuest(Script):
         required=True,
         default=1
     )
-    guest_tenant = ObjectVar(
-        description="Tenant of the VM",
-        required=True,
-        model=Tenant,
-        default=Tenant.objects.get(name='Marc')
-    )
+#    guest_tenant = ObjectVar(
+#        description="Tenant of the VM",
+    #    required=True,
+#        model=Tenant,
+    #    default=Tenant.objects.get(name='Me')
+#    )
     auto_deploy = BooleanVar(
         description="Sets 'Auto Deploy' and automatically deploys the guest",
         required=True,
@@ -104,7 +101,6 @@ class CreateGuest(Script):
     def run(self, data, commit):
         self.print_all(data)
         self.log_info(f"commit={commit}")
-
 
         vmid = data['guest_existing_vmid'] if data['guest_existing_vmid'] >= 100 else self.get_free_vmid()
         self.log_info(f"vmid={vmid}")
@@ -121,7 +117,7 @@ class CreateGuest(Script):
             vcpus=data['guest_cpu'],
             memory=data['guest_mem']*1024,
             disk=data['guest_disk'],
-            tenant=data['guest_tenant'],
+#            tenant=data['guest_tenant'],
             custom_field_data={
                 'pool': data['guest_pool'],
                 'technology': data['guest_technology'],
@@ -149,7 +145,7 @@ class CreateGuest(Script):
             address=f"192.168.2.{vmid}/24",
             dns_name="", # left empty for custom dns names
             assigned_object=interface,
-            tenant=data['guest_tenant'],
+#            tenant=data['guest_tenant'],
         )
         self.log_info(f"saving IPAddress {ip_address.address}...")
         ip_address.save()
@@ -171,7 +167,7 @@ class CreateGuest(Script):
         ip_address = IPAddress(
             address=address,
             vrf=vrf,
-            tenant=tenant,
+#            tenant=tenant,
             status=status_value,
             role=role_value,
             assigned_object=assigned_object,

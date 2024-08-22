@@ -11,3 +11,6 @@ venv
 
 # legacy vars
 inventory/netbox/host_vars
+
+# stuff not intended for publication
+*.secret*

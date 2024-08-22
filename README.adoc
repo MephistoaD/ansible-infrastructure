@@ -31,3 +31,8 @@
 
   ansible-playbook playbooks/generic-playbook.yml -e "target=semaphore"
   ansible-playbook playbooks/generic-playbook.yml -e "target=semaphore upgrade=true"
+
+
+## installed collections
+
+  ansible-galaxy collection install -r requirements.yml

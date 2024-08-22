@@ -8,12 +8,12 @@ semaphore_projects:
     repositories:
       - name: "ansible-infrastructure"
         url: git@github.com:MephistoaD/ansible-infrastructure.git
-        revision: master
+        revision: main
         ssh_key: "ansible-ssh-key"
     inventories:
       - name: "netbox"
-        type: "file"
-        path: "{{ inventory_file.replace(playbook_dir.replace('playbooks', ''), '') }}"
+        type: "file" # in fact "file" is the only supported option
+        path: "{{ inventory_file }}"
     views:
       - name: "setup"
         position: 0

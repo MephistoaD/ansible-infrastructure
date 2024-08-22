@@ -61,7 +61,7 @@ netbox_custom_fields:
     type: object
     object_type: "dcim.device"
     description: "Used to pin a vm to a virtualization node"
-    required: true
+    required: false
 
   # Ansible
   auto_deploy:

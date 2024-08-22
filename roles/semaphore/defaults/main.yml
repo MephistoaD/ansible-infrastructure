@@ -5,6 +5,8 @@ semaphore_upstream_repo: ansible-semaphore/semaphore
 semaphore_config_path: /etc/semaphore/config.json
 semaphore_max_parralel_tasks: 10
 
+semaphore_inventory_path: /opt/semaphore/inventories
+
 semaphore_users:
   - name: "Test User"
     login: "testuser"

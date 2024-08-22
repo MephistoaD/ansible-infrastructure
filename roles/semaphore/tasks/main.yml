@@ -6,10 +6,6 @@
   when:
     - only_role is undefined or only_role == role_name
   block:
-  - include_tasks: latest_version.yml
-    when:
-      - not quick
-
   - include_tasks: install.yml
     when:
       - not quick
