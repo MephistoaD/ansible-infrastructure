@@ -52,6 +52,9 @@ available_platforms:
     name: Debian 11 bullseye
     lxc_ostemplate: "local:vztmpl/debian-11-standard_11.7-1_amd64.tar.zst"
     vm_template_id: 400
+  nixos:
+    name: NixOS
+    lxc_ostemplate: "local:vztmpl/nixos-system-x86_64-linux.tar.xz"
 
 allowed_ssh_publickey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDH+korQqdw05vbzpu6JmNkPCAt5UMh8B8ZPgLifNzSBZtfrTAcAY5LfKUrjyFiZU55PLT4txb0HaAzXF8uIDuUSjWjQCNUcRD8U4NBPqXCKcuwz98FGiFCKFyAMcPOdyOAtyqSkhVafCj28naan7xat7A8NsUVOESIwexZyYjPRGp1iqrLRbZRyxdtLYILdR8hA8B6QHmXcWLEotEW24rw/94lrxdmREitssJPNEcwu1al3IlXzaUa5oWLi1KEmsaJsCVtrsp1UFrghLOWlHUdADfJi5eNzb4yXx90LWhTizFXJ+J3QSgOJzTh8m3MTTxHm0hWcdfB18+BCF7Z28niR4AGwKr/u2l9Gz7Nmm9Uy+S91dA2v1D/gMQOCnKqHGnZCNLm4SO9WdinSE8xvvrnq3RtHUNTgHcrtHWda/MujsZj7sZz0xX9x662RJcdVIdu7xsE7iLADaHuz7kV7oYc1MTKWBNHjL9zyiUjnVB+1M6qSN/eYMEpW9hvi9lBd40= luna@earth"
 
