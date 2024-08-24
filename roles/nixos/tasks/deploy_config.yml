@@ -24,7 +24,7 @@
         pct pull {{ vmid }} /etc/nixos/{{ item }}.nix {{ nixos_tempfolder }}/{{ item }}.nix
       fi
   changed_when: false
-  loop: "{{ nixos_config_files + device_roles }}"
+  loop: "{{ nixos_config_files + current_roles }}"
 
 - name: "Template configuration"
   delegate_to: "{{ delegate_to_guest_pve_instance }}"
@@ -34,19 +34,19 @@
   register: template_configuration
   loop: "{{ nixos_config_files }}"
 
-- name: "Initially deploy stub config for {{ device_roles }}"
+- name: "Initially deploy stub config for {{ current_roles }}"
   delegate_to: "{{ delegate_to_guest_pve_instance }}"
   ansible.builtin.copy:
     src: role_default.nix
-    dest: "{{ nixos_tempfolder }}/{{ item | regex_replace('^_', '') }}.nix"
+    dest: "{{ nixos_tempfolder }}/{{ item }}.nix"
     force: false
   register: stub_config
-  loop: "{{ device_roles }}"
+  loop: "{{ current_roles }}"
 
 - name: "Push configuration to lxc {{ vmid }}"
   delegate_to: "{{ delegate_to_guest_pve_instance }}"
   vars:
-    files: "{{ nixos_config_files + device_roles if stub_config.changed else nixos_config_files }}"
+    files: "{{ nixos_config_files + current_roles if stub_config.changed else nixos_config_files }}"
   shell:
     executable: /bin/bash
     cmd: |
