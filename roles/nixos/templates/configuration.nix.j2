@@ -3,8 +3,8 @@
 {
   imports = [
     (modulesPath + "/virtualisation/proxmox-lxc.nix")
-{% for role in device_roles %}
-    ./{{ role | regex_replace('^_', '') }}.nix
+{% for role in current_roles %}
+    ./{{ role }}.nix
 {% endfor %}
   ];
   proxmoxLXC = {

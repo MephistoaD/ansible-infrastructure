@@ -35,9 +35,11 @@
     - name: APPLY ROLES
       block:
       - name: Configure hosts
+        vars:
+          current_roles: "{{ include_roles | default(device_roles) | map('regex_replace', '^_', '') | list }}"
         include_role:
-          name: "{{ current_role | regex_replace('^_', '') }}"
-        loop: "{{ include_roles | default(device_roles) }}"
+          name: "{{ current_role }}"
+        loop: "{{ current_roles }}"
         loop_control:
           loop_var: current_role
 
