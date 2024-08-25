@@ -16,7 +16,7 @@
 - name: SYNC PLATFORMS
   vars:
     all_existing_platforms_details: "{{ get_platforms.json.results }}"
-    existing_platforms_names: "{{ all_existing_platforms_details | map(attribute='slug') }}"
+    existing_plattform_slugs: "{{ all_existing_platforms_details | map(attribute='slug') }}"
     platform_details: "{{ all_existing_platforms_details | selectattr('name', 'equalto', item) | first }}"
 
     platforms_description: "Platform deployed by Ansible"
@@ -32,14 +32,14 @@
         Authorization: "Token {{ ansible_local.netbox.api_token }}"
       body_format: json
       body:
-        name: "{{ item }}"
+        name: "{{ available_platforms[item].name }}"
         slug: "{{ item }}"
         description: "{{ platforms_description }}"
       status_code:
         - 201
     register: create_platforms
     changed_when: true
-    loop: "{{ (available_platforms.keys() - existing_platforms_names) | list }}"
+    loop: "{{ (available_platforms.keys() - existing_plattform_slugs) | list }}"
 
   - name: Delete obsolete platforms
     become: false
@@ -60,7 +60,7 @@
     when:
       - platform_details.virtualmachine_count == 0
       - platform_details.device_count == 0
-    loop: "{{ (existing_platforms_names - available_platforms.keys()) | list }}"
+    loop: "{{ (existing_plattform_slugs - available_platforms.keys()) | list }}"
 
   - name: Update drifted platforms
     become: false
@@ -77,8 +77,8 @@
         [
           {
             "id": {{ platform_details.id }},
-            "display": "{{ item }}",
-            "name": "{{ item }}",
+            "display": "{{ available_platforms[item].name }}",
+            "name": "{{ available_platforms[item].name }}",
             "slug": "{{ item }}",
             "description": "{{ platforms_description }}",
           }
@@ -88,9 +88,9 @@
     register: update_platforms
     changed_when: true
     when:
-      - item not in (available_platforms.keys() - existing_platforms_names)
+      - item not in existing_plattform_slugs
       - (platform_details.description != platforms_description or
-        platform_details.display != item or
-        platform_details.name != item or
+        platform_details.display != available_platforms[item].name or
+        platform_details.name != available_platforms[item].name or
         platform_details.slug != item)
     loop: "{{ available_platforms.keys() }}"
