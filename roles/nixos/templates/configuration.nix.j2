@@ -30,14 +30,21 @@
   ];
 
   services.prometheus.exporters.node = {
-      enable = true;
-      enabledCollectors = [ 
-        "systemd"
-      ];
-      disabledCollectors = [
-        "zfs"
-      ];
-    };
+    enable = true;
+    enabledCollectors = [ 
+      "systemd"
+    ];
+    disabledCollectors = [
+      "zfs"
+    ];
+  };
+
+  networking.firewall = {
+    enable = true;
+    allowedTCPPorts = [ 
+      9100
+    ];
+  };
 
   # enable flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
