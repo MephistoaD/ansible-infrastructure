@@ -24,7 +24,7 @@
         - is_virtual
         - custom_fields.technology is defined
         - deploy_guest is defined
-        - deploy_guest
+        - deploy_guest or deploy_guest == "only"
 
   tasks:
     - name: Gather Facts
