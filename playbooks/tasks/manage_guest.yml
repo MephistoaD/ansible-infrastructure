@@ -176,7 +176,7 @@
 
     - name: Change guest
       vars:
-        current_guest_cpu: "{{ current_guest_config['maxcpu'] if technology == 'vm' else current_guest_config['cores'] }}"
+        current_guest_cpu: "{{ current_guest_config['maxcpu'] }}"
         new_onboot: '{{ status.value == "active" }}'
         iterations:
           # before start
