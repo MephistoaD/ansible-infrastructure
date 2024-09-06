@@ -17,6 +17,5 @@
   loop_control:
     loop_var: plugin
   loop:
-    - uptime
     - sessions
     - upgrade

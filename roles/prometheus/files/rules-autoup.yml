@@ -48,14 +48,15 @@ groups:
 
 - name: Inhibitors
   rules:
-  - alert: StartedRecentlyInhibitor(48h)
+  - alert: UpgradedRecentlyInhibitor(24h)
     expr: |
-      (node_exporter_system_uptime - 48 < 0)
+      (24 - ((time() - last_system_upgrade) / 60 / 60) > 0)
     annotations:
-      title: "System started recently"
-      count: "{{ $value }}"
+      title: "System was upgraded recently"
+      count: "{{ printf \"%.4f\" $value }}h cooldown"
     labels:
       autoup: inhibitor
+      origin: "System was upgraded within the last 24h"
 
   - alert: OpenUserSessionsInhibitor
     expr: |

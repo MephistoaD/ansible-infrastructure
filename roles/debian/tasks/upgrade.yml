@@ -47,3 +47,8 @@
 - name: Autoremove packages on node
   apt:
     autoremove: yes
+
+- name: Export last_system_upgrade via prometheus
+  template:
+    src: var_lib_prometheus_node-exporter_last_system_upgrade.prom.j2
+    dest: /var/lib/prometheus/node-exporter/last_system_upgrade.prom
