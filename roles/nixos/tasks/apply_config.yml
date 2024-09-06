@@ -6,7 +6,8 @@
     cmd: |
       pct exec {{ vmid }} sh <<-EOT
       source /etc/set-environment
-      nixos-rebuild switch
+      nixos-rebuild switch {% if upgrade %}--recreate-lock-file{% endif %}
+      
       EOT
   register: apply_config
   failed_when: false
@@ -14,4 +15,3 @@
 - debug:
     var: apply_config.stderr_lines
   failed_when: apply_config.rc != 0
- 

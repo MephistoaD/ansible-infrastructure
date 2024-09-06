@@ -25,6 +25,14 @@
   - include_tasks: apply_initial_config.yml
     when: template_configuration.changed or stub_config.changed
 
+  - name: Set needed pve facts
+    set_fact:
+      ansible_local:
+        pve: "{{ ansible_local.pve }}"
+
+  - name: Gather facts
+    setup:
+
   - include_tasks: files_and_dirs.yml
 
   # generic preparations for other roles
