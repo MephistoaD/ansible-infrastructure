@@ -1,6 +1,15 @@
 ---
 
-- name: Ensure /etc/ansible/facts.d/ directory exists (local facts)
+- name: Ensure needed directories exist
   ansible.builtin.file:
-    path: /etc/ansible/facts.d/
+    path: "{{ item }}"
     state: directory
+  loop:
+    - /etc/ansible/facts.d/
+    - /var/lib/prometheus/node-exporter/
+
+- name: Export last_system_upgrade via prometheus
+  template:
+    src: var_lib_prometheus_node-exporter_last_system_upgrade.prom.j2
+    dest: /var/lib/prometheus/node-exporter/last_system_upgrade.prom
+  when: upgrade

@@ -37,6 +37,7 @@
     disabledCollectors = [
       "zfs"
     ];
+    extraFlags = [ "--collector.textfile.directory=/var/lib/prometheus/node-exporter/" ];
   };
 
   networking.firewall = {
@@ -48,11 +49,6 @@
 
   # enable flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
-
-  #system.stateVersion = "24.05";
-
-  # Auto update
-  system.autoUpgrade.enable = true;
 
   # Auto delete old generations
   nix.gc.automatic = true;
