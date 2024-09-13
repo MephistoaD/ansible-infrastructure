@@ -48,15 +48,15 @@ groups:
 
 - name: Inhibitors
   rules:
-  - alert: UpgradedRecentlyInhibitor(24h)
+  - alert: UpgradedRecentlyInhibitor
     expr: |
-      (24 - ((time() - last_system_upgrade) / 60 / 60) > 0)
+      (48 - ((time() - last_system_upgrade) / 60 / 60) > 0)
     annotations:
       title: "System was upgraded recently"
       count: "{{ printf \"%.4f\" $value }}h cooldown"
     labels:
       autoup: inhibitor
-      origin: "System was upgraded within the last 24h"
+      origin: "System was upgraded within the last 48h"
 
   - alert: OpenUserSessionsInhibitor
     expr: |
