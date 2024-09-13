@@ -47,6 +47,9 @@
     ];
   };
 
+  # Add /usr/local/bin to the system-wide PATH
+  environment.variables.PATH = "${pkgs.lib.makeBinPath [ pkgs.coreutils ]}:/usr/local/bin";
+
   # enable flakes
   nix.settings.experimental-features = [ "nix-command" "flakes" ];
 
