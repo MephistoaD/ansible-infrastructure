@@ -1,5 +1,5 @@
 - hosts: "{{ target }}"
-  gather_facts: true
+  gather_facts: false
   vars:
     netbox_instance: "netbox" # the inventory_hostname of the netbox
 
@@ -20,6 +20,8 @@
   - name: Store token
     set_fact:
       netbox_api_token: "{{ ansible_local.netbox.api_token }}"
+  
+  - setup:
 
 
   - name: "SYNC {{ key }} {{ site }}"
