@@ -95,12 +95,3 @@ scrape_configs:
     {% for item in node_exporter_lxc %}
         - {{ item }}
     {% endfor %}
-
-{% if '_netbox' in groups %}
-  - job_name: 'netbox_exporter' # might not work yet
-    static_configs:
-      - targets:
-{% for host in groups['_netbox'] %}
-        - {{ host }}
-{% endfor %}
-{% endif %}
