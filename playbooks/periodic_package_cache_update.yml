@@ -6,9 +6,15 @@
   ignore_unreachable: true
 
   tasks:
-    - name: Run apt update
-      apt:
-        update_cache: yes
-      when: 
-        - ansible_pkg_mgr is defined
+    - include_role:
+        name: "debian"
+        tasks_from: update
+      when:
         - ansible_pkg_mgr == "apt"
+
+    - include_role:
+        name: "nixos"
+        tasks_from: update
+      when:
+        - ansible_pkg_mgr == "unknown"
+        - ansible_os_family == "NixOS"

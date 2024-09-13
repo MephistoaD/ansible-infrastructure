@@ -21,9 +21,18 @@ groups:
   rules:
   - alert: PendingAptUpgradeTrigger
     expr: |
-      (upgradable_package > 0)
+      (upgradable_package > 0) and (apt_upgrades_pending > 0)
     annotations:
       title: "Pending upgrade"
+      count: "{{ $value }}"
+    labels:
+      autoup: trigger
+
+  - alert: PendingFlakeUpgradeTrigger
+    expr: |
+      (nixos_pending_flake_upgrade > 0)
+    annotations:
+      title: "Pending flake upgrade"
       count: "{{ $value }}"
     labels:
       autoup: trigger
@@ -48,15 +57,15 @@ groups:
 
 - name: Inhibitors
   rules:
-  - alert: UpgradedRecentlyInhibitor(24h)
+  - alert: UpgradedRecentlyInhibitor
     expr: |
-      (24 - ((time() - last_system_upgrade) / 60 / 60) > 0)
+      (48 - ((time() - last_system_upgrade) / 60 / 60) > 0)
     annotations:
       title: "System was upgraded recently"
       count: "{{ printf \"%.4f\" $value }}h cooldown"
     labels:
       autoup: inhibitor
-      origin: "System was upgraded within the last 24h"
+      origin: "System was upgraded within the last 48h"
 
   - alert: OpenUserSessionsInhibitor
     expr: |

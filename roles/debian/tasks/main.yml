@@ -3,11 +3,7 @@
   when:
     - only_role is undefined or only_role == "debian"
   block:
-  - name: Update all repos and cache
-    apt:
-      update_cache: yes
-      force_apt_get: yes
-    changed_when: false # does not count as change
+  - include_tasks: update.yml
 
   # INCLUDES
   - name: Run upgrades

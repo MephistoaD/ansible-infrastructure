@@ -12,12 +12,15 @@
     when: not quick
 
 
-  # seemingly this doesn't work with the usage of the only_role parameter
-  - include_role:
-      name: "nixos"
-      tasks_from: apply_config
+# seemingly this doesn't work with the usage of the only_role parameter
+- include_role:
+    name: "nixos"
+    tasks_from: apply_config
 
-
+- name: "Role {{ role_name }}"    
+  when:
+    - only_role is undefined or only_role == role_name
+  block:
   - name: Gather Facts
     setup:
 

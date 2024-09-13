@@ -1,0 +1,6 @@
+---
+- name: Update all repos and cache
+  apt:
+    update_cache: yes
+    force_apt_get: yes
+  changed_when: false # does not count as change

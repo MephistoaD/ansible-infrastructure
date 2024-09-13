@@ -20,10 +20,20 @@
       - { check: "{{ 'nixos' in platforms }}", msg: "The platform needs to be NixOS" }
 
   # Tasks
+  - name: Set needed pve facts
+    set_fact:
+      ansible_local:
+        pve: "{{ ansible_local.pve }}"
+
   - include_tasks: deploy_config.yml
 
   - include_tasks: apply_initial_config.yml
-    when: template_configuration.changed or stub_config.changed
+    when: 
+      - (template_configuration.changed or 
+        stub_config.changed)
+
+  - name: Gather facts
+    setup:
 
   - name: Set needed pve facts
     set_fact:
@@ -35,8 +45,18 @@
 
   - include_tasks: files_and_dirs.yml
 
+  - name: Prepare update of flake.lock
+    include_tasks: update.yml
+
+  - include_tasks: upgrade.yml
+    when: upgrade
+
+  - name: Apply prepared upgrades
+    include_tasks: apply_config.yml
+    when:
+      - upgrade
+      - current_role == role_name
+
   # generic preparations for other roles
   - include_tasks: provide_ssl_cert.yml
     when: nixos_provide_ssl_cert
-
-  # Tests
