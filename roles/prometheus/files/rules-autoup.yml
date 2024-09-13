@@ -21,7 +21,7 @@ groups:
   rules:
   - alert: PendingAptUpgradeTrigger
     expr: |
-      (upgradable_package > 0)
+      (upgradable_package > 0) and (apt_upgrades_pending > 0)
     annotations:
       title: "Pending upgrade"
       count: "{{ $value }}"
