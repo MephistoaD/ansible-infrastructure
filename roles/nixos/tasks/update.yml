@@ -1,0 +1,13 @@
+---
+- debug:
+    msg: Updating lock file...
+
+- name: Update temporary flake.lock
+  shell:
+    cmd: "{{ ansible_python.executable }} /usr/local/bin/export_flake_update"
+  register: upgrade_flake_lock
+  failed_when: false
+
+- debug:
+    var: upgrade_flake_lock.stdout | from_json
+  failed_when: upgrade_flake_lock.rc != 0

@@ -7,9 +7,11 @@
   loop:
     - /etc/ansible/facts.d/
     - /var/lib/prometheus/node-exporter/
+    - /usr/local/bin/
 
-- name: Export last_system_upgrade via prometheus
-  template:
-    src: var_lib_prometheus_node-exporter_last_system_upgrade.prom.j2
-    dest: /var/lib/prometheus/node-exporter/last_system_upgrade.prom
-  when: upgrade
+- name: Deploy flake_update script
+  copy:
+    src: usr_local_bin_export_flake_update.py
+    dest: /usr/local/bin/export_flake_update
+    mode: 0744
+

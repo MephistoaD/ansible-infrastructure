@@ -11,3 +11,10 @@
         tasks_from: update
       when:
         - ansible_pkg_mgr == "apt"
+
+    - include_role:
+        name: "nixos"
+        tasks_from: update
+      when:
+        - ansible_pkg_mgr == "unknown"
+        - ansible_os_family == "NixOS"
