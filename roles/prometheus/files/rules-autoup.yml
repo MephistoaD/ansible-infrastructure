@@ -28,6 +28,15 @@ groups:
     labels:
       autoup: trigger
 
+  - alert: PendingFlakeUpgradeTrigger
+    expr: |
+      (nixos_pending_flake_upgrade > 0)
+    annotations:
+      title: "Pending flake upgrade"
+      count: "{{ $value }}"
+    labels:
+      autoup: trigger
+
   - alert: PendingRebootTrigger
     expr: |
       (node_reboot_required > 0)
