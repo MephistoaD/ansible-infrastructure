@@ -1,0 +1,37 @@
+---
+- debug:
+    msg: "upgrade {{ role_name }}"
+
+- name: Check if there is sufficient disk space
+  block:
+  - name: Check available disk space on mount points
+    shell: df --output=avail -B1 --exclude-type=devtmpfs --exclude-type=tmpfs | tail -n +2
+    register: available_disk_spaces
+    changed_when: false
+
+  - debug:
+      var: available_disk_spaces.stdout_lines
+
+  - name: Check disk sizes
+    set_fact:
+      sufficent_disk_space: "{{ available_disk_spaces.stdout_lines | map('int') | select('>=', 1e9) | list | length == available_disk_spaces.stdout_lines | list | length }}"
+
+  - name: Handle insufficient disk space
+    fail:
+      msg: "Insufficient disk space. At least 1GB of free space is required on all mountpoints."
+    when: not sufficent_disk_space
+
+- name: Move /etc/nixos/flake.lock.new to /etc/nixos/flake.lock if it exists
+  copy:
+    src: /etc/nixos/flake.lock.new
+    dest: /etc/nixos/flake.lock
+    remote_src: true
+
+- name: Export last_system_upgrade via prometheus
+  template:
+    src: var_lib_prometheus_node-exporter_last_system_upgrade.prom.j2
+    dest: /var/lib/prometheus/node-exporter/last_system_upgrade.prom
+
+
+- name: Update prometheus export
+  include_tasks: update.yml
