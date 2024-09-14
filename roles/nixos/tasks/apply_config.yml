@@ -11,6 +11,7 @@
       EOT
   register: apply_config
   failed_when: false
+  changed_when: apply_config.stderr_lines | length > 5
 
 - debug:
     var: apply_config.stderr_lines

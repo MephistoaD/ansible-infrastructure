@@ -4,6 +4,12 @@
   setup:
     filter: ansible_local
 
+- name: Set needed pve facts
+  set_fact:
+    ansible_local:
+      pve: "{{ ansible_local.pve }}"
+
+
 - name: "Role {{ role_name }}"
   when:
     - only_role is undefined or only_role == role_name
@@ -20,11 +26,6 @@
       - { check: "{{ 'nixos' in platforms }}", msg: "The platform needs to be NixOS" }
 
   # Tasks
-  - name: Set needed pve facts
-    set_fact:
-      ansible_local:
-        pve: "{{ ansible_local.pve }}"
-
   - include_tasks: deploy_config.yml
 
   - include_tasks: apply_initial_config.yml
@@ -40,13 +41,24 @@
       ansible_local:
         pve: "{{ ansible_local.pve }}"
 
-  - name: Gather facts
-    setup:
 
+- name: Gather facts
+  setup:
+
+- include_role:
+    name: "baseline"
+
+
+- name: "Role {{ role_name }}"
+  when:
+    - only_role is undefined or only_role == role_name
+  block:
   - include_tasks: files_and_dirs.yml
 
   - name: Prepare update of flake.lock
     include_tasks: update.yml
+    when:
+      - not quick
 
   - include_tasks: upgrade.yml
     when: upgrade

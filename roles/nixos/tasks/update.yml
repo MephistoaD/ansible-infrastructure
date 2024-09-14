@@ -7,6 +7,7 @@
     cmd: "{{ ansible_python.executable }} /usr/local/bin/export_flake_update"
   register: upgrade_flake_lock
   failed_when: false
+  changed_when: false
 
 - debug:
     var: upgrade_flake_lock.stdout | from_json
