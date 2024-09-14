@@ -1,0 +1,7 @@
+---
+role_name: baseline
+
+
+install_autoup_local_locking: true
+
+timezone: Europe/Berlin
