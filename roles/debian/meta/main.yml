@@ -1,3 +1,6 @@
 ---
 galaxy_info:
   role_name: debian
+
+dependencies:
+  - role: baseline

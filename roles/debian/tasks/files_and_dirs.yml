@@ -1,4 +1,9 @@
 ---
+- name: Ensure /etc/cron.d/popularity-contest is absent
+  file:
+    path: /etc/cron.d/popularity-contest
+    state: absent
+
 - name: Create bashrc
   template:
     src: bashrc.j2
@@ -6,24 +11,3 @@
   vars:
     color_prompt: "{{ color_codes[shell_color].prompt }}"  # get the corresponding color code from the map
     color_tilde: "{{ color_codes[color_codes[shell_color].tilde].prompt }}"
-
-
-- name: Ensure /etc/cron.d/popularity-contest is absent
-  file:
-    path: /etc/cron.d/popularity-contest
-    state: absent
-
-- name: Ensure /etc/ansible/facts.d/ directory exists (local facts)
-  ansible.builtin.file:
-    path: /etc/ansible/facts.d/
-    state: directory
-
-- name: "Modify hostname of non-containerized systems ({{ ansible_hostname }} -> {{ inventory_hostname }})"
-  shell:
-    executable: /usr/bin/bash
-    cmd: |
-      hostnamectl set-hostname {{ inventory_hostname }}
-  notify: Reboot vm
-  when:
-    - (not is_virtual) or custom_fields.technology == "vm"
-    - ansible_hostname != inventory_hostname
