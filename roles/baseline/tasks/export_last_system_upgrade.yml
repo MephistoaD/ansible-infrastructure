@@ -1,0 +1,7 @@
+# This export is meant to happen AFTER a successful OS upgrade, hence it's not referred to in the main.yml
+
+---
+- name: Export last_system_upgrade via prometheus
+  template:
+    src: var_lib_prometheus_node-exporter_last_system_upgrade.prom.j2
+    dest: /var/lib/prometheus/node-exporter/last_system_upgrade.prom

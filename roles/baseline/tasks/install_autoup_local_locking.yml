@@ -1,0 +1,8 @@
+---
+- name: Place autoup binary in /usr/locl/bin
+  copy:
+    src: usr_local_bin_autoup.py
+    dest: /usr/local/bin/autoup
+    owner: root
+    group: root
+    mode: 0755
