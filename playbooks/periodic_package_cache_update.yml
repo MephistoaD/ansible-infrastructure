@@ -4,6 +4,8 @@
   gather_facts: true
   serial: "{{ serial | default(false) | bool }}"
   ignore_unreachable: true
+  vars:
+    only_role: update # prevent roles like baseline from being included indirectly
 
   tasks:
     - include_role:
