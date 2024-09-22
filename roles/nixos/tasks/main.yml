@@ -45,9 +45,6 @@
 - name: Gather facts
   setup:
 
-- include_role:
-    name: "baseline"
-
 
 - name: "Role {{ role_name }}"
   when:
@@ -72,3 +69,7 @@
   # generic preparations for other roles
   - include_tasks: provide_ssl_cert.yml
     when: nixos_provide_ssl_cert
+
+
+- include_role:
+    name: "baseline"
