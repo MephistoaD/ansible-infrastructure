@@ -6,8 +6,7 @@
 
 - name: Set needed pve facts
   set_fact:
-    ansible_local:
-      pve: "{{ ansible_local.pve }}"
+    ansible_local_pve: "{{ ansible_local.pve }}"
 
 
 - name: "Role {{ role_name }}"
@@ -32,14 +31,6 @@
     when: 
       - (template_configuration.changed or 
         stub_config.changed)
-
-  - name: Gather facts
-    setup:
-
-  - name: Set needed pve facts
-    set_fact:
-      ansible_local:
-        pve: "{{ ansible_local.pve }}"
 
 
 - name: Gather facts
