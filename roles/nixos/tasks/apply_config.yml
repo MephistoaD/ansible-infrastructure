@@ -1,5 +1,5 @@
 ---
-- name: "Apply configuration on lxc {{ vmid }} (nixos-rebuild switch)"
+- name: "Apply configuration (nixos-rebuild switch)"
   delegate_to: "{{ delegate_to_guest_pve_instance }}"
   shell:
     executable: /bin/bash
@@ -14,5 +14,23 @@
   changed_when: apply_config.stderr_lines | length > 5
 
 - debug:
-    var: apply_config.stderr_lines
+    var: apply_config.stderr_lines + apply_config.stdout_lines
+  failed_when: apply_config.rc != 0
+
+- name: "Garbage collect old packages (nix-collect-garbage --delete-old)"
+  delegate_to: "{{ delegate_to_guest_pve_instance }}"
+  shell:
+    executable: /bin/bash
+    cmd: |
+      pct exec {{ vmid }} sh <<-EOT
+      source /etc/set-environment
+      nix-collect-garbage --delete-old
+      
+      EOT
+  register: garbage_collect
+  failed_when: false
+  changed_when: apply_config.stderr_lines | length > 5
+
+- debug:
+    var: garbage_collect.stderr_lines + garbage_collect.stdout_lines
   failed_when: apply_config.rc != 0
