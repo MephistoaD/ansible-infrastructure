@@ -6,8 +6,9 @@
     cmd: |
       pct exec {{ vmid }} sh <<-EOT
       source /etc/set-environment
-      nixos-rebuild switch
-      
+      nixos-rebuild switch \
+        {% for override in nixos_override | default([]) %}--override-input {{ override.input_path }} {{ override.flake_url }}{% endfor %}
+
       EOT
   register: apply_config
   failed_when: false

@@ -4,7 +4,7 @@
 
 - name: Update temporary flake.lock
   shell:
-    cmd: "{{ ansible_python.executable }} /usr/local/bin/export_flake_update"
+    cmd: "{{ ansible_python.executable }} /usr/local/bin/export_flake_update --revision {{ available_platforms[platforms[0]].branch }}"
   register: upgrade_flake_lock
   failed_when: false
   changed_when: false

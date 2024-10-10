@@ -4,154 +4,190 @@ import subprocess
 import json
 import http.client
 import urllib.parse
+import argparse
+import os
 
-# Static final variables
-ORIG_LOCKFILE = "/etc/nixos/flake.lock"
-TEMP_LOCKFILE = "/etc/nixos/flake.lock.new"
-GITHUB_API_HOST = "api.github.com"
-OUTPUT_FILE = "/var/lib/prometheus/node-exporter/pending_flake_upgrades.prom"
-SEVERITY_FACTOR = 0.01
-
-def run_command(command, cwd=None):
+class CommandRunner:
     """
-    Runs a shell command in the specified working directory (cwd).
+    Handles running shell commands.
     """
-    try:
-        result = subprocess.run(command, stderr=subprocess.PIPE, check=True, cwd=cwd)
-        return result
-    except subprocess.CalledProcessError as e:
-        print(f"Error running command: {e.stderr.decode('utf-8')}")
-        exit(1)
+    def __init__(self):
+        pass
 
-def load_json_file(file_path):
+    def run(self, command, cwd=None):
+        """
+        Runs a shell command in the specified working directory.
+        Returns the result of the command.
+        """
+        try:
+            result = subprocess.run(command, stderr=subprocess.PIPE, stdout=subprocess.PIPE, check=True, cwd=cwd)
+            return result.stdout.decode('utf-8').strip()
+        except subprocess.CalledProcessError as e:
+            print(f"Command failed with error:\n{e.stderr.decode('utf-8')}")
+            exit(1)
+
+class JSONLoader:
     """
-    Loads the contents of a JSON file into a Python dictionary.
+    Handles loading and processing JSON files.
     """
-    try:
-        with open(file_path, 'r') as f:
-            return json.load(f)
-    except Exception as e:
-        print(f"Error loading JSON file {file_path}: {e}")
-        exit(1)
+    @staticmethod
+    def load(file_path):
+        try:
+            with open(file_path, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error loading JSON file {file_path}: {e}")
+            exit(1)
 
-def update_flake_lock():
+class FlakeUpdater:
     """
-    Updates the flake.lock file by running the update command.
+    Handles updating the flake.lock file.
     """
-    flake_update_command = [
-        "nix", "flake", "update",
-        "--override-input", "nixpkgs", "github:NixOS/nixpkgs",
-        "--output-lock-file", TEMP_LOCKFILE
-    ]
-    run_command(flake_update_command, cwd="/etc/nixos/")
+    def __init__(self, command_runner, revision, temp_lockfile):
+        self.command_runner = command_runner
+        self.revision = revision
+        self.temp_lockfile = temp_lockfile
 
-def get_differences_of_lockfiles(current_lockfile, new_lockfile):
+    def update(self):
+        command = [
+            "nix", "flake", "update",
+            "--override-input", "nixpkgs", f"github:NixOS/nixpkgs/{self.revision}",
+            "--output-lock-file", self.temp_lockfile
+        ]
+        self.command_runner.run(command, cwd="/etc/nixos/")
+
+class LockfileComparator:
     """
-    Loads both lockfiles and returns a list of inputs containing the differences.
+    Compares two flake lock files and returns the differences.
     """
-    current_data = load_json_file(current_lockfile)
-    new_data = load_json_file(new_lockfile)
+    def __init__(self, json_loader):
+        self.json_loader = json_loader
 
-    differences = []
+    def get_differences(self, current_lockfile, new_lockfile):
+        current_data = self.json_loader.load(current_lockfile)
+        new_data = self.json_loader.load(new_lockfile)
 
-    # Iterate over nodes in the current lockfile
-    for node_name, node_data in current_data.get("nodes", {}).items():
-        if node_name == "root":
-            continue  # Skip the root node
+        differences = []
 
-        # Check if the node is present in both lockfiles
-        new_node_data = new_data.get("nodes", {}).get(node_name)
-        if not new_node_data:
-            continue
+        for node_name, node_data in current_data.get("nodes", {}).items():
+            if node_name == "root":
+                continue  # Skip the root node
 
-        # Get details for comparison
-        current_locked = node_data.get("locked", {})
-        new_locked = new_node_data.get("locked", {})
+            new_node_data = new_data.get("nodes", {}).get(node_name)
+            if not new_node_data:
+                continue
 
-        # Compare the revisions (or any other relevant fields)
-        rev_current = current_locked.get("rev")
-        rev_new = new_locked.get("rev")
+            current_locked = node_data.get("locked", {})
+            new_locked = new_node_data.get("locked", {})
 
-        if rev_current != rev_new:
-            difference = {
-                "input": f"{node_name}",
-                "type": current_locked.get("type", "unknown"),
-                "owner": current_locked.get("owner", "unknown"),
-                "repo": current_locked.get("repo", "unknown"),
-                "rev_current": rev_current,
-                "rev_new": rev_new,
-                "commit_count": 0  # Initialize with 0; will be updated later
-            }
-            differences.append(difference)
+            rev_current = current_locked.get("rev")
+            rev_new = new_locked.get("rev")
 
-    return differences
+            if rev_current != rev_new:
+                differences.append({
+                    "input": node_name,
+                    "type": current_locked.get("type", "unknown"),
+                    "owner": current_locked.get("owner", "unknown"),
+                    "repo": current_locked.get("repo", "unknown"),
+                    "rev_current": rev_current,
+                    "rev_new": rev_new,
+                    "commit_count": 0  # Initialize with 0; will be updated later
+                })
 
-def get_commits_between_revisions(owner, repo, base, head):
+        return differences
+
+class GitHubAPI:
     """
-    Retrieves the list of commits between two revisions from the GitHub API using http.client.
-
-    Args:
-        owner (str): The repository owner.
-        repo (str): The repository name.
-        base (str): The base revision (older commit).
-        head (str): The head revision (newer commit).
-
-    Returns:
-        int: The number of commits between the two revisions.
+    Handles API requests to GitHub.
     """
-    conn = http.client.HTTPSConnection(GITHUB_API_HOST)
-    endpoint = f"/repos/{owner}/{repo}/compare/{urllib.parse.quote(base)}...{urllib.parse.quote(head)}"
-    headers = {'User-Agent': 'Python http.client'}
-    
-    conn.request("GET", endpoint, headers=headers)
-    response = conn.getresponse()
+    def __init__(self, api_host):
+        self.api_host = api_host
 
-    if response.status == 200:
-        data = json.loads(response.read().decode('utf-8'))
-        commits = data.get('commits', [])
-        return len(commits)
-    else:
-        print(f"Error: {response.status} - {response.reason}")
-        return 0
+    def get_commit_count(self, owner, repo, base, head):
+        conn = http.client.HTTPSConnection(self.api_host)
+        endpoint = f"/repos/{owner}/{repo}/compare/{urllib.parse.quote(base)}...{urllib.parse.quote(head)}"
+        headers = {'User-Agent': 'Python http.client'}
+        
+        conn.request("GET", endpoint, headers=headers)
+        response = conn.getresponse()
 
-def process_differences(differences):
+        if response.status == 200:
+            data = json.loads(response.read().decode('utf-8'))
+            commits = data.get('commits', [])
+            return len(commits)
+        else:
+            print(f"Error: {response.status} - {response.reason}")
+            return 0
+
+class DifferenceProcessor:
     """
-    Processes the differences to fetch commit counts between revisions for each repository.
-    Adds the commit count to the differences data structure and writes the results to the output file.
+    Processes differences and writes the result to the output file.
     """
-    results = []
-    for diff in differences:
-        owner = diff['owner']
-        repo = diff['repo']
-        rev_current = diff['rev_current']
-        rev_new = diff['rev_new']
+    def __init__(self, github_api, output_file, severity_factor):
+        self.github_api = github_api
+        self.output_file = output_file
+        self.severity_factor = severity_factor
 
-        if owner != "unknown" and repo != "unknown":
-            commit_count = get_commits_between_revisions(owner, repo, rev_current, rev_new)
-            diff['commit_count'] = commit_count  # Update the commit count in the differences data structure
-            origin = f"{diff["input"]}: {diff["type"]}/{owner}/{repo}/{rev_current} -> {rev_new}"
-            prometheus_metric = f'''nixos_pending_flake_upgrade{{origin="{origin}",rev_current="{rev_current}",rev_new="{rev_new}"}} {commit_count * SEVERITY_FACTOR}
-'''
-            results.append(prometheus_metric)
+    def process(self, differences):
+        results = []
+        for diff in differences:
+            owner = diff['owner']
+            repo = diff['repo']
+            rev_current = diff['rev_current']
+            rev_new = diff['rev_new']
 
-    # Write results to the output file
-    with open(OUTPUT_FILE, 'w') as f:
-        f.write("\n".join(results))
+            if owner != "unknown" and repo != "unknown":
+                commit_count = self.github_api.get_commit_count(owner, repo, rev_current, rev_new)
+                diff['commit_count'] = commit_count
+
+                origin = f"{diff['input']}: {diff['type']}/{owner}/{repo}/{rev_current} -> {rev_new}"
+                prometheus_metric = (
+                    f'nixos_pending_flake_upgrade{{origin="{origin}",'
+                    f'rev_current="{rev_current}",rev_new="{rev_new}"}} '
+                    f'{commit_count * self.severity_factor}'
+                )
+                results.append(prometheus_metric)
+
+        with open(self.output_file, 'w') as f:
+            f.write("\n".join(results))
+
+def parse_arguments():
+    """
+    Parses command-line arguments.
+    """
+    parser = argparse.ArgumentParser(description='Flake upgrade checker script.')
+    parser.add_argument('--revision', required=True, help='The revision to be used in the flake update (e.g., main, unstable)')
+    return parser.parse_args()
 
 def main():
-    """
-    Main function to orchestrate the update and comparison of flake locks.
-    """
-    update_flake_lock()
-    differences = get_differences_of_lockfiles(
+    # Parse arguments
+    args = parse_arguments()
+
+    # Set up constants
+    ORIG_LOCKFILE = "/etc/nixos/flake.lock"
+    TEMP_LOCKFILE = "/etc/nixos/flake.lock.new"
+    OUTPUT_FILE = "/var/lib/prometheus/node-exporter/pending_flake_upgrades.prom"
+    SEVERITY_FACTOR = 0.01
+
+    # Initialize helpers and services
+    command_runner = CommandRunner()
+    json_loader = JSONLoader()
+    flake_updater = FlakeUpdater(command_runner, args.revision, TEMP_LOCKFILE)
+    lockfile_comparator = LockfileComparator(json_loader)
+    github_api = GitHubAPI("api.github.com")
+    difference_processor = DifferenceProcessor(github_api, OUTPUT_FILE, SEVERITY_FACTOR)
+
+    # Orchestrate the flake upgrade and comparison
+    flake_updater.update()
+
+    differences = lockfile_comparator.get_differences(
         current_lockfile=ORIG_LOCKFILE,
         new_lockfile=TEMP_LOCKFILE
     )
 
     if differences:
-        process_differences(differences)
-    
-    # Print the differences as JSON with an indent of 2
+        difference_processor.process(differences)
+
     print(json.dumps(differences, indent=2))
 
 if __name__ == "__main__":
