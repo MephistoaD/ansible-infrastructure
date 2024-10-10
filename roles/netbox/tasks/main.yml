@@ -13,9 +13,17 @@
 
 
 # seemingly this doesn't work with the usage of the only_role parameter
-- include_role:
-    name: "nixos"
-    tasks_from: apply_config
+- name: APPLY CONFIG
+  block:
+  - include_role:
+      name: "nixos"
+      tasks_from: apply_config
+  rescue: # in case the netbox-housekeeping.service fails on start
+  
+
+  - include_role:
+      name: "nixos"
+      tasks_from: apply_config
 
 - name: "Role {{ role_name }}"    
   when:
