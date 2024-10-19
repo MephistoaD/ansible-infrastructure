@@ -4,9 +4,16 @@ api_endpoint: https://192.168.2.215
 token: "9ix22jo2AyNeVtVPGZUyhNIt2zpTfm3iZqd3vtzk"
 validate_certs: False
 group_names_raw: true
+config_context: true
 group_by:
   - sites
   - cluster
   - device_roles
   - tags
   - is_virtual
+  - platforms
+keyed_groups:
+  - prefix: pool
+    key: custom_fields.pool
+  - prefix: technology
+    key: custom_fields.technology
