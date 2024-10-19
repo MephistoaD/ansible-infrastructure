@@ -28,6 +28,11 @@
     when:
       - not quick
 
+  - include_role:
+      name: debian
+    when:
+      - not upgrade
+
   - include_tasks: install.yml
     when:
       - not quick
