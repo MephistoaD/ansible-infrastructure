@@ -14,4 +14,11 @@
   register: check_hostname_resolution
   failed_when: check_hostname_resolution.stdout != primary_ip4
   changed_when: false
-  
+
+- name: "Ensure enterprise repos are absent (in environments installed via iso)"
+  file:
+    path: "/etc/apt/sources.list.d/{{ item }}"
+    state: absent
+  loop:
+    - ceph.list
+    - pve-enterprise.list

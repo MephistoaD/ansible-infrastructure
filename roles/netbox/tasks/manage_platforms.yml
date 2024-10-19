@@ -17,7 +17,7 @@
   vars:
     all_existing_platforms_details: "{{ get_platforms.json.results }}"
     existing_plattform_slugs: "{{ all_existing_platforms_details | map(attribute='slug') }}"
-    platform_details: "{{ all_existing_platforms_details | selectattr('name', 'equalto', item) | first }}"
+    platform_details: "{{ all_existing_platforms_details | selectattr('slug', 'equalto', item) | first }}"
 
     platforms_description: "Platform deployed by Ansible"
   block:
@@ -93,4 +93,4 @@
         platform_details.display != available_platforms[item].name or
         platform_details.name != available_platforms[item].name or
         platform_details.slug != item)
-    loop: "{{ available_platforms.keys() }}"
+    loop: "{{ (available_platforms.keys() - (available_platforms.keys() - existing_plattform_slugs)) | list }}"

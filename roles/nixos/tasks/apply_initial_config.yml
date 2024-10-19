@@ -5,7 +5,13 @@
 ---
 - name: APPLY CONFIG
   block:
-  - include_tasks: apply_config.yml
+  - vars:
+      nixos_override: # Pin Instance on branch
+        - input_path: nixpkgs
+          flake_url: "github:NixOS/nixpkgs/{{ available_platforms[platforms[0]].branch }}"
+    include_tasks: apply_config.yml
+
+  - include_tasks: apply_config.yml # Create Lock file
     
   rescue:
   - name: "Reboot on failure"

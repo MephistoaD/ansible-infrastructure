@@ -6,8 +6,7 @@
 
 - name: Set needed pve facts
   set_fact:
-    ansible_local:
-      pve: "{{ ansible_local.pve }}"
+    ansible_local_pve: "{{ ansible_local.pve }}"
 
 
 - name: "Role {{ role_name }}"
@@ -23,7 +22,8 @@
     loop_control:
       label: "{{ item.msg }}"
     loop:
-      - { check: "{{ 'nixos' in platforms }}", msg: "The platform needs to be NixOS" }
+      - { check: "{{ 'nixos' in platforms[0] }}", msg: "The platform needs to be NixOS" }
+      - { check: "{{ custom_fields.technology == 'lxc' }}", msg: "The technology needs to be LXC"}
 
   # Tasks
   - include_tasks: deploy_config.yml
@@ -33,20 +33,9 @@
       - (template_configuration.changed or 
         stub_config.changed)
 
-  - name: Gather facts
-    setup:
-
-  - name: Set needed pve facts
-    set_fact:
-      ansible_local:
-        pve: "{{ ansible_local.pve }}"
-
 
 - name: Gather facts
   setup:
-
-- include_role:
-    name: "baseline"
 
 
 - name: "Role {{ role_name }}"
@@ -72,3 +61,7 @@
   # generic preparations for other roles
   - include_tasks: provide_ssl_cert.yml
     when: nixos_provide_ssl_cert
+
+
+- include_role:
+    name: "baseline"

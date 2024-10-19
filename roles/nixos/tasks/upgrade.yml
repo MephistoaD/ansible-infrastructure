@@ -32,5 +32,5 @@
     tasks_from: export_last_system_upgrade
 
 
-- name: Update prometheus export
-  include_tasks: update.yml
+# - name: Update prometheus export
+#   include_tasks: update.yml

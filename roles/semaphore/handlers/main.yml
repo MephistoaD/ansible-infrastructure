@@ -1,5 +1,0 @@
----
-#- name: Reload Nginx service
-#  systemd:
-#    name: nginx
-#    state: reloaded

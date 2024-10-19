@@ -8,7 +8,7 @@
     - /var/lib/prometheus/node-exporter/
     - /usr/local/bin/
 
-- name: Deploy flake_update script
+- name: Deploy export_flake_update script
   copy:
     src: usr_local_bin_export_flake_update.py
     dest: /usr/local/bin/export_flake_update

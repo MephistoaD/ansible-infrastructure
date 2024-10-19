@@ -29,7 +29,7 @@
   tasks:
     - name: Gather Facts
       setup:
-      when: '"nixos" not in platforms'
+      when: '"nixos" not in platforms[0]'
 
     # Run
     - name: APPLY ROLES
