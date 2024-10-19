@@ -69,6 +69,7 @@
     - chrony
     - open-iscsi
     - postfix
+    - frr-pythontools # sdn
     - proxmox-ve
 # This ussually fails on vms (not tested on bare metal yet)
 # Workaround:
