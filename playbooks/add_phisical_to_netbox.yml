@@ -86,6 +86,7 @@
         asset_tag: "{{ ansible_product_uuid }}"
         custom_fields:
           auto_deploy: false
+          pool: infra
 
   
   - name: "SYNC {{ key }} {{ name }}"
