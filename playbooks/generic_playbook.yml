@@ -36,6 +36,7 @@
       block:
       - name: Configure hosts
         vars:
+          include_roles: "{{ [include_role] if include_role is defined }}"
           current_roles: "{{ include_roles | default(device_roles) | map('regex_replace', '^_', '') | list }}"
         include_role:
           name: "{{ current_role }}"
