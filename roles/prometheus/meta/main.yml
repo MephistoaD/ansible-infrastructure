@@ -1,9 +1,9 @@
 dependencies:
   - role: debian
-    when: not configure_prometheus_job
+    when: not configure_prometheus_job or configure_prometheus_job is undefined
 
   - role: nginx
-    when: not configure_prometheus_job
+    when: not configure_prometheus_job or configure_prometheus_job is undefined
 
   - role: alertmanager
-    when: not configure_prometheus_job
+    when: not configure_prometheus_job or configure_prometheus_job is undefined
