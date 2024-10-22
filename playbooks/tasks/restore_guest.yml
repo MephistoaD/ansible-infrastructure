@@ -34,24 +34,42 @@
       executable: /bin/bash
       cmd: pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/{{ api_technology }}/{{ vmid }}/status/stop
 
-  - name: "Restore guest from '{{ backup.volid }}'"
+  - name: "Restore guest"
     vars:
       backup: "{{ vm_existing_backup_raw.stdout | from_json }}"
+      command:
+        lxc: |
+          pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/{{ api_technology }} \
+            --vmid {{ vmid }} \
+            --storage "{{ guest_storage }}" \
+            --ostemplate "{{ backup.volid }}" \
+            --force \
+            --start \
+            --restore
+        vm: |
+          pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/{{ api_technology }} \
+            --vmid {{ vmid }} \
+            --archive "{{ backup.volid }}" \
+            --force \
+            --start
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
-    ansible.builtin.shell:
+    shell:
       executable: /bin/bash
-      cmd: |
-        pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/{{ api_technology }} \
-          --vmid {{ vmid }} \
-          --storage "{{ guest_storage }}" \
-          --ostemplate "{{ backup.volid }}" \
-          --force \
-          --start \
-          --restore
+      cmd: "{{ command[custom_fields.technology] }}"
     register: vm_restore_raw
   
-  - debug:
+  - vars:
+    debug:
       var: vm_restore_raw.stdout_lines
+  
+  - name: Wait until the guest is online and sshd started
+    become: false
+    local_action:
+      module: wait_for
+      host: "{{ primary_ip4 }}"  # Replace with your target host
+      port: 22  # SSH port
+      state: started
+      timeout: 300  # Adjust the timeout as needed (in seconds)
 
   - name: Locking instance for future automated upgrades
     shell:
@@ -63,4 +81,4 @@
       var: lock_autoup_raw.stdout_lines
 
   - fail:
-      msg: "Upgrade job failed, previous state was restored"
+      msg: "Job failed, previous state was restored"
