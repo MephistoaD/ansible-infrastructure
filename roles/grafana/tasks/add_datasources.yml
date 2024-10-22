@@ -1,14 +1,14 @@
 ---
 - name: Create prometheus datasources
   community.grafana.grafana_datasource:
-    name: "{{ item }}.{{ hostvars[item].custom_fields.pool }}.lab"
+    name: "{{ item }}.{{ hostvars[item].pool }}.lab"
     grafana_url: "https://{{ ansible_default_ipv4.address }}"
     grafana_user: "{{ ansible_local.grafana.admin_user }}"
     grafana_password: "{{ ansible_local.grafana.admin_password }}"
     validate_certs: false # the ssl certificate of grafana
     org_id: "1"
     ds_type: "prometheus"
-    ds_url: "https://{{ item }}.{{ hostvars[item].custom_fields.pool }}.lab"
+    ds_url: "https://{{ item }}.{{ hostvars[item].pool }}.lab"
     tls_skip_verify: true # tls certificate of the datasource
     state: present # absent export
   with_items: "{{ grafana_datasources.prometheus }}"

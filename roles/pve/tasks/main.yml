@@ -17,7 +17,7 @@
     loop_control:
       label: "{{ item.msg }}"
     loop:
-      - check: "{{ not is_virtual or custom_fields.technology == 'vm' }}"
+      - check: "{{ not is_virtual or technology == 'vm' }}"
         msg: "Assert that the PVE host is either a phisical device or a vm."
       - check: "{{ not upgrade or nr_other_active_nodes | int >= 1 }}"
         msg: "Assert that on an upgrade other nodes are 'ACTIVE'"

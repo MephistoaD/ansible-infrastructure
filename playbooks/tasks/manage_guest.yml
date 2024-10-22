@@ -1,8 +1,6 @@
 ---
 - name: MANAGE GUEST
   vars:
-    technology: "{{ custom_fields.technology }}"
-    pool: "{{ custom_fields.pool }}"
     guest_storage: "node-local"
     guest_default_user: "debian" # for vm only
     gateway: "192.168.2.1"
@@ -19,7 +17,7 @@
 
   - name: BACKUP GUEST
     vars:
-      delegate_to_guest_pve_instance: "{{ ansible_local.pve.guests_by_id[vmid].node }}"
+      delegate_to_guest_pve_instance: "{{ ansible_local.pve.guests_by_id[vmid_str].node }}"
     when: 
       - vmid in ansible_local.pve.guests_by_id
       - deploy_guest in ["redeploy", "purge", "backup"] or upgrade
@@ -95,7 +93,7 @@
       template_vm: "{{ ansible_local.pve['guests_by_id'][template_vmid] }}"
       delegate_to_template_pve_instance: "{{ template_vm['node'] | default(delegate_to_pve_instance) }}"
     when: 
-      - vmid not in ansible_local.pve['guests_by_id']
+      - vmid_str not in ansible_local.pve['guests_by_id']
     block:
     - name: "Create new guest"
       vars:
@@ -157,8 +155,8 @@
 
   - name: MODIFY GUEST
     vars:
-      current_guest_config: "{{ ansible_local.pve['guests_by_id'][vmid] }}"
-      delegate_to_guest_pve_instance: "{{ ansible_local.pve['guests_by_id'][vmid]['node'] }}"
+      current_guest_config: "{{ ansible_local.pve['guests_by_id'][vmid_str] }}"
+      delegate_to_guest_pve_instance: "{{ ansible_local.pve['guests_by_id'][vmid_str]['node'] }}"
       current_memory: "{{ current_guest_config.maxmem / 1024 / 1024 | int }}"
     block:
 
@@ -319,7 +317,7 @@
 
   - name: NOTIFY ON NOT YET IMPLEMENTED CASES
     vars:
-      current_guest_config: "{{ ansible_local.pve['guests_by_id'][vmid] }}"
+      current_guest_config: "{{ ansible_local.pve['guests_by_id'][vmid_str] }}"
     block:
     - name: Error on different rootfs sizes
       fail:

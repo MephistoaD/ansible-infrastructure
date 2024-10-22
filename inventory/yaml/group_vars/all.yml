@@ -30,7 +30,6 @@ debian_global_absent_packages:
   - unattended-upgrades
 
 timezone: Europe/Berlin
-vmid: "{{ custom_fields.vmid }}"
 
 quick: false # optionally allows to ignore tasks which are not necessary in every run
 deploy_guest: false # false, true, redeploy, purge
@@ -67,7 +66,7 @@ pools:
 application_layer_cluster_tag_pattern: '.*_cluster.*'
 application_layer_clusters: "{{ tags | map('regex_search', application_layer_cluster_tag_pattern) | select }}"
 application_layer_cluster: "{{ groups[application_layer_clusters | first] }}"
-cluster_leaders: "{{ application_layer_cluster | map('extract', hostvars) | selectattr('custom_fields.cluster_position', 'defined') | selectattr('custom_fields.cluster_position', 'equalto', 'leader') | map(attribute='inventory_hostname') | list }}"
+cluster_leaders: "{{ application_layer_cluster | map('extract', hostvars) | selectattr('cluster_position', 'defined') | selectattr('cluster_position', 'equalto', 'leader') | map(attribute='inventory_hostname') | list }}"
 cluster_leader: "{{ cluster_leaders | first }}"
 
 dns_local_tld: "lab"

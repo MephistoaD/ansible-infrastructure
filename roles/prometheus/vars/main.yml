@@ -1,11 +1,11 @@
 ---
 nginx_config:
-  - name: "{{ inventory_hostname }}.{{ custom_fields.pool }}.{{ dns_local_tld }}"
+  - name: "{{ inventory_hostname }}.{{ pool }}.{{ dns_local_tld }}"
     https: self-signed # false, self-signed, acme
     proxy_to_http: true
     proxy_targets:
       - "127.0.0.1:9090"
-  - name: "alertmanager.{{ inventory_hostname }}.{{ custom_fields.pool }}.{{ dns_local_tld }}"
+  - name: "alertmanager.{{ inventory_hostname }}.{{ pool }}.{{ dns_local_tld }}"
     https: self-signed # false, self-signed, acme
     proxy_to_http: true
     proxy_targets:

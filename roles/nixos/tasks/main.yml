@@ -23,7 +23,7 @@
       label: "{{ item.msg }}"
     loop:
       - { check: "{{ 'nixos' in platforms[0] }}", msg: "The platform needs to be NixOS" }
-      - { check: "{{ custom_fields.technology == 'lxc' }}", msg: "The technology needs to be LXC"}
+      - { check: "{{ technology == 'lxc' }}", msg: "The technology needs to be LXC"}
 
   # Tasks
   - include_tasks: deploy_config.yml
