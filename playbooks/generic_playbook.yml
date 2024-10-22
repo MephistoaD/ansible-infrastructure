@@ -14,7 +14,7 @@
       loop_control:
         label: "{{ item.msg }}"
       loop:
-        - check: "{{ device_roles is defined }}"
+        - check: device_roles is defined
           msg: "Assert that the host has the device_roles field defined"
 
     # Prepare
