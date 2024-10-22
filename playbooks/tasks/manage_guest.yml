@@ -96,7 +96,7 @@
       delegate_to_template_pve_instance: "{{ template_vm['node'] | default(delegate_to_pve_instance) }}"
     when: 
       - vmid not in ansible_local.pve['guests_by_id']
-    block:    
+    block:
     - name: "Create new guest"
       vars:
         command:
@@ -104,7 +104,7 @@
             # Set just any random password
             password=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | cut -c1-"${1:-12}")
 
-            pvesh create "/nodes/{{ delegate_to_pve_instance }}/lxc" \
+            pvesh create "/nodes/{{ delegate_to_template_pve_instance }}/lxc" \
               -vmid "{{ vmid }}" \
               -hostname "{{ inventory_hostname }}" \
               -ostemplate "{{ ostemplate }}" \
@@ -149,7 +149,7 @@
         cmd: "{{ command[technology] }}"
       register: guest_creation
       
-    - name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
+    - name: "Collect ansible_local on {{ delegate_to_template_pve_instance }}"
       delegate_to: "{{ delegate_to_template_pve_instance }}"
       setup:
         filter: ansible_local
@@ -172,7 +172,7 @@
         - technology == "lxc"
         - item not in current_guest_config
         - lxc_custom_config_lines is defined
-      loop: "{{ lxc_custom_config_lines | flatten(levels=1) }}"
+      loop: "{{ lxc_custom_config_lines | default([]) | flatten(levels=1) }}"
 
     - name: Change guest
       vars:
