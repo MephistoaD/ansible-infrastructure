@@ -13,7 +13,7 @@
     enabled: yes
 
 - name: Install custom exporter plugins
-  include: install_prometheus_exporter_plugin.yml
+  include_tasks: install_prometheus_exporter_plugin.yml
   loop_control:
     loop_var: plugin
   loop:
