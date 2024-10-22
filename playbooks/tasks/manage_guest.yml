@@ -190,11 +190,11 @@
               vm: "qm set {{ vmid }} --cores {{ vcpus | int }}"
               lxc: "pct set {{ vmid }} --cores {{ vcpus | int }}"
             condition: "{{ vcpus | int != current_guest_cpu | int }}"
-          - label: "Update memory {{ current_memory }} -> {{ memory }} MB"
+          - label: "Update memory {{ current_memory | int }} -> {{ memory }} MB"
             command:
               vm: "qm set {{ vmid }} --memory {{ memory }}"
               lxc: "pct set {{ vmid }} --memory {{ memory }}"
-            condition: "{{ memory | string != current_memory }}"
+            condition: "{{ current_memory | int != memory }}"
 #          - label: "Update disk size {{ current_guest_config['scsi0']['size'] }} -> {{ disk }} GB"
  #           action: "qm resize {{ vmid }} scsi0 {{ disk }}G"
   #          condition: "{{ disk > current_guest_config['scsi0']['size'] }}"
