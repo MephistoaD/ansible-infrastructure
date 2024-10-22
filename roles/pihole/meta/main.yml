@@ -11,5 +11,5 @@ dependencies:
 
   - role: unbound
     when: 
-      - pihole_as_recursive_dns
+      - pihole_as_recursive_dns or pihole_as_recursive_dns is undefined
       - not configure_dns_job or configure_dns_job is undefined
