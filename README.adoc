@@ -3,7 +3,7 @@
 ## Arguments:
 
   target: a hostname, a list of hostnames or a group the playbook is run agains
-  include_roles: [ device_role ] Overwrites the device_role by including a custom list of roles instead
+  include_role: (device_role) Overwrites the device_role by including a custom role instead
   upgrade: (false, true) runs all upgrades defined in the various roles
   quick: (false, true) skipps installs, and most time costly operations (never interferes with upgrade)
   deploy_guest: (false, "true", "redeploy", "purge", "backup", "only") deploys the vm or ct from the stats given in the netbox instance, purge ignores the status in netbox, if set to "only" the roles are skipped

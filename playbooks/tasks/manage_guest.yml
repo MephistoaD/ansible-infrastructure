@@ -1,8 +1,6 @@
 ---
 - name: MANAGE GUEST
   vars:
-    technology: "{{ custom_fields.technology }}"
-    pool: "{{ custom_fields.pool }}"
     guest_storage: "node-local"
     guest_default_user: "debian" # for vm only
     gateway: "192.168.2.1"
@@ -19,7 +17,7 @@
 
   - name: BACKUP GUEST
     vars:
-      delegate_to_guest_pve_instance: "{{ ansible_local.pve.guests_by_id[vmid].node }}"
+      delegate_to_guest_pve_instance: "{{ ansible_local.pve.guests_by_id[vmid_str].node }}"
     when: 
       - vmid in ansible_local.pve.guests_by_id
       - deploy_guest in ["redeploy", "purge", "backup"] or upgrade
@@ -95,8 +93,8 @@
       template_vm: "{{ ansible_local.pve['guests_by_id'][template_vmid] }}"
       delegate_to_template_pve_instance: "{{ template_vm['node'] | default(delegate_to_pve_instance) }}"
     when: 
-      - vmid not in ansible_local.pve['guests_by_id']
-    block:    
+      - vmid_str not in ansible_local.pve['guests_by_id']
+    block:
     - name: "Create new guest"
       vars:
         command:
@@ -104,7 +102,7 @@
             # Set just any random password
             password=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | cut -c1-"${1:-12}")
 
-            pvesh create "/nodes/{{ delegate_to_pve_instance }}/lxc" \
+            pvesh create "/nodes/{{ delegate_to_template_pve_instance }}/lxc" \
               -vmid "{{ vmid }}" \
               -hostname "{{ inventory_hostname }}" \
               -ostemplate "{{ ostemplate }}" \
@@ -149,7 +147,7 @@
         cmd: "{{ command[technology] }}"
       register: guest_creation
       
-    - name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
+    - name: "Collect ansible_local on {{ delegate_to_template_pve_instance }}"
       delegate_to: "{{ delegate_to_template_pve_instance }}"
       setup:
         filter: ansible_local
@@ -157,8 +155,8 @@
 
   - name: MODIFY GUEST
     vars:
-      current_guest_config: "{{ ansible_local.pve['guests_by_id'][vmid] }}"
-      delegate_to_guest_pve_instance: "{{ ansible_local.pve['guests_by_id'][vmid]['node'] }}"
+      current_guest_config: "{{ ansible_local.pve['guests_by_id'][vmid_str] }}"
+      delegate_to_guest_pve_instance: "{{ ansible_local.pve['guests_by_id'][vmid_str]['node'] }}"
       current_memory: "{{ current_guest_config.maxmem / 1024 / 1024 | int }}"
     block:
 
@@ -172,7 +170,7 @@
         - technology == "lxc"
         - item not in current_guest_config
         - lxc_custom_config_lines is defined
-      loop: "{{ lxc_custom_config_lines | flatten(levels=1) }}"
+      loop: "{{ lxc_custom_config_lines | default([]) | flatten(levels=1) }}"
 
     - name: Change guest
       vars:
@@ -190,11 +188,11 @@
               vm: "qm set {{ vmid }} --cores {{ vcpus | int }}"
               lxc: "pct set {{ vmid }} --cores {{ vcpus | int }}"
             condition: "{{ vcpus | int != current_guest_cpu | int }}"
-          - label: "Update memory {{ current_memory }} -> {{ memory }} MB"
+          - label: "Update memory {{ current_memory | int }} -> {{ memory }} MB"
             command:
               vm: "qm set {{ vmid }} --memory {{ memory }}"
               lxc: "pct set {{ vmid }} --memory {{ memory }}"
-            condition: "{{ memory | string != current_memory }}"
+            condition: "{{ current_memory | int != memory }}"
 #          - label: "Update disk size {{ current_guest_config['scsi0']['size'] }} -> {{ disk }} GB"
  #           action: "qm resize {{ vmid }} scsi0 {{ disk }}G"
   #          condition: "{{ disk > current_guest_config['scsi0']['size'] }}"
@@ -319,7 +317,7 @@
 
   - name: NOTIFY ON NOT YET IMPLEMENTED CASES
     vars:
-      current_guest_config: "{{ ansible_local.pve['guests_by_id'][vmid] }}"
+      current_guest_config: "{{ ansible_local.pve['guests_by_id'][vmid_str] }}"
     block:
     - name: Error on different rootfs sizes
       fail:

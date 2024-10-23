@@ -5,6 +5,7 @@ token: "9ix22jo2AyNeVtVPGZUyhNIt2zpTfm3iZqd3vtzk"
 validate_certs: False
 group_names_raw: true
 config_context: true
+flatten_custom_fields: true
 group_by:
   - sites
   - cluster

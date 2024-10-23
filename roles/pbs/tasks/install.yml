@@ -23,7 +23,7 @@
     enabled: no
     state: stopped
   when: 
-    - custom_fields.technology == 'lxc'
+    - technology == 'lxc'
 
 - name: remove pve-enterprise.list
   file:

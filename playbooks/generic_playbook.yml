@@ -5,8 +5,6 @@
   pre_tasks:
     # Assertions
     - name: "Preventive assertions of generic_playbook"
-      vars:
-        foo: bar
       assert:
         that:
           - "{{ item.check }}"
@@ -14,7 +12,7 @@
       loop_control:
         label: "{{ item.msg }}"
       loop:
-        - check: "{{ device_roles is defined }}"
+        - check: device_roles is defined
           msg: "Assert that the host has the device_roles field defined"
 
     # Prepare
@@ -22,7 +20,7 @@
       include_tasks: "tasks/manage_guest.yml"
       when: 
         - is_virtual
-        - custom_fields.technology is defined
+        - technology is defined
         - deploy_guest is defined
         - deploy_guest or deploy_guest == "only"
 
@@ -36,7 +34,7 @@
       block:
       - name: Configure hosts
         vars:
-          current_roles: "{{ include_roles | default(device_roles) | map('regex_replace', '^_', '') | list }}"
+          current_roles: "{{ [include_role] if include_role is defined else device_roles | map('regex_replace', '^_', '') | list }}"
         include_role:
           name: "{{ current_role }}"
         loop: "{{ current_roles }}"
@@ -51,7 +49,7 @@
         include_tasks: "tasks/restore_guest.yml"
         when:
           - is_virtual
-          - custom_fields.technology is defined
+          - technology is defined
           - deploy_guest == "backup" or (upgrade and deploy_guest)
           - not prohibit_restore
 

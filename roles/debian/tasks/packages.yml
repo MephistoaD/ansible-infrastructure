@@ -28,7 +28,7 @@
     state: present
   when: 
     - is_virtual
-    - custom_fields.technology == 'vm'
+    - technology == 'vm'
   notify:
     - Reboot vm
 
