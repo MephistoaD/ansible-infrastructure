@@ -19,7 +19,7 @@
     vars:
       delegate_to_guest_pve_instance: "{{ ansible_local.pve.guests_by_id[vmid_str].node }}"
     when: 
-      - vmid in ansible_local.pve.guests_by_id
+      - vmid_str in ansible_local.pve.guests_by_id
       - deploy_guest in ["redeploy", "purge", "backup"] or upgrade
     block:
     - name: Create backup
