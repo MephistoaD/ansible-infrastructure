@@ -1,0 +1,22 @@
+---
+- debug:
+    msg: pre-upgrade
+
+- name: Stop self-healing ability
+  shell:
+    executable: /bin/bash
+    cmd: "{{ item }}"
+  register: stop_healing
+  loop:
+    - /usr/bin/ceph osd set noout
+    - /usr/bin/ceph osd set norecover
+    - /usr/bin/ceph osd set norebalance
+    # - /usr/bin/ceph osd set nobackfill
+    # - /usr/bin/ceph osd set nodown
+    # - /usr/bin/ceph osd set pause
+
+- debug:
+    var: item.stdout_lines + item.stderr_lines
+  loop_control:
+    label: "{{ item.cmd }}"
+  loop: "{{ stop_healing.results }}"

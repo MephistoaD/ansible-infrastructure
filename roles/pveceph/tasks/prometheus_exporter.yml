@@ -1,0 +1,63 @@
+---
+- debug:
+    msg: prometheus_exporter
+
+
+- name: ACTIVATE PROMETHEUS EXPORTER
+  vars:
+    local_mgrs: "{{ pveceph_ceph_mgrs.stdout | from_json | selectattr('host', 'equalto', inventory_hostname) }}"
+  block:
+  - name: Get current ceph managers
+    shell:
+      executable: /bin/bash
+      cmd: |
+        /usr/bin/pvesh get /nodes/{{ inventory_hostname }}/ceph/mgr \
+          --output-format json
+    register: pveceph_ceph_mgrs
+    changed_when: false
+
+  - debug:
+      var: local_mgrs
+
+  - name: Get current ceph managers
+    shell:
+      executable: /bin/bash
+      cmd: |
+        /usr/bin/ceph mgr module ls
+    register: pveceph_ceph_mgr_modules
+    changed_when: false
+
+  - debug:
+      var: pveceph_ceph_mgr_modules.stdout_lines
+
+  - name: Add prometheus module
+    shell:
+      executable: /bin/bash
+      cmd: | # if module is not already on, activate it
+        /usr/bin/ceph mgr module enable prometheus
+    register: pveceph_prometheus
+    failed_when: false
+    changed_when: pveceph_prometheus.stdout_lines | length == 0
+
+  - debug:
+      var: pveceph_prometheus.stdout_lines + pveceph_prometheus.stderr_lines
+    failed_when: pveceph_prometheus.rc not in [0]
+
+  - name: Configure prometheus module
+    shell:
+      executable: /bin/bash
+      cmd: |
+        if [ "$(/usr/bin/ceph config get mgr {{ item.setting }})" != "{{ item.value }}" ]; then
+          /usr/bin/ceph config set mgr {{ item.setting }} {{ item.value }}
+          
+          exit $?
+        fi
+        exit 42
+    register: config
+    changed_when: config.rc != 42
+    failed_when: config.rc not in [0,42]
+    loop:
+      - setting: mgr/prometheus/server_addr
+        value: 0.0.0.0
+      - setting: mgr/prometheus/server_port
+        value: "{{ prometheus_role_exporter_port_pveceph }}"

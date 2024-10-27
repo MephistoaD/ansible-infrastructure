@@ -1,0 +1,4 @@
+---
+dependencies:
+  - role: debian
+    when: false # dynamically included during pve role
