@@ -1,0 +1,31 @@
+---
+
+- name: CREATE MANAGER
+  vars:
+    local_mgrs: "{{ pveceph_ceph_mgrs.stdout | from_json | selectattr('host', 'equalto', inventory_hostname) }}"
+  block:
+  - name: Get current ceph managers
+    shell:
+      executable: /bin/bash
+      cmd: |
+        /usr/bin/pvesh get /nodes/{{ inventory_hostname }}/ceph/mgr \
+          --output-format json
+    register: pveceph_ceph_mgrs
+    changed_when: false
+
+  - debug:
+      var: local_mgrs
+
+  - name: Create Ceph manager
+    shell:
+      executable: /bin/bash
+      cmd: |
+        /usr/bin/pvesh create /nodes/{{ inventory_hostname }}/ceph/mgr/{{ inventory_hostname }}
+    register: pveceph_create_mgr
+    failed_when: false
+    when: local_mgrs | length == 0
+
+  - debug:
+      var: pveceph_create_mgr.stdout_lines + pveceph_create_mgr.stderr_lines
+    failed_when: pveceph_create_mgr.rc != 0
+    when: local_mgrs | length == 0

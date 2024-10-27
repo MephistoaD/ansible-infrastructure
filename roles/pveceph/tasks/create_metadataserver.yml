@@ -1,0 +1,31 @@
+---
+
+- name: CREATE METADATASERVER
+  vars:
+    local_mds: "{{ pveceph_ceph_mds.stdout | from_json | selectattr('host', 'equalto', inventory_hostname) }}"
+  block:
+  - name: Get current ceph metadataservers
+    shell:
+      executable: /bin/bash
+      cmd: |
+        /usr/bin/pvesh get /nodes/{{ inventory_hostname }}/ceph/mds \
+          --output-format json
+    register: pveceph_ceph_mds
+    changed_when: false
+
+  - debug:
+      var: local_mds
+
+  - name: Create Ceph metadataserver
+    shell:
+      executable: /bin/bash
+      cmd: |
+        /usr/bin/pvesh create /nodes/{{ inventory_hostname }}/ceph/mds/{{ inventory_hostname }}
+    register: pveceph_create_mds
+    failed_when: false
+    when: local_mds | length == 0
+
+  - debug:
+      var: pveceph_create_mds.stdout_lines + pveceph_create_mds.stderr_lines
+    failed_when: pveceph_create_mds.rc != 0
+    when: local_mds | length == 0

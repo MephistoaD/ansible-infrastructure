@@ -1,0 +1,31 @@
+---
+
+- name: CREATE MONITOR
+  vars:
+    local_mons: "{{ pveceph_ceph_mons.stdout | from_json | selectattr('host', 'equalto', inventory_hostname) }}"
+  block:
+  - name: Get current ceph monitors
+    shell:
+      executable: /bin/bash
+      cmd: |
+        /usr/bin/pvesh get /nodes/{{ inventory_hostname }}/ceph/mon \
+          --output-format json
+    register: pveceph_ceph_mons
+    changed_when: false
+
+  - debug:
+      var: local_mons
+
+  - name: Create Ceph monitor
+    shell:
+      executable: /bin/bash
+      cmd: |
+        /usr/bin/pvesh create /nodes/{{ inventory_hostname }}/ceph/mon/{{ inventory_hostname }}
+    register: pveceph_create_mon
+    failed_when: false
+    when: local_mons | length == 0
+
+  - debug:
+      var: pveceph_create_mon.stdout_lines + pveceph_create_mon.stderr_lines
+    failed_when: pveceph_create_mon.rc != 0
+    when: local_mons | length == 0

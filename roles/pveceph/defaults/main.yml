@@ -1,0 +1,74 @@
+---
+role_name: pveceph
+
+prometheus_role_exporter_port_pveceph: 9283
+
+pveceph_version: reef
+
+pveceph_packages:
+  - ceph-base
+  - ceph-mgr
+  - ceph-mgr-modules-core
+  - ceph-mon
+  - ceph-osd
+  # - cryptsetup-bin
+  # - dmidecode
+  # - libcephfs2
+  # - libcryptsetup12
+  # - libdouble-conversion3
+  # - liblttng-ust-common1
+  # - liblttng-ust-ctl5
+  # - liblttng-ust1
+  # - libparted2
+  # - libpcre2-16-0
+  # - libqt5core5a
+  # - libqt5dbus5
+  # - libqt5network5
+  # - librados2
+  # - libradosstriper1
+  # - librbd1
+  # - librdkafka1
+  # - librgw2
+  # - libsqlite3-mod-ceph
+  # - libthrift-0.17.0
+  # - parted
+  # - python3-autocommand
+  # - python3-bcrypt
+  # - python3-bs4
+  # - python3-ceph-argparse
+  # - python3-ceph-common
+  # - python3-cephfs
+  # - python3-cheroot
+  # - python3-cherrypy3
+  # - python3-dateutil
+  # - python3-inflect
+  # - python3-jaraco.classes
+  # - python3-jaraco.collections
+  # - python3-jaraco.context
+  # - python3-jaraco.functools
+  # - python3-jaraco.text
+  # - python3-logutils
+  # - python3-mako
+  # - python3-more-itertools
+  # - python3-natsort
+  # - python3-openssl
+  # - python3-packaging
+  # - python3-paste
+  # - python3-pastedeploy
+  # - python3-pastedeploy-tpl
+  # - python3-pecan
+  # - python3-portend
+  # - python3-rados
+  # - python3-rbd
+  # - python3-rgw
+  # - python3-simplegeneric
+  # - python3-singledispatch
+  # - python3-soupsieve
+  # - python3-tempita
+  # - python3-tempora
+  # - python3-tz
+  # - python3-waitress
+  # - python3-webob
+  # - python3-webtest
+  # - python3-werkzeug
+  # - python3-zc.lockfile

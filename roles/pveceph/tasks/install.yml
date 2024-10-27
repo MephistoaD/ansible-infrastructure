@@ -1,0 +1,50 @@
+---
+
+# - name: GET STATUS
+#   when: false
+#   block:
+#   - name: Check weather ceph is installed
+#     shell:
+#       executable: /bin/bash
+#       cmd: |
+#         /usr/bin/pvesh get /cluster/ceph/status \
+#           --output-format json
+#     register: pveceph_status
+#     failed_when: pveceph_status.rc not in [0,2]
+#     changed_when: false
+
+#   - name: Display ceph status
+#     debug:
+#       var: pveceph_status.stdout | from_json if pveceph_status.rc == 0 else pveceph_status.stderr_lines
+
+- name: INSTALL PVECEPH
+  when: not quick
+  block:
+  - name: "Add {{ role_name }} APT repository"
+    apt_repository:
+      repo: "deb [arch=amd64] http://download.proxmox.com/debian/ceph-{{ pveceph_version }} {{ ansible_distribution_release }} no-subscription"
+      state: present
+      update_cache: yes
+
+  - name: Install ceph
+    apt:
+      pkg: "{{ item }}"
+      state: present
+    register: install_pve
+    loop: "{{ pveceph_packages }}"
+
+- name: INIT PVECEPH
+  block:
+  - name: Init pveceph
+    shell:
+      executable: /bin/bash
+      cmd: |
+        /usr/bin/pvesh create /nodes/{{ inventory_hostname }}/ceph/init \
+          --network {{ ansible_default_ipv4.address }}/{{ ansible_default_ipv4.prefix }}
+    register: pveceph_init
+    failed_when: false
+    changed_when: pveceph_init.stdout_lines | length != 0
+
+  - debug:
+      var: pveceph_init.stdout_lines + pveceph_init.stderr_lines
+    failed_when: pveceph_init.rc != 0
