@@ -10,3 +10,5 @@ pve_exporter_token_name: "pve_exporter"
 
 drain_node: false
 undrain_node: false
+
+pveceph_enabled: false

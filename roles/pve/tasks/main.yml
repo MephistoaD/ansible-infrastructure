@@ -39,10 +39,19 @@
 
   - include_tasks: ansible_local.yml
 
+  # Preparation for upgrade
   - include_tasks: drain_node.yml
     when: 
       - (drain_node or upgrade)
 
+  - include_role: # disable ceph self-healing
+      name: pveceph
+      tasks_from: pre_upgrade
+    when:
+      - pveceph_enabled
+      - upgrade
+
+  # Actual Upgrade
   - include_role:
       name: debian
     when: 
@@ -56,6 +65,18 @@
       - not is_virtual
 
   - include_tasks: prometheus_exporter.yml
+
+  - include_role: # install and setup of ceph
+      name: pveceph
+    when: pveceph_enabled
+
+  # Post Upgrade
+  - include_role: # reenable ceph self-healing
+      name: pveceph
+      tasks_from: post_upgrade
+    when:
+      - pveceph_enabled
+      - upgrade
 
   - include_tasks: undrain_node.yml
     when:

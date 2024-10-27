@@ -3,3 +3,6 @@ dependencies:
   - role: debian
     when:
       - false # is included dynamically within the main.yml
+  - role: pveceph
+    when:
+      - false # is included dynamically within the main.yml
