@@ -9,8 +9,8 @@
   register: start_healing
   loop:
     # - /usr/bin/ceph osd unset pause
-    # - /usr/bin/ceph osd unset nodown
-    # - /usr/bin/ceph osd unset nobackfill
+    - /usr/bin/ceph osd unset nodown
+    - /usr/bin/ceph osd unset nobackfill
     - /usr/bin/ceph osd unset norebalance
     - /usr/bin/ceph osd unset norecover
     - /usr/bin/ceph osd unset noout

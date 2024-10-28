@@ -8,12 +8,12 @@
     cmd: "{{ item }}"
   register: stop_healing
   loop:
-    - /usr/bin/ceph osd set noout
-    - /usr/bin/ceph osd set norecover
-    - /usr/bin/ceph osd set norebalance
-    # - /usr/bin/ceph osd set nobackfill
-    # - /usr/bin/ceph osd set nodown
-    # - /usr/bin/ceph osd set pause
+    - /usr/bin/ceph osd set noout # Prevents Ceph from marking an OSD as "out" when it stops responding.
+    - /usr/bin/ceph osd set norecover # Prevents the cluster from initiating data recovery.
+    - /usr/bin/ceph osd set norebalance # Prevents the rebalancing of data across OSDs.
+    - /usr/bin/ceph osd set nobackfill # Stops Ceph from performing backfill operations.
+    - /usr/bin/ceph osd set nodown # Prevents Ceph from marking an OSD as "down" even if it stops responding.
+    # - /usr/bin/ceph osd set pause # Pauses all client I/O and internal operations on OSDs. -> do not use for routine maintenance
 
 - debug:
     var: item.stdout_lines + item.stderr_lines
