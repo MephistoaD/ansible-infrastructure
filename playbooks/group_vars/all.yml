@@ -40,6 +40,8 @@ prohibit_restore: false
 
 backup_note: "Ansible initiated backup"
 
+guest_storage: "global_pool"
+
 available_platforms:
   # only for oracle
   ubuntu-22-jammy:
