@@ -36,28 +36,6 @@
     changed_when: "out.rc == 1"
     failed_when: false
 
-#   - name: Download dark theme
-#     ansible.builtin.get_url:
-#       url: https://raw.githubusercontent.com/Weilbyte/PVEDiscordDark/master/PVEDiscordDark.sh
-#       dest: /usr/local/bin/PVEDiscordDark.sh
-#       mode: '0744'
-
-#   - name: Install dark theme
-#     command: 'bash /usr/local/bin/PVEDiscordDark.sh install'
-#     register: out
-#     failed_when: out.rc not in [ 0, 2 ]
-#     changed_when: out.rc == 0 # no change if already installed
-#     when:
-#       - pve_discord_dark
-
-#   - name: Uninstall dark theme
-#     command: 'bash /usr/local/bin/PVEDiscordDark.sh uninstall'
-#     register: out
-#     failed_when: out.rc not in [ 0, 2 ]
-#     changed_when: false # no change if already uninstalled
-#     when:
-#       - not pve_discord_dark
-
 - name: POOL CREATION
   vars:
     existing_pools: "{{ ansible_local.pve.pools | selectattr('pool', 'defined') | map(attribute='pool') | map('lower') | list }}"
