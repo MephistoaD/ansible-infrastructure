@@ -35,6 +35,22 @@
       msg: updater_output.stderr
     when: updater_output.rc != 0
 
+- name: Perfom repair operations / file conversions
+  block:
+  - name: Run databse migration nextcloud/occ maintenance:repair
+    shell: sudo -u www-data php --define apc.enable_cli=1 /var/www/nextcloud/occ maintenance:repair --include-expensive
+    register: maintenance_output
+    failed_when: false
+
+  - name: Show output from sudo -u www-data php --define apc.enable_cli=1 /var/www/nextcloud/occ maintenance:repair
+    debug:
+      var: maintenance_output.stdout_lines
+
+  - name: Fail when encountered errors
+    fail:
+      msg: migration_output.stderr
+    when: migration_output.rc != 0
+
 - name: Migrate Database
   block:
   - name: Run databse migration nextcloud/occ db:add-missing-indices
@@ -43,7 +59,7 @@
     failed_when: false
     changed_when: '"updated successfully." in migration_output.stdout'
 
-  - name: Show output from sudo -u www-data php --define apc.enable_cli=1 /var/www/nextcloud/updater/updater.phar --no-interaction
+  - name: Show output from sudo -u www-data php --define apc.enable_cli=1 /var/www/nextcloud/occ db:add-missing-indices
     debug:
       var: migration_output.stdout_lines
 
