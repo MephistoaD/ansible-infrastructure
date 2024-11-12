@@ -1,7 +1,6 @@
 ---
 - name: MANAGE GUEST
   vars:
-    guest_storage: "node-local"
     guest_default_user: "debian" # for vm only
     gateway: "192.168.2.1"
     nameserver: "192.168.2.250" # for vm only, lxc defaults to dns of host

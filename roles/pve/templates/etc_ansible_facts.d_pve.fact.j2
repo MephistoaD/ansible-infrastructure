@@ -70,7 +70,8 @@ def parse_storage(value: str) -> Dict[str, Union[str, int]]:
     prefix = fields.pop(0)
     properties = {field.split("=")[0]: field.split("=")[1] for field in fields}
     properties["volume"], properties["subvol"] = prefix.split(":")
-    properties["size"] = int(properties.get("size", "0G").strip("G"))
+    size_raw = properties.get("size", "0G")
+    properties["size"] = int(size_raw.strip("G")) if "G" in size_raw else int(size_raw.strip("T")) * 1024
     return properties
 
 

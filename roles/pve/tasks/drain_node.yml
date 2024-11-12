@@ -1,4 +1,17 @@
 ---
+- name: SCAN VOLUMES
+  block:
+  - name: Scan volumes
+    shell:
+      executable: /bin/bash
+      cmd: |
+        /usr/bin/qm disk rescan
+        /usr/bin/pct rescan
+    register: disk_rescan_raw
+
+  - debug:
+      var: disk_rescan_raw.stdout_lines + disk_rescan_raw.stderr_lines
+
 - name: PREPARE MIGRATIONS
   vars:
     guests_to_move: "{{ ansible_local.pve.guests_by_node[inventory_hostname].guests | rejectattr('template', 'equalto', '1') | sort(attribute='id', reverse=true) }}"

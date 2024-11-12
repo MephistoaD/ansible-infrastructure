@@ -37,7 +37,7 @@
         /usr/bin/ceph mgr module enable prometheus
     register: pveceph_prometheus
     failed_when: false
-    changed_when: pveceph_prometheus.stdout_lines | length == 0
+    changed_when: false
 
   - debug:
       var: pveceph_prometheus.stdout_lines + pveceph_prometheus.stderr_lines
