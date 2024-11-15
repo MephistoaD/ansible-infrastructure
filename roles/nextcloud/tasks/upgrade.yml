@@ -48,8 +48,8 @@
 
   - name: Fail when encountered errors
     fail:
-      msg: migration_output.stderr
-    when: migration_output.rc != 0
+      msg: maintenance_output.stderr
+    when: maintenance_output.rc != 0
 
 - name: Migrate Database
   block:
