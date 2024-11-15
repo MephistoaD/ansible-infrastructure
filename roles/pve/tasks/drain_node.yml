@@ -5,8 +5,8 @@
     shell:
       executable: /bin/bash
       cmd: |
-        /usr/bin/qm disk rescan
-        /usr/bin/pct rescan
+        /usr/sbin/qm disk rescan
+        /usr/sbin/pct rescan
     register: disk_rescan_raw
 
   - debug:
