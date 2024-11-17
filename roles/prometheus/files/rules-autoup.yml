@@ -84,3 +84,21 @@ groups:
       count: "{{ $value }}"
     labels:
       autoup: inhibitor
+
+  - alert: CephHealingInhibitor
+    expr: |
+      (ceph_pg_recovering + ceph_pg_recovery_wait + ceph_pg_degraded > 0)
+    annotations:
+      title: "Ceph is actively healing placement groups"
+      count: "{{ $value }}"
+    labels:
+      autoup: inhibitor
+
+  - alert: CephUnhealtyInhibitor
+    expr: |
+      (ceph_health_status > 0)
+    annotations:
+      title: "Ceph is currently unhealthy"
+      count: "{{ $value }}"
+    labels:
+      autoup: inhibitor
