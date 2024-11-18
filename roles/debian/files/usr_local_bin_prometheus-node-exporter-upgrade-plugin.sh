@@ -3,7 +3,7 @@
 TEMPFILE=/tmp/upgradable_packages.prom
 EXPORTER_DIR=/var/lib/prometheus/node-exporter/
 
-UPGRADABLE_PACKAGES=$(apt-get -s --no-download dist-upgrade -V | grep '=>')
+UPGRADABLE_PACKAGES=$(apt-get -s --no-download dist-upgrade -V --fix-missing | grep '=>')
 HOLD_PACKAGES=$(apt-mark showhold)
 
 echo "# upgradable packages" > $TEMPFILE
