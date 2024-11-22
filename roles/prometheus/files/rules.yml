@@ -31,3 +31,17 @@ groups:
     # Labels - additional labels to be attached to the alert
     labels:
       severity: 'critical'
+
+  - alert: PVEGuestDiskFull
+    # Condition for alerting
+    expr: |
+      pve_disk_usage_bytes * 100 / pve_disk_size_bytes > 70
+    for: 1m
+    # Annotation - additional informational labels to store more information
+    annotations:
+        title: 'Guests Disk is full ({{ $value }}%)'
+    #   title: 'Instance { $labels.instance }} down'
+    #   description: '{ $labels.instance }} of job { $labels.job }} has been down for more than 1 minute.'
+    # Labels - additional labels to be attached to the alert
+    labels:
+      severity: 'warning'
