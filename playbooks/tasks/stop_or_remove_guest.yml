@@ -1,0 +1,36 @@
+---
+- name: STOP OR REMOVE GUEST
+  block:
+  - name: Stop guest
+    vars:
+      current_vm_config: "{{ ansible_local.pve['guests_by_id'][vmid | string] }}"
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        /usr/bin/pvesh post /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/stop
+    register: stop_guest
+    when: current_vm_config.status == 'running'
+
+  - name: Remove guest
+    vars:
+      command:
+        vm: "qm destroy {{ vmid}}"
+        lxc: "pct destroy {{ vmid }} --purge" # purge removes the ct from jobs and other configs
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    shell:
+      executable: /bin/bash
+      cmd: "{{ command[proxmox_guest_technology[technology]] }}"
+    when: 
+      - "status.value == 'decommissioning' or deploy_guest in ['redeploy', 'purge']"
+
+  - name: End play if guest is offline
+    meta: end_play
+    when:
+      - status.value in ['offline', 'decommissioning'] or deploy_guest in ['purge']
+
+  - name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
+    delegate_to: "{{ delegate_to_pve_instance }}"
+    run_once: true
+    setup:
+      filter: ansible_local

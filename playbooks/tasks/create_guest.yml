@@ -1,0 +1,64 @@
+---
+- name: CREATE GUEST
+  vars:
+    # do not touch below
+    template_vmid: "{{ available_platforms[platforms[0]]['vm_template_id'] | default(0) }}" # default is necessary since this statement gets evaluated even a lxc is deployed
+    template_vm: "{{ ansible_local.pve['guests_by_id'][template_vmid] }}"
+    delegate_to_template_pve_instance: "{{ template_vm['node'] | default(delegate_to_pve_instance) }}"
+  block:
+  - name: "Create new guest"
+    vars:
+      command:
+        lxc: |
+          # Set just any random password
+          password=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | cut -c1-"${1:-12}")
+
+          pvesh create "/nodes/{{ delegate_to_template_pve_instance }}/lxc" \
+            -vmid "{{ vmid }}" \
+            -hostname "{{ inventory_hostname }}" \
+            -ostemplate "{{ ostemplate }}" \
+            -password "$password" \
+            -ssh-public-keys "{{ allowed_ssh_publickey }}" \
+            -cores "{{ vcpus | int }}" \
+            -memory "{{ memory }}" \
+            -swap "{{ swap_default_size  }}" \
+            -storage "{{ guest_storage }}" \
+            -rootfs "volume={{ rootfs_volume }}" \
+            -pool "{{ pool | upper }}" \
+            -net0 "name=eth0,bridge=vmbr0,firewall=1,ip={{ primary_ip4 }}/24,gw={{ gateway }}" \
+            -features "nesting=1" \
+            -unprivileged "1"
+        vm: |
+          # Creation from the template
+          qm clone {{ template_vmid }} {{ vmid }} \
+            --name "{{ inventory_hostname }}" \
+            --full true \
+            --pool "{{ pool | upper }}" \
+            --storage "{{ guest_storage }}"
+
+          # Create cloudinit drive
+          qm set {{ vmid }} --ide2 {{ guest_storage }}:cloudinit
+
+          # By some weird reason the ssh key needs to be passed as file:
+          ansible_pubkey="/tmp/ansible_id_rsa.pub"
+          echo {{ allowed_ssh_publickey }} > $ansible_pubkey
+          qm set {{ vmid }} \
+            --sshkeys $ansible_pubkey
+
+          # The cloudinit config must be passed before initial boot
+          qm set {{ vmid }} \
+            --ipconfig0 gw={{ gateway }},ip={{ primary_ip4 }}/24 \
+            --nameserver {{ nameserver }} \
+            --ciupgrade false
+
+          qm resize {{ vmid }} scsi0 {{ disk }}G
+    delegate_to: "{{ delegate_to_template_pve_instance }}"
+    shell:
+      executable: /usr/bin/bash
+      cmd: "{{ command[technology] }}"
+    register: guest_creation
+    
+  - name: "Collect ansible_local on {{ delegate_to_template_pve_instance }}"
+    delegate_to: "{{ delegate_to_template_pve_instance }}"
+    setup:
+      filter: ansible_local
