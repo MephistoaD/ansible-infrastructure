@@ -28,26 +28,14 @@
     autoremove: yes
     allow_change_held_packages: true # in ubuntu the package is held in case the dependency tree changed structurally
   diff: true
-  register: dist_upgrade_output
 
-- name: Reboot the system
-  reboot:
-    msg: "Reboot initiated by Ansible for upgrade"
-  when: dist_upgrade_output.changed
+- include_role: 
+    name: baseline
+    tasks_from: "{{ item }}"
+  loop:
+  - reboot_system
+  - export_last_system_upgrade
 
-- name: Wait for system to come back online
-  wait_for:
-    host: "{{ ansible_default_ipv4.address }}"
-    port: 22
-    state: started
-    delay: 10
-    timeout: 600 # 10 minutes
-  when: dist_upgrade_output.changed
-
-- name: Autoremove packages on node
+- name: Autoremove packages
   apt:
     autoremove: yes
-
-- include_role:
-    name: "baseline"
-    tasks_from: export_last_system_upgrade

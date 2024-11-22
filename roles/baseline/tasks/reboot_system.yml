@@ -1,0 +1,26 @@
+---
+- name: Reboot as pve-guest
+  delegate_to: "{{ current_host }}"
+  vars:
+    
+  shell:
+    executable: /bin/bash
+    cmd: |
+      pvesh create /nodes/{{ current_host }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/reboot
+  when:
+    - current_host is defined
+
+- name: Reboot the system
+  reboot:
+    msg: "Reboot initiated by Ansible for upgrade"
+  when: current_host is not defined
+
+- name: Wait for system to come back online
+  become: false
+  local_action:
+    module: wait_for
+    host: "{{ ansible_default_ipv4.address }}"
+    port: 22
+    state: started
+    delay: 10
+    timeout: 600 # 10 minutes
