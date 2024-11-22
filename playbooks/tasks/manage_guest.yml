@@ -20,7 +20,6 @@
     when: 
       - vmid_str in ansible_local.pve.guests_by_id
       - deploy_guest in ["redeploy", "purge", "backup"] or upgrade
-      - false # TODO: remove
     block:
     - name: Create backup
       delegate_to: "{{ delegate_to_guest_pve_instance }}"
