@@ -6,6 +6,8 @@
     nameserver: "192.168.2.250" # for vm only, lxc defaults to dns of host
     swap_default_size: 0 # for lxc only
     delegate_to_pve_instance: "{{ groups['_pve'][0] }}" # the node where the lxc is created / the guest list is scraped
+    current_guest_config: "{{ ansible_local.pve['guests_by_id'][vmid_str] }}"
+    delegate_to_guest_pve_instance: "{{ ansible_local.pve['guests_by_id'][vmid_str]['node'] }}"
     ostemplate: "{{ available_platforms[platforms[0]].lxc_ostemplate }}" # = The platform set in the netbox entry
     rootfs_volume: "{{ guest_storage }}:{{ disk }}"
   block:
@@ -15,239 +17,28 @@
       filter: ansible_local
 
   - name: BACKUP GUEST
-    vars:
-      delegate_to_guest_pve_instance: "{{ ansible_local.pve.guests_by_id[vmid_str].node }}"
     when: 
       - vmid_str in ansible_local.pve.guests_by_id
       - deploy_guest in ["redeploy", "purge", "backup"] or upgrade
-    block:
-    - name: Create backup
-      delegate_to: "{{ delegate_to_guest_pve_instance }}"
-      ansible.builtin.shell: 
-        executable: /bin/bash
-        cmd: |
-          /usr/bin/pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/vzdump \
-            --storage backups-{{ pool }} \
-            --vmid {{ vmid }} \
-            --mode snapshot \
-            --notes-template "{{ backup_note }}"
-      register: backup_raw
+      - supress_backup is undefined and supress_backup
+    include_tasks: backup_guest.yml
 
-    - debug:
-        var: backup_raw.stdout_lines
-      
-    - name: Finish play if deploy_guest == "backup"
-      meta: end_play
-      when:
-      - deploy_guest == "backup"
 
   - name: STOP OR REMOVE GUEST
     when:
     - vmid_str in ansible_local.pve.guests_by_id
     - deploy_guest in ["redeploy", "purge"] or status.value in ['offline', 'decommissioning']
-    block:
-    - name: Manage guest
-      vars:
-        current_vm_config: "{{ ansible_local.pve['guests_by_id'][vmid | string] }}"
-        delegate_to_guest_pve_instance: "{{ current_vm_config['node'] }}" # TODO: make obsolete
-        current_guest_type: "{{ 'vm' if current_vm_config.type == 'qemu' else current_vm_config.type }}"
-        iterations:
-        - label: "Stop {{ current_guest_type | upper }} {{ vmid }}"
-          command:
-            vm: "qm stop {{ vmid}}"
-            lxc: "pct stop {{ vmid }}"
-          condition: "{{ current_vm_config.status == 'running' }}"
-        - label: "Remove {{ current_guest_type | upper }} {{ vmid }}"
-          command:
-            vm: "qm destroy {{ vmid}}"
-            lxc: "pct destroy {{ vmid }} --purge" # purge removes the ct from jobs and other configs
-          condition: "{{ status.value == 'decommissioning' or deploy_guest in ['redeploy', 'purge'] }}"
-      delegate_to: "{{ delegate_to_guest_pve_instance }}"
-      shell:
-        executable: /bin/bash
-        cmd: "{{ item.command[current_guest_type] }}"
-      when: 
-        - item.condition
-      loop_control:
-        label: "{{ item.label }}"
-      loop: "{{ iterations }}"
-
-    - name: End play if guest is offline
-      meta: end_play
-      when:
-        - status.value in ['offline', 'decommissioning'] or deploy_guest in ['purge']
-
-    - name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
-      delegate_to: "{{ delegate_to_pve_instance }}"
-      run_once: true
-      setup:
-        filter: ansible_local
+    include_tasks: stop_or_remove_guest.yml
 
 
   - name: CREATE GUEST
-    vars:
-      # do not touch below
-      template_vmid: "{{ available_platforms[platforms[0]]['vm_template_id'] | default(0) }}" # default is necessary since this statement gets evaluated even a lxc is deployed
-      template_vm: "{{ ansible_local.pve['guests_by_id'][template_vmid] }}"
-      delegate_to_template_pve_instance: "{{ template_vm['node'] | default(delegate_to_pve_instance) }}"
     when: 
       - vmid_str not in ansible_local.pve['guests_by_id']
-    block:
-    - name: "Create new guest"
-      vars:
-        command:
-          lxc: |
-            # Set just any random password
-            password=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | cut -c1-"${1:-12}")
-
-            pvesh create "/nodes/{{ delegate_to_template_pve_instance }}/lxc" \
-              -vmid "{{ vmid }}" \
-              -hostname "{{ inventory_hostname }}" \
-              -ostemplate "{{ ostemplate }}" \
-              -password "$password" \
-              -ssh-public-keys "{{ allowed_ssh_publickey }}" \
-              -cores "{{ vcpus | int }}" \
-              -memory "{{ memory }}" \
-              -swap "{{ swap_default_size  }}" \
-              -storage "{{ guest_storage }}" \
-              -rootfs "volume={{ rootfs_volume }}" \
-              -pool "{{ pool | upper }}" \
-              -net0 "name=eth0,bridge=vmbr0,firewall=1,ip={{ primary_ip4 }}/24,gw={{ gateway }}" \
-              -features "nesting=1" \
-              -unprivileged "1"
-          vm: |
-            # Creation from the template
-            qm clone {{ template_vmid }} {{ vmid }} \
-              --name "{{ inventory_hostname }}" \
-              --full true \
-              --pool "{{ pool | upper }}" \
-              --storage "{{ guest_storage }}"
-
-            # Create cloudinit drive
-            qm set {{ vmid }} --ide2 {{ guest_storage }}:cloudinit
-
-            # By some weird reason the ssh key needs to be passed as file:
-            ansible_pubkey="/tmp/ansible_id_rsa.pub"
-            echo {{ allowed_ssh_publickey }} > $ansible_pubkey
-            qm set {{ vmid }} \
-              --sshkeys $ansible_pubkey
-
-            # The cloudinit config must be passed before initial boot
-            qm set {{ vmid }} \
-              --ipconfig0 gw={{ gateway }},ip={{ primary_ip4 }}/24 \
-              --nameserver {{ nameserver }} \
-              --ciupgrade false
-
-            qm resize {{ vmid }} scsi0 {{ disk }}G
-      delegate_to: "{{ delegate_to_template_pve_instance }}"
-      shell:
-        executable: /usr/bin/bash
-        cmd: "{{ command[technology] }}"
-      register: guest_creation
-      
-    - name: "Collect ansible_local on {{ delegate_to_template_pve_instance }}"
-      delegate_to: "{{ delegate_to_template_pve_instance }}"
-      setup:
-        filter: ansible_local
+    include_tasks: create_guest.yml
 
 
   - name: MODIFY GUEST
-    vars:
-      current_guest_config: "{{ ansible_local.pve['guests_by_id'][vmid_str] }}"
-      delegate_to_guest_pve_instance: "{{ ansible_local.pve['guests_by_id'][vmid_str]['node'] }}"
-      current_memory: "{{ current_guest_config.maxmem / 1024 / 1024 | int }}"
-    block:
-
-    - name: Add lxc_custom_config_lines
-      delegate_to: "{{ delegate_to_guest_pve_instance }}"
-      ansible.builtin.lineinfile:
-        path: "/etc/pve/lxc/{{ vmid }}.conf"
-        regexp: '^{{ item }}:'
-        line: "{{ item }}: {{ lxc_custom_config_lines[item] }}"
-      when:
-        - technology == "lxc"
-        - item not in current_guest_config
-        - lxc_custom_config_lines is defined
-      loop: "{{ lxc_custom_config_lines | default([]) | flatten(levels=1) }}"
-
-    - name: Change guest
-      vars:
-        current_guest_cpu: "{{ current_guest_config['maxcpu'] }}"
-        new_onboot: '{{ status.value == "active" }}'
-        iterations:
-          # before start
-          - label: "Update hostname {{ current_guest_config['name'] }} -> {{ inventory_hostname }}"
-            command:
-              vm: "pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/qemu/{{ vmid }}/config --name {{ inventory_hostname }}"
-              lxc: "pvesh set /nodes/{{ delegate_to_guest_pve_instance }}/lxc/{{ vmid }}/config --hostname {{ inventory_hostname }}"
-            condition: "{{ current_guest_config['name'] != inventory_hostname }}"
-          - label: "Update vCPUs {{ current_guest_cpu | int }} -> {{ vcpus | int }} cores"
-            command:
-              vm: "qm set {{ vmid }} --cores {{ vcpus | int }}"
-              lxc: "pct set {{ vmid }} --cores {{ vcpus | int }}"
-            condition: "{{ vcpus | int != current_guest_cpu | int }}"
-          - label: "Update memory {{ current_memory | int }} -> {{ memory }} MB"
-            command:
-              vm: "qm set {{ vmid }} --memory {{ memory }}"
-              lxc: "pct set {{ vmid }} --memory {{ memory }}"
-            condition: "{{ current_memory | int != memory }}"
-#          - label: "Update disk size {{ current_guest_config['scsi0']['size'] }} -> {{ disk }} GB"
- #           action: "qm resize {{ vmid }} scsi0 {{ disk }}G"
-  #          condition: "{{ disk > current_guest_config['scsi0']['size'] }}"
-          
-          
-          - label: "Start guest if active"
-            command: 
-              vm: "qm start {{ vmid }}"
-              lxc: "pct start {{ vmid }}"
-            condition: "{{ current_guest_config['status'] == 'stopped' and status.value == 'active' }}"
-          
-          # after start
-          - label: "Update onboot status {{ 'onboot' in current_guest_config and current_guest_config.onboot }} -> {{ new_onboot }}"
-            command:
-              vm: "qm set {{ vmid }} --onboot {{ new_onboot }}"
-              lxc: "pct set {{ vmid }} --onboot {{ new_onboot }}"
-            condition: "{{ 'onboot' not in current_guest_config or ('onboot' in current_guest_config and (current_guest_config.onboot) != new_onboot) }}"
-          - label: "Change pool {{ current_guest_config.pool | upper }} -> {{ pool | upper }}"
-            command: # lxc and vm are similar (maybe this can be refactored in future)
-              vm: |
-                pvesh set pools/{{ current_guest_config.pool }} --vms {{ vmid }} --delete true
-                pvesh set pools/{{ pool | upper }} --vms {{ vmid }}
-              lxc: |
-                pvesh set pools/{{ current_guest_config.pool }} --vms {{ vmid }} --delete true
-                pvesh set pools/{{ pool | upper }} --vms {{ vmid }}
-            condition: "{{ pool | upper != current_guest_config.pool }}"
-      delegate_to: "{{ delegate_to_guest_pve_instance }}"
-      shell:
-        executable: /usr/bin/bash
-        cmd: |
-          {{ item.command[technology] }}
-      register: update_properties
-      when: 
-        - item.condition is defined
-        - item.condition
-      loop_control:
-        label: "{{ item.label }}"
-      loop: "{{ iterations | selectattr('condition', 'defined') | list }}"
-
-    - name: Wait until the guest is online and sshd started
-      become: false
-      local_action:
-        module: wait_for
-        host: "{{ primary_ip4 }}"  # Replace with your target host
-        port: 22  # SSH port
-        state: started
-        timeout: 300  # Adjust the timeout as needed (in seconds)
-
-    - name: Remove cloudinit drive after first boot
-      delegate_to: "{{ delegate_to_guest_pve_instance }}"
-      ansible.builtin.shell:
-        cmd: |
-          pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/qemu/{{ vmid }}/config --delete "ide2"
-        executable: /usr/bin/bash
-      when:
-        - guest_creation.changed
-        - technology == "vm"
+    include_tasks: modify_guest.yml
 
 
   - name: CONFIGURE SSH ON ROOT AND ABOLISH THE DEFAULT USER
@@ -312,17 +103,12 @@
         state: absent
       when: false
 
+  - name: Set current_host as a fact
+    set_fact:
+      current_host: "{{ ansible_local.pve.guests_by_id[vmid_str].node }}"
 
-  - name: NOTIFY ON NOT YET IMPLEMENTED CASES
-    vars:
-      current_guest_config: "{{ ansible_local.pve['guests_by_id'][vmid_str] }}"
-    block:
-    - name: Error on different rootfs sizes
-      fail:
-        msg: "The current guests rootfs size is {{ current_guest_config.storage.rootfs.size }}GB but the netbox defines it to be {{ disk }}. Automatic disk changes are not implemented yet."
-      when:
-        - technology == "lxc"
-        - current_guest_config.storage.rootfs.size != disk
+  always:
+  - meta: flush_handlers
 
 # End of Deployment block
 

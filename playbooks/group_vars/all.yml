@@ -73,6 +73,10 @@ pools:
   - personal
   - testing
 
+proxmox_guest_technology:
+  vm: qemu
+  lxc: lxc
+
 application_layer_cluster_tag_pattern: '.*_cluster.*'
 application_layer_clusters: "{{ tags | map('regex_search', application_layer_cluster_tag_pattern) | select }}"
 application_layer_cluster: "{{ groups[application_layer_clusters | first] }}"

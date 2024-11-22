@@ -1,0 +1,143 @@
+---
+- name: MODIFY GUEST
+  vars:
+    current_memory: "{{ current_guest_config.maxmem / 1024 / 1024 | int }}"
+  block:
+
+  - name: Add lxc_custom_config_lines
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    ansible.builtin.lineinfile:
+      path: "/etc/pve/lxc/{{ vmid }}.conf"
+      regexp: '^{{ item }}:'
+      line: "{{ item }}: {{ lxc_custom_config_lines[item] }}"
+    when:
+      - technology == "lxc"
+      - item not in current_guest_config
+      - lxc_custom_config_lines is defined
+    loop: "{{ lxc_custom_config_lines | default([]) | flatten(levels=1) }}"
+
+  - name: Update hostname
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        /usr/bin/pvesh set /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/config \
+          --name {{ inventory_hostname }}
+    register: update_hostname
+    when: current_guest_config['name'] != inventory_hostname
+    loop_control:
+      label: "{{ current_guest_config['name'] }} -> {{ inventory_hostname }}"
+    loop:
+      - once
+
+  - name: Update vCPUs
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    vars:
+      current_guest_cpu: "{{ current_guest_config['maxcpu'] }}"
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        /usr/bin/pvesh set /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/config \
+          --cores {{ vcpus | int }}
+    register: update_vcpus
+    when: vcpus | int != current_guest_cpu | int
+    loop_control:
+      label: "{{ current_guest_cpu | int }} -> {{ vcpus | int }} cores"
+    loop:
+      - once
+
+  - name: Update memory
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        /usr/bin/pvesh set /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/config \
+          --memory {{ memory }}
+    register: update_memory
+    when: current_memory | int != memory
+    loop_control:
+      label: "{{ current_memory | int }} -> {{ memory }} MB"
+    loop:
+      - once
+
+  - name: Resize disk
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        /usr/bin/pvesh set /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/resize \
+          --disk rootfs \
+          --size {{ disk }}G
+    register: update_memory
+    when: 
+      - technology == "lxc"
+      - disk > current_guest_config.storage.rootfs.size
+    loop_control:
+      label: "{{ current_guest_config.storage.rootfs.size }} -> {{ disk }} GB (+{{ disk - current_guest_config.storage.rootfs.size }}G)"
+    loop:
+      - once
+
+  - name: Error on different disk sizes (VM only)
+    fail:
+      msg: "The current guests rootfs size is {{ current_guest_config.storage.scsi0.size }}GB but the netbox defines it to be {{ disk }}. Automatic disk changes are not implemented yet."
+    when:
+      - technology == "vm"
+      - current_guest_config.storage.scsi0.size != disk
+
+  - name: Start guest if active
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        /usr/bin/pvesh post /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/start
+    register: start_guest
+    when: current_guest_config['status'] == 'stopped' and status.value == 'active'
+
+  - name: Update onboot status
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    vars:
+      new_onboot: '{{ status.value == "active" }}'
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        /usr/bin/pvesh set /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/config \
+          --onboot {{ new_onboot }}
+    register: update_onboot_status
+    when: "'onboot' not in current_guest_config or ('onboot' in current_guest_config and (current_guest_config.onboot) != new_onboot)"
+    loop_control:
+      label: "{{ 'onboot' in current_guest_config and current_guest_config.onboot }} -> {{ new_onboot }}"
+    loop:
+      - once
+
+  - name: Update pool
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    shell:
+      executable: /usr/bin/bash
+      cmd: |
+        /usr/bin/pvesh set pools/{{ current_guest_config.pool }} --vms {{ vmid }} --delete true
+        /usr/bin/pvesh set pools/{{ pool | upper }} --vms {{ vmid }}
+    register: update_pool
+    when: pool | upper != current_guest_config.pool
+    loop_control:
+      label: "{{ current_guest_config.pool | upper }} -> {{ pool | upper }}"
+    loop:
+      - once
+
+  - name: Wait until the guest is online and sshd started
+    become: false
+    local_action:
+      module: wait_for
+      host: "{{ primary_ip4 }}"  # Replace with your target host
+      port: 22  # SSH port
+      state: started
+      timeout: 300  # Adjust the timeout as needed (in seconds)
+
+  - name: Remove cloudinit drive after first boot
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    ansible.builtin.shell:
+      cmd: |
+        pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/qemu/{{ vmid }}/config --delete "ide2"
+      executable: /usr/bin/bash
+    when:
+      - guest_creation is defined and guest_creation.changed
+      - technology == "vm"
