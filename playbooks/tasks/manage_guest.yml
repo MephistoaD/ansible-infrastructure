@@ -42,36 +42,35 @@
       - deploy_guest == "backup"
 
   - name: STOP OR REMOVE GUEST
+    when:
+    - vmid_str in ansible_local.pve.guests_by_id
+    - deploy_guest in ["redeploy", "purge"] or status.value in ['offline', 'decommissioning']
     block:
-    - when:
-      - vmid in ansible_local.pve.guests_by_id
-      - deploy_guest in ["redeploy", "purge"] or status.value in ['offline', 'decommissioning']
-      block:
-      - name: Manage guest
-        vars:
-          current_vm_config: "{{ ansible_local.pve['guests_by_id'][vmid | string] }}"
-          delegate_to_guest_pve_instance: "{{ current_vm_config['node'] }}" # TODO: make obsolete
-          current_guest_type: "{{ 'vm' if current_vm_config.type == 'qemu' else current_vm_config.type }}"
-          iterations:
-          - label: "Stop {{ current_guest_type | upper }} {{ vmid }}"
-            command:
-              vm: "qm stop {{ vmid}}"
-              lxc: "pct stop {{ vmid }}"
-            condition: "{{ current_vm_config.status == 'running' }}"
-          - label: "Remove {{ current_guest_type | upper }} {{ vmid }}"
-            command:
-              vm: "qm destroy {{ vmid}}"
-              lxc: "pct destroy {{ vmid }} --purge" # purge removes the ct from jobs and other configs
-            condition: "{{ status.value == 'decommissioning' or deploy_guest in ['redeploy', 'purge'] }}"
-        delegate_to: "{{ delegate_to_guest_pve_instance }}"
-        shell:
-          executable: /bin/bash
-          cmd: "{{ item.command[current_guest_type] }}"
-        when: 
-          - item.condition
-        loop_control:
-          label: "{{ item.label }}"
-        loop: "{{ iterations }}"
+    - name: Manage guest
+      vars:
+        current_vm_config: "{{ ansible_local.pve['guests_by_id'][vmid | string] }}"
+        delegate_to_guest_pve_instance: "{{ current_vm_config['node'] }}" # TODO: make obsolete
+        current_guest_type: "{{ 'vm' if current_vm_config.type == 'qemu' else current_vm_config.type }}"
+        iterations:
+        - label: "Stop {{ current_guest_type | upper }} {{ vmid }}"
+          command:
+            vm: "qm stop {{ vmid}}"
+            lxc: "pct stop {{ vmid }}"
+          condition: "{{ current_vm_config.status == 'running' }}"
+        - label: "Remove {{ current_guest_type | upper }} {{ vmid }}"
+          command:
+            vm: "qm destroy {{ vmid}}"
+            lxc: "pct destroy {{ vmid }} --purge" # purge removes the ct from jobs and other configs
+          condition: "{{ status.value == 'decommissioning' or deploy_guest in ['redeploy', 'purge'] }}"
+      delegate_to: "{{ delegate_to_guest_pve_instance }}"
+      shell:
+        executable: /bin/bash
+        cmd: "{{ item.command[current_guest_type] }}"
+      when: 
+        - item.condition
+      loop_control:
+        label: "{{ item.label }}"
+      loop: "{{ iterations }}"
 
     - name: End play if guest is offline
       meta: end_play
