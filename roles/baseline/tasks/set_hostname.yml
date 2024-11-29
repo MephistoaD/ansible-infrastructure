@@ -1,7 +1,7 @@
 ---
 - name: "Modify hostname of non-containerized systems ({{ ansible_hostname }} -> {{ inventory_hostname }})"
   shell:
-    executable: /usr/bin/bash
+    executable: /bin/bash
     cmd: |
       hostnamectl set-hostname {{ inventory_hostname }}
   notify: Reboot vm

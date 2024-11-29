@@ -1,7 +1,7 @@
 ---
 - name: Upgrade pihole
   shell:
-    executable: /usr/bin/bash
+    executable: /bin/bash
     cmd: |
       /usr/local/bin/pihole updatePihole 2>&1
   register: pihole_update

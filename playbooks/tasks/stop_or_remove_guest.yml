@@ -6,7 +6,7 @@
       current_vm_config: "{{ ansible_local.pve['guests_by_id'][vmid | string] }}"
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         /usr/bin/pvesh post /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/stop
     register: stop_guest

@@ -10,7 +10,7 @@
 
 - name: Install prometheus-pihole-exporter
   shell:
-    executable: /usr/bin/bash
+    executable: /bin/bash
     cmd: |
       go install github.com/eko/pihole-exporter@latest
   register: install_pihole_exporter

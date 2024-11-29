@@ -7,7 +7,7 @@
     loop_var: vhost
     label: "{{ vhost.name }}"
   shell:
-    executable: /usr/bin/bash
+    executable: /bin/bash
     cmd: |
       certbot --nginx -d {{ vhost.name }} --non-interactive --agree-tos -m {{ lets_encrypt_mail_ }} 2>&1
   register: certbot_certs
@@ -29,7 +29,7 @@
 
 - name: Simulate renewal of the certificates
   shell:
-    executable: /usr/bin/bash
+    executable: /bin/bash
     cmd: |
       certbot renew --dry-run 2>&1
   register: certbot_renew

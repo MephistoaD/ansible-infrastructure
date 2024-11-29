@@ -78,7 +78,7 @@
 
 - name: Create Proxmox certificates
   shell:
-    executable: /usr/bin/bash
+    executable: /bin/bash
     cmd: /usr/bin/pvecm updatecerts
   when: install_pve.changed
 

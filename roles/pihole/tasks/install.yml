@@ -29,7 +29,7 @@
 
 - name: Install pihole / apply changes (this probably also updates pihole :-()
   shell:
-    executable: /usr/bin/bash
+    executable: /bin/bash
     cmd: |
       /usr/local/bin/pihole-install --unattended {{ '--reconfigure' if pihole_setupvars.changed and not pihole_download_result.changed }} 2>&1
   register: pihole_install

@@ -8,7 +8,7 @@
 
 - name: Install prometheus-unbound-exporter
   shell:
-    executable: /usr/bin/bash
+    executable: /bin/bash
     cmd: |
       go install github.com/letsencrypt/unbound_exporter@latest
   register: install_unbound_exporter
