@@ -7,7 +7,7 @@
   block:  
   - name: Create cluster
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         PVECM=/usr/bin/pvecm 
         $PVECM status > /dev/null 2>&1
@@ -32,7 +32,7 @@
 
   - name: Join cluster
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         /usr/bin/pvecm status
 

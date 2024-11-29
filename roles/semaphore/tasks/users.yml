@@ -48,7 +48,7 @@
   block:
   - name: Add user to semaphore
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         PASSWORD="{{ lookup('password', '/dev/null chars=ascii_letters,digits length=30') }}"
         COOKIE="/tmp/semaphore-cookie"
@@ -85,7 +85,7 @@
 
   - name: Update user in semaphore (does not change the password)
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         semaphore user change-by-login --config {{ semaphore_config_path }} \
         {% if item.admin is defined and item.admin %}
@@ -100,7 +100,7 @@
 
   - name: Delete user from semaphore
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         semaphore user delete --config {{ semaphore_config_path }} \
             --login "{{ to_delete[item].Login }}"

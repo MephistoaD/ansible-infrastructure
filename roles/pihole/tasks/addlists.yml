@@ -42,7 +42,7 @@
   vars:
     pihole_lists: "{{ pihole_lists_raw.stdout | from_json }}"
   shell:
-    executable: /usr/bin/bash
+    executable: /bin/bash
     cmd: |
       sqlite3 /etc/pihole/gravity.db \
         "INSERT INTO adlist (address, enabled, comment) VALUES ('{{ item }}', 1, 'Ansible managed');"
@@ -52,7 +52,7 @@
   vars:
     pihole_lists: "{{ pihole_lists_raw.stdout | from_json }}"
   shell:
-    executable: /usr/bin/bash
+    executable: /bin/bash
     cmd: |
       sqlite3 /etc/pihole/gravity.db \
         "DELETE FROM adlist WHERE address = '{{ item }}';"
@@ -62,7 +62,7 @@
   vars:
     pihole_lists: "{{ pihole_lists_raw.stdout | from_json }}"
   shell:
-    executable: /usr/bin/bash
+    executable: /bin/bash
     cmd: |
       /usr/local/bin/pihole updateGravity
   register: reload_gravity
@@ -119,7 +119,7 @@
   vars:
     pihole_whitelist: "{{ pihole_whitelist_raw.stdout | from_json }}"
   shell:
-    executable: /usr/bin/bash
+    executable: /bin/bash
     cmd: |
       /usr/local/bin/pihole whitelist {{ item }}
   register: add_whitelisted
@@ -129,7 +129,7 @@
   vars:
     pihole_whitelist: "{{ pihole_whitelist_raw.stdout | from_json }}"
   shell:
-    executable: /usr/bin/bash
+    executable: /bin/bash
     cmd: |
       /usr/local/bin/pihole whitelist --delmode {{ item }}
   register: remove_whitelisted

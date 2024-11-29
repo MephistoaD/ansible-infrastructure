@@ -33,7 +33,7 @@
 
   - name: Resolve pi-hole.net to ensure unbound is working properly
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         dig pi-hole.net @127.0.0.1 -p {{ unbound_port }}
     register: unbound_test_resolution

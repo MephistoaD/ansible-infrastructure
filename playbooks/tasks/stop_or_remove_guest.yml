@@ -6,9 +6,9 @@
       current_vm_config: "{{ ansible_local.pve['guests_by_id'][vmid | string] }}"
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
-        /usr/bin/pvesh post /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/stop
+        /usr/bin/pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/stop
     register: stop_guest
     when: current_vm_config.status == 'running'
 
@@ -20,7 +20,7 @@
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
     shell:
       executable: /bin/bash
-      cmd: "{{ command[proxmox_guest_technology[technology]] }}"
+      cmd: "{{ command[technology] }}"
     when: 
       - "status.value == 'decommissioning' or deploy_guest in ['redeploy', 'purge']"
 

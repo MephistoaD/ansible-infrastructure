@@ -6,7 +6,7 @@
     active_cluster_nodes_sorted: "{{ active_cluster_nodes | dict2items | map(attribute='value') | sort(attribute='used_mem') }}"
     dest_node: "{{ pinned_node_dest | default((active_cluster_nodes_sorted | first).node) }}" # The node with the lowest memory consumption
   shell:
-    executable: "/usr/bin/bash"
+    executable: /bin/bash
     cmd: |
       /usr/bin/pvesh create /nodes/{{ inventory_hostname }}/{{ guest_to_move.type }}/{{ guest_to_move.vmid }}/migrate \
       {% if guest_to_move.type == 'qemu' %}

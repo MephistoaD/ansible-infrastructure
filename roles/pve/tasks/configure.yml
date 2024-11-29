@@ -42,7 +42,7 @@
   block:
   - name: Create pools
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         pvesh create /pools --poolid {{ item }}
     when:
@@ -51,7 +51,7 @@
 
   - name: Delete pools if unused
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         pvesh delete /pools/{{ item }}
     register: delete_pools

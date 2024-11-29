@@ -36,25 +36,10 @@
             --pool "{{ pool | upper }}" \
             --storage "{{ guest_storage }}"
 
-          # Create cloudinit drive
-          qm set {{ vmid }} --ide2 {{ guest_storage }}:cloudinit
-
-          # By some weird reason the ssh key needs to be passed as file:
-          ansible_pubkey="/tmp/ansible_id_rsa.pub"
-          echo {{ allowed_ssh_publickey }} > $ansible_pubkey
-          qm set {{ vmid }} \
-            --sshkeys $ansible_pubkey
-
-          # The cloudinit config must be passed before initial boot
-          qm set {{ vmid }} \
-            --ipconfig0 gw={{ gateway }},ip={{ primary_ip4 }}/24 \
-            --nameserver {{ nameserver }} \
-            --ciupgrade false
-
           qm resize {{ vmid }} scsi0 {{ disk }}G
     delegate_to: "{{ delegate_to_template_pve_instance }}"
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: "{{ command[technology] }}"
     register: guest_creation
     

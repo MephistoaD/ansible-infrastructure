@@ -8,7 +8,7 @@ semaphore_projects:
     repositories:
       - name: "ansible-infrastructure"
         url: git@github.com:MephistoaD/ansible-infrastructure.git
-        revision: main
+        revision: master
         ssh_key: "ansible-ssh-key"
     inventories:
       - name: "netbox"

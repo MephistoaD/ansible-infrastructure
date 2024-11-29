@@ -9,7 +9,7 @@
 
   - name: Resolve pi-hole.net to ensure pihole is working properly
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         dig pi-hole.net @127.0.0.1
     register: pihole_test_resolution
@@ -18,7 +18,7 @@
 
   - name: Check if webinterface is available
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         curl --fail http://localhost/admin
     register: pihole_test_webui

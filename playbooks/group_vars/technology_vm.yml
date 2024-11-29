@@ -1,0 +1,4 @@
+---
+cloudinit_storage: "{{ template_storage }}"
+cloudinit_user: ansible
+ansible_user: "{{ cloudinit_user }}"

@@ -54,7 +54,7 @@
     deb: "{{ item }}"
   register: semaphore_package_install
   loop_control:
-    label: "Install version {{ install_version }}, current version is {{ semaphore_latest_version.latest_release }}"
+    label: "Install version {{ install_version }}, current version is {{ ansible_local.semaphore.current_version }}"
   loop:
     - "{{ deb_path }}"
   when:
