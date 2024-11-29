@@ -1,7 +1,4 @@
 ---
-- debug:
-    msg: "upgrade {{ role_name }}"
-
 - name: Check if there is sufficient disk space
   block:
   - name: Check available disk space on mount points
@@ -30,7 +27,3 @@
 - include_role:
     name: "baseline"
     tasks_from: export_last_system_upgrade
-
-
-# - name: Update prometheus export
-#   include_tasks: update.yml
