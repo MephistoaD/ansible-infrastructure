@@ -3,6 +3,69 @@
   vars:
     current_memory: "{{ current_guest_config.maxmem / 1024 / 1024 | int }}"
   block:
+  - name: CLOUDINIT
+    vars:
+      cloudinit_storage_mount: "{{ '/var/lib/vz' if cloudinit_storage == 'local' else '/mnt/pve/' + cloudinit_storage }}/snippets"
+      current_cloudinit_config: "{{ current_cloudinit_config_raw.stdout | from_yaml }}"
+    when:
+      - technology == "vm"
+    block:
+    - name: Get current cloudinit config
+      delegate_to: "{{ delegate_to_guest_pve_instance }}"
+      shell:
+        executable: /bin/bash
+        cmd: |
+          /usr/bin/pvesh get /nodes/{{ delegate_to_guest_pve_instance }}/qemu/{{ vmid }}/cloudinit/dump --type user
+          /usr/bin/pvesh get /nodes/{{ delegate_to_guest_pve_instance }}/qemu/{{ vmid }}/cloudinit/dump --type network
+          /usr/bin/pvesh get /nodes/{{ delegate_to_guest_pve_instance }}/qemu/{{ vmid }}/cloudinit/dump --type meta
+      register: current_cloudinit_config_raw
+      changed_when: false
+
+    - debug: var=current_cloudinit_config
+
+    - name: Update cloudinit user
+      delegate_to: "{{ delegate_to_guest_pve_instance }}"
+      shell:
+        executable: /bin/bash
+        cmd: |
+          # Create cloudinit drive
+          qm set {{ vmid }} --ide2 {{ guest_storage }}:cloudinit
+
+          # By some weird reason the ssh key needs to be passed as file:
+          ansible_pubkey="/tmp/ansible_id_rsa.pub"
+          echo {{ allowed_ssh_publickey }} > $ansible_pubkey
+          qm set {{ vmid }} \
+            --ciuser "{{ cloudinit_user }}" \
+            --sshkeys $ansible_pubkey
+      register: cloudinit_user_raw
+      when: 
+      - ((current_cloudinit_config.user is defined and current_cloudinit_config.user != cloudinit_user) or 
+        (current_cloudinit_config.ssh_authorized_keys is defined and allowed_ssh_publickey not in current_cloudinit_config.ssh_authorized_keys))
+
+    - name: Update cloudinit network
+      delegate_to: "{{ delegate_to_guest_pve_instance }}"
+      shell:
+        executable: /bin/bash
+        cmd: |
+          # Create cloudinit drive
+          qm set {{ vmid }} --ide2 {{ guest_storage }}:cloudinit
+
+          # The cloudinit config must be passed before initial boot
+          qm set {{ vmid }} \
+            --ipconfig0 gw={{ gateway }},ip={{ primary_ip4 }}/24 \
+            --nameserver {{ nameserver }} \
+            --ciupgrade false
+      register: cloudinit_network_raw
+      when: 
+      - (current_cloudinit_config.config[0].subnets[0].address != primary_ip4 or 
+        current_cloudinit_config.config[0].subnets[0].gateway != gateway or 
+        nameserver not in current_cloudinit_config.config[1].address)
+
+    - include_role:
+        name: baseline
+        tasks_from: reboot_system
+      when: cloudinit_network_raw.changed or cloudinit_user_raw.changed
+
 
   - name: Add lxc_custom_config_lines
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
@@ -19,7 +82,7 @@
   - name: Update hostname
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         /usr/bin/pvesh set /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/config \
           --name {{ inventory_hostname }}
@@ -35,7 +98,7 @@
     vars:
       current_guest_cpu: "{{ current_guest_config['maxcpu'] }}"
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         /usr/bin/pvesh set /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/config \
           --cores {{ vcpus | int }}
@@ -49,7 +112,7 @@
   - name: Update memory
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         /usr/bin/pvesh set /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/config \
           --memory {{ memory }}
@@ -63,17 +126,16 @@
   - name: Resize disk
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         /usr/bin/pvesh set /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/resize \
           --disk rootfs \
           --size {{ disk }}G
     register: update_memory
     when: 
-      - technology == "lxc"
-      - disk > current_guest_config.storage.rootfs.size
+      - technology == "lxc" and disk > current_guest_config.storage.rootfs.size
     loop_control:
-      label: "{{ current_guest_config.storage.rootfs.size }} -> {{ disk }} GB (+{{ disk - current_guest_config.storage.rootfs.size }}G)"
+      label: "{{ current_guest_config.storage.rootfs.size if technology == 'lxc' }} -> {{ disk }} GB"
     loop:
       - once
 
@@ -84,12 +146,13 @@
       - technology == "vm"
       - current_guest_config.storage.scsi0.size != disk
 
+
   - name: Start guest if active
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
-        /usr/bin/pvesh post /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/start
+        /usr/bin/pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/start
     register: start_guest
     when: current_guest_config['status'] == 'stopped' and status.value == 'active'
 
@@ -98,7 +161,7 @@
     vars:
       new_onboot: '{{ status.value == "active" }}'
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         /usr/bin/pvesh set /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/config \
           --onboot {{ new_onboot }}
@@ -112,7 +175,7 @@
   - name: Update pool
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
     shell:
-      executable: /usr/bin/bash
+      executable: /bin/bash
       cmd: |
         /usr/bin/pvesh set pools/{{ current_guest_config.pool }} --vms {{ vmid }} --delete true
         /usr/bin/pvesh set pools/{{ pool | upper }} --vms {{ vmid }}
@@ -131,13 +194,3 @@
       port: 22  # SSH port
       state: started
       timeout: 300  # Adjust the timeout as needed (in seconds)
-
-  - name: Remove cloudinit drive after first boot
-    delegate_to: "{{ delegate_to_guest_pve_instance }}"
-    ansible.builtin.shell:
-      cmd: |
-        pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/qemu/{{ vmid }}/config --delete "ide2"
-      executable: /usr/bin/bash
-    when:
-      - guest_creation is defined and guest_creation.changed
-      - technology == "vm"

@@ -36,79 +36,12 @@
       - vmid_str not in ansible_local.pve['guests_by_id']
     include_tasks: create_guest.yml
 
+  - name: Set current_pve_host as a fact
+    set_fact:
+      current_pve_host: "{{ ansible_local.pve.guests_by_id[vmid_str].node }}"
 
   - name: MODIFY GUEST
     include_tasks: modify_guest.yml
-
-
-  - name: CONFIGURE SSH ON ROOT AND ABOLISH THE DEFAULT USER
-    vars:
-      root_authorized_keys: /root/.ssh/authorized_keys
-      ssh_root_access: # just a little hack to allow the check task to reside inside the block too
-        unreachable: true
-    when:
-      - ssh_root_access.unreachable is defined
-      - ssh_root_access.unreachable
-      - technology == "vm"
-    block: 
-    - name: Check if SSH access as root user is allowed
-      ansible.builtin.shell:
-        cmd: echo foo
-      changed_when: false
-      ignore_unreachable: true
-      register: ssh_root_access
-
-    - name: Set `PermitRootLogin` on host
-      remote_user: "{{ guest_default_user }}"
-      template:
-        src: etc_ssh_sshd_config.d_permitrootlogin.conf.j2
-        dest: /etc/ssh/sshd_config.d/permitrootlogin.conf
-      register: set_permitrootlogin
-
-    - name: Add the ansile pubkey to the root user
-      remote_user: "{{ guest_default_user }}"
-      ansible.builtin.shell:
-        executable: /usr/bin/bash
-        cmd: |
-          [ -f {{ root_authorized_keys }} ] && return 1
-          echo {{ allowed_ssh_publickey }} > {{ root_authorized_keys }}
-      changed_when: add_root_authorized_keys.rc == 0
-      failed_when: add_root_authorized_keys.rc not in [0,1]
-      register: add_root_authorized_keys
-
-      # Workaround, else the sshd doesn't restart timely enough
-    - name: Reboot after changes on the sshd
-      remote_user: "{{ guest_default_user }}"
-      reboot:
-        msg: "Reboot by ansible deploy_vm"
-        connect_timeout: 5
-        reboot_timeout: 600
-        pre_reboot_delay: 0
-        post_reboot_delay: 30
-        test_command: uptime
-      when:
-        - set_permitrootlogin.changed
-
-    - name: "Kill processes owned by user {{ guest_default_user }}"
-      ansible.builtin.shell: "kill -9 $(ps -U debian -o pid=)"
-
-    - name: "Delete user {{ guest_default_user }}"
-      ansible.builtin.user:
-        name: debian
-        state: absent
-
-    - name: "Delete home directory of {{ guest_default_user }}"
-      ansible.builtin.file:
-        path: /home/debian
-        state: absent
-      when: false
-
-  - name: Set current_host as a fact
-    set_fact:
-      current_host: "{{ ansible_local.pve.guests_by_id[vmid_str].node }}"
-
-  always:
-  - meta: flush_handlers
 
 # End of Deployment block
 
