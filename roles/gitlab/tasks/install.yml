@@ -1,0 +1,68 @@
+---
+- name: Install dependencies
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - wget
+    - ca-certificates
+    - curl
+    - apt-transport-https
+    - debian-archive-keyring
+    - gnupg2
+
+- name: Add gitlab gpg-key
+  ansible.builtin.apt_key:
+    url: https://packages.gitlab.com/gitlab/gitlab-ce/gpgkey
+    state: present
+
+- name: Add gitlab repository
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+    filename: pbs
+    update_cache: yes
+  loop:
+    - "deb https://packages.gitlab.com/gitlab/gitlab-ce/debian/ {{ ansible_distribution_release }} main"
+    - "deb-src https://packages.gitlab.com/gitlab/gitlab-ce/debian/ {{ ansible_distribution_release }} main"
+
+- name: Install gitlab
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - gitlab-ce
+
+- name: DB MIGRATIONS ON UPGRADE
+  block:
+  - name: Check if db migrations are acceptable
+    shell:
+      executable: /bin/bash
+      cmd: |
+        /usr/bin/gitlab-ctl upgrade-check
+    register: check_upgrade
+    failed_when: false
+    changed_when: false
+    when: upgrade
+
+  - name: Show result of db upgrade check
+    debug:
+      var: check_upgrade.stdout_lines + check_upgrade.stderr_lines
+    failed_when: check_upgrade.rc != 0
+    when: upgrade
+
+  - name: Perform db migrations
+    shell:
+      executable: /bin/bash
+      cmd: |
+        /usr/bin/gitlab-ctl upgrade
+    register: db_upgrade
+    failed_when: false
+    changed_when: false
+    when: upgrade
+
+  - name: Show result of db upgrade
+    debug:
+      var: db_upgrade.stdout_lines + db_upgrade.stderr_lines
+    failed_when: db_upgrade.rc != 0
+    when: upgrade

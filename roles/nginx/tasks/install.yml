@@ -9,11 +9,7 @@
   apt_repository:
     repo: 'deb http://nginx.org/packages/debian {{ ansible_distribution_release }} nginx'
     state: present
-
-- name: update apt cache
-  apt:
     update_cache: yes
-  changed_when: false
 
 - name: Install Packages
   apt:
