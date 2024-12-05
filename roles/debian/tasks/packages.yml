@@ -21,14 +21,17 @@
     state: absent
   loop: "{{ debian_global_absent_packages }}"
 
-- name: install guest agent
+- name: Install guest agent
   apt:
     pkg:
       - qemu-guest-agent
     state: present
+  register: install_guest_agent
   when: 
     - is_virtual
     - technology == 'vm'
-  notify:
-    - Reboot vm
-
+ 
+- include_role: 
+    name: baseline
+    tasks_from: reboot_system
+  when: install_guest_agent.changed
