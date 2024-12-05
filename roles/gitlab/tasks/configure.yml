@@ -1,0 +1,23 @@
+---
+- name: Template config
+  template:
+    src: etc_gitlab_gitlab.rb.j2
+    dest: /etc/gitlab/gitlab.rb
+  register: template_config
+
+- name: Validate config
+  shell:
+    executable: /bin/bash
+    cmd: |
+      /usr/bin/gitlab-ctl check-config
+      /usr/bin/gitlab-ctl reconfigure
+  register: validate_config_raw
+  failed_when: false
+  changed_when: false
+  when: template_config.changed
+
+- name: Show result of config validation
+  debug:
+    var: validate_config_raw.stdout_lines + validate_config_raw.stderr_lines
+  failed_when: validate_config_raw.rc != 0
+  when: template_config.changed

@@ -1,0 +1,20 @@
+---
+- name: "Role {{ role_name }}"
+  vars:
+    foo_: "{{ local_context_data[0]['foo'] | default(foo) }}"
+    
+  when:
+    - only_role is undefined or only_role == role_name
+  block:
+  # Assertions
+  - name: "Preventive assertions of role {{ role_name }}"
+    assert:
+      that:
+        - not is_virtual or technology == "vm"
+
+  # Tasks
+  - include_tasks: install.yml
+    when:
+      - not quick
+
+  - include_tasks: configure.yml

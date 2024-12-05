@@ -1,0 +1,5 @@
+---
+role_name: gitlab
+
+gitlab_keyring_file: /usr/share/keyrings/gitlab_gitlab-ce-archive-keyring.gpg
+gitlab_external_url: "http://{{ inventory_hostname }}.{{ pool }}.{{ dns_local_tld }}"
