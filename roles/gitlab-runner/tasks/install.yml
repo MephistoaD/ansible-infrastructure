@@ -1,0 +1,22 @@
+---
+- name: Add gitlab-runner gpg-key
+  ansible.builtin.apt_key:
+    url: https://packages.gitlab.com/runner/gitlab-runner/gpgkey
+    state: present
+
+- name: Add gitlab-runner repository
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+    filename: pbs
+    update_cache: yes
+  loop:
+    - "deb https://packages.gitlab.com/runner/gitlab-runner/debian/ {{ ansible_distribution_release }} main"
+    - "deb-src https://packages.gitlab.com/runner/gitlab-runner/debian/ {{ ansible_distribution_release }} main"
+
+- name: Install gitlab-runner
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - gitlab-runner

@@ -1,0 +1,4 @@
+---
+role_name: gitlab-runner
+
+gitlab_runner_global_concurrent_jobs_limit: "{{ (vcpus * 2) | int }}"
