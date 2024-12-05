@@ -1,0 +1,26 @@
+---
+- name: "Role {{ role_name }}"
+  when:
+    - only_role is undefined or only_role == role_name
+  block:
+  # Assertions
+  - name: "Preventive assertions of role {{ role_name }}"
+    assert:
+      that:
+        - "{{ item.check }}"
+      fail_msg: "{{ item.msg }}"
+    loop_control:
+      label: "{{ item.msg }}"
+    loop:
+      - { check: "{{ ansible_python_version is version('3.8', '>=') }}", msg: "Ansible Python version must be above 3.8" }
+
+  # Scripts
+
+  # Tasks
+  - include_tasks: install.yml
+    when:
+      - not quick
+
+  - include_tasks: configure.yml
+
+  # Tests

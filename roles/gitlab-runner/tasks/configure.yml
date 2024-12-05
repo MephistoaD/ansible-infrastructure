@@ -1,0 +1,6 @@
+---
+- name: "Set concurrent value to {{ gitlab_runner_global_concurrent_jobs_limit }}"
+  ansible.builtin.lineinfile:
+    path: "/etc/gitlab-runner/config.toml"
+    regexp: '^concurrent = .*'
+    line: "concurrent = {{ gitlab_runner_global_concurrent_jobs_limit }}"
