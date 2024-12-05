@@ -38,8 +38,8 @@
             --ciuser "{{ cloudinit_user }}" \
             --sshkeys $ansible_pubkey
       register: cloudinit_user_raw
-      when: 
-      - ((current_cloudinit_config.user is defined and current_cloudinit_config.user != cloudinit_user) or 
+      when:
+      - ((current_cloudinit_config.user is defined and current_cloudinit_config.user != cloudinit_user) or
         (current_cloudinit_config.ssh_authorized_keys is defined and allowed_ssh_publickey not in current_cloudinit_config.ssh_authorized_keys))
 
     - name: Update cloudinit network
@@ -56,9 +56,9 @@
             --nameserver {{ nameserver }} \
             --ciupgrade false
       register: cloudinit_network_raw
-      when: 
-      - (current_cloudinit_config.config[0].subnets[0].address != primary_ip4 or 
-        current_cloudinit_config.config[0].subnets[0].gateway != gateway or 
+      when:
+      - (current_cloudinit_config.config[0].subnets[0].address != primary_ip4 or
+        current_cloudinit_config.config[0].subnets[0].gateway != gateway or
         nameserver not in current_cloudinit_config.config[1].address)
 
     - include_role:
@@ -132,7 +132,7 @@
           --disk rootfs \
           --size {{ disk }}G
     register: update_memory
-    when: 
+    when:
       - technology == "lxc" and disk > current_guest_config.storage.rootfs.size
     loop_control:
       label: "{{ current_guest_config.storage.rootfs.size if technology == 'lxc' }} -> {{ disk }} GB"
