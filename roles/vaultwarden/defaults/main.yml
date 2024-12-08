@@ -1,6 +1,6 @@
 ---
 role_name: vaultwarden
-prometheus_role_exporter_port_nginx: 9113
+
 prometheus_roles:
   - nginx
 
