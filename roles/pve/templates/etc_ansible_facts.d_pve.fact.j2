@@ -74,6 +74,13 @@ def parse_storage(value: str) -> Dict[str, Union[str, int]]:
     properties["size"] = int(size_raw.strip("G")) if "G" in size_raw else int(size_raw.strip("T")) * 1024
     return properties
 
+# the status from the api endpoint
+def get_node_status(node_name: str) -> dict:
+    status = json.loads(run_command(["pvesh", "get", f"/nodes/{node_name}/status", "--output-format", "json"]))
+    loadavg = list(map(float, status['loadavg']))
+    status['eligibility'] = sum(loadavg) / len(loadavg) / status['cpuinfo']['cpus']
+    return status
+
 
 def parse_nodes_status(nodes_status: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Parses node status information and retrieves the node state from configuration files."""
@@ -89,7 +96,7 @@ def parse_nodes_status(nodes_status: List[Dict[str, Any]]) -> Dict[str, Any]:
         nodes[node_name] = node
     return nodes
 
-
+# the custom status set by ansible
 def get_node_state(node_name: str) -> str:
     """Retrieves the node state from the node's configuration file."""
     config_path = f"/etc/pve/nodes/{node_name}/config"
@@ -135,6 +142,9 @@ def get_facts() -> Dict[str, Any]:
 
     guests_by_id = {}
     guests_by_node = parse_nodes_status(cluster_nodes)
+
+    for node_name in guests_by_node:
+        guests_by_node[node_name].update(get_node_status(node_name))
 
     for guest in cluster_guests:
         vmid = guest["vmid"]

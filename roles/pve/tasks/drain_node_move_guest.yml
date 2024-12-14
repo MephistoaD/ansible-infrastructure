@@ -3,7 +3,7 @@
   vars:
     pinned_node_dest: "{{ hostvars[guest_to_move.name].pinned_on_node.name if ansible_local.pve.guests_by_node[hostvars[guest_to_move.name].pinned_on_node.name].node_state == 'ACTIVE' }}"
     active_cluster_nodes: "{{ ansible_local.pve.guests_by_node | dict2items | selectattr('value.node_state', 'equalto', 'ACTIVE') | rejectattr('value.node', 'equalto', inventory_hostname) | items2dict }}"
-    active_cluster_nodes_sorted: "{{ active_cluster_nodes | dict2items | map(attribute='value') | sort(attribute='used_mem') }}"
+    active_cluster_nodes_sorted: "{{ active_cluster_nodes | dict2items | map(attribute='value') | sort(attribute='eligibility') }}"
     dest_node: "{{ pinned_node_dest | default((active_cluster_nodes_sorted | first).node) }}" # The node with the lowest memory consumption
   shell:
     executable: /bin/bash
