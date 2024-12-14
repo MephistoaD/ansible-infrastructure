@@ -23,9 +23,7 @@
   register: allow_listen_address
 
 - name: Confirm postgres config is valid
-  become: true
-  become_user: postgres
-  shell: "/usr/lib/postgresql/{{ postgres_major_version }}/bin/postgres --config-file=/etc/postgresql/{{ postgres_major_version }}/main/postgresql.conf -C data_directory"
+  shell: "sudo -u postgres /usr/lib/postgresql/{{ postgres_major_version }}/bin/postgres --config-file=/etc/postgresql/{{ postgres_major_version }}/main/postgresql.conf -C data_directory"
   register: confirm_config
   failed_when: false
   changed_when: false
@@ -44,8 +42,6 @@
     allow_listen_address.changed)
 
 - name: Create PostgreSQL users
-  become: true
-  become_user: postgres
   postgresql_user:
     name: "{{ item.name }}"
     password: "{{ item.password }}"
@@ -55,8 +51,6 @@
   loop: "{{ ansible_local.postgres.users }}"
 
 - name: Create PostgreSQL databases
-  become: true
-  become_user: postgres
   postgresql_db:
     name: "{{ item.name }}"
     owner: "{{ item.owner }}"
