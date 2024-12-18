@@ -24,10 +24,10 @@
     when: 
       - "status.value == 'decommissioning' or deploy_guest in ['redeploy', 'purge']"
 
-  - name: End play if guest is offline
-    meta: end_play
+  - name: End host if guest is offline
+    meta: end_host
     when:
-      - status.value in ['offline', 'decommissioning'] or deploy_guest in ['purge']
+      - status.value in ['offline', 'decommissioning'] or deploy_guest in ['purge', 'stop'] or (stop_guest is defined and stop_guest)
 
   - name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
     delegate_to: "{{ delegate_to_pve_instance }}"

@@ -27,7 +27,7 @@
   - name: STOP OR REMOVE GUEST
     when:
     - vmid_str in ansible_local.pve.guests_by_id
-    - deploy_guest in ["redeploy", "purge"] or status.value in ['offline', 'decommissioning']
+    - deploy_guest in ["redeploy", "purge", "stop"] or status.value in ['offline', 'decommissioning'] or (stop_guest is defined and stop_guest)
     include_tasks: stop_or_remove_guest.yml
 
 
@@ -46,6 +46,6 @@
 # End of Deployment block
 
 - name: Finish play if deploy_guest == "only"
-  meta: end_play
+  meta: end_host
   when:
   - deploy_guest == "only"
