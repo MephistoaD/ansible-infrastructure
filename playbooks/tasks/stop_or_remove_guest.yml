@@ -12,6 +12,22 @@
     register: stop_guest
     when: current_vm_config.status == 'running'
 
+  - name: Update onboot status
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    vars:
+      new_onboot: '{{ status.value == "active" }}'
+    shell:
+      executable: /bin/bash
+      cmd: |
+        /usr/bin/pvesh set /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/config \
+          --onboot {{ new_onboot }}
+    register: update_onboot_status
+    when: "'onboot' not in current_guest_config or ('onboot' in current_guest_config and (current_guest_config.onboot) != new_onboot)"
+    loop_control:
+      label: "{{ 'onboot' in current_guest_config and current_guest_config.onboot }} -> {{ new_onboot }}"
+    loop:
+      - once
+
   - name: Remove guest
     vars:
       command:
