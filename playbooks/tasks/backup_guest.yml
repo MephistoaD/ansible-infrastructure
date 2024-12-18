@@ -17,6 +17,6 @@
       var: backup_raw.stdout_lines
     
   - name: Finish play if deploy_guest == "backup"
-    meta: end_play
+    meta: end_host
     when:
     - deploy_guest == "backup"

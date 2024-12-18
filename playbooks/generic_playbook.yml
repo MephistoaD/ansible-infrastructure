@@ -41,6 +41,17 @@
         loop_control:
           loop_var: current_role
 
+      - name: STOP STAGED GUEST
+        include_tasks: "tasks/manage_guest.yml"
+        vars:
+          stop_guest: true
+        when: 
+          - is_virtual
+          - technology is defined
+          - deploy_guest is defined
+          - deploy_guest or deploy_guest == "only"
+          - status.value == "staged"
+
       rescue:
       - debug:
           msg: here comes the rescue task

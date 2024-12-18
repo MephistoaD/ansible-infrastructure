@@ -159,7 +159,7 @@
       cmd: |
         /usr/bin/pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/start
     register: start_guest
-    when: current_guest_config['status'] == 'stopped' and status.value == 'active'
+    when: current_guest_config['status'] == 'stopped' and status.value in ['active', 'staged']
 
   - name: Update onboot status
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
