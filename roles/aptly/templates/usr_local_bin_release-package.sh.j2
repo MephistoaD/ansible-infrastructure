@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# Exit on errors and undefined variables
+set -euo pipefail
+
+# Function to display usage
+usage() {
+    echo "Usage: $0 --package <package_file> --repo {{ aptly_repos | to_json }}"
+    exit 1
+}
+
+# Parse arguments
+PACKAGE=""
+REPO=""
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --package) PACKAGE="$2"; shift ;;
+        --repo) REPO="$2"; shift ;;
+        *) usage ;;
+    esac
+    shift
+done
+
+# Validate arguments
+if [[ -z "$PACKAGE" || -z "$REPO" ]]; then
+    usage
+fi
+
+# Get the first GPG key from the keyring
+GPG_KEY=$(gpg --list-keys --with-colons | grep '^pub' | awk -F: '{print $5}' | head -n 1)
+if [[ -z "$GPG_KEY" ]]; then
+    echo "Error: No GPG keys found in your keyring."
+    exit 1
+fi
+
+echo "Using GPG key: $GPG_KEY"
+
+# Add the package to the repository
+echo "Adding package '$PACKAGE' to repo '$REPO'..."
+aptly repo add "$REPO" "$PACKAGE"
+
+# Publish the repository
+echo "Publishing repository '$REPO'..."
+aptly publish repo --gpg-key="$GPG_KEY" "$REPO"
+
+echo "Done! Package '$PACKAGE' has been added to the repository '$REPO' and published."

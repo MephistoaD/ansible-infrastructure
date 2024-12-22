@@ -1,0 +1,29 @@
+---
+- name: Place aptly configuration
+  template:
+    src: etc_aptly.conf.j2
+    dest: /etc/aptly.conf
+
+- name: Remove aptly default files
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /root/.aptly.conf
+    - /root/.aptly/
+
+- name: Create repos
+  shell:
+    executable: /bin/bash
+    cmd: |
+      aptly -distribution="stable" -architectures=all repo create {{ item }}
+  register: create_repos
+  changed_when: create_repos.rc == 0
+  failed_when: false
+  loop: "{{ aptly_repos }}"
+
+- name: Place release script
+  template:
+    src: usr_local_bin_release-package.sh.j2
+    dest: /usr/local/bin/release-package
+    mode: 0766
