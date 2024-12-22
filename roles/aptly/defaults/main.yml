@@ -1,0 +1,9 @@
+---
+role_name: role_name
+
+aptly_root_dir: /var/www/
+aptly_gpg_pubkey: "{{ aptly_root_dir }}/trusted.gpg"
+
+aptly_repos:
+  - stable
+  - testing

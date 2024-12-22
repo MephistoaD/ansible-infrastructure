@@ -1,0 +1,68 @@
+---
+# gpg key
+- name: CREATE GPG PRIVATEKEY
+  block:
+    
+  - name: Create GPG privatekey
+    shell:
+      executable: /bin/bash
+      cmd: |
+        #!/bin/bash
+
+        # Check for existing GPG keys
+        if gpg --list-keys >/dev/null 2>&1; then
+            existing_keys=$(gpg --list-keys | grep "pub" | wc -l)
+            if [[ "$existing_keys" -gt 0 ]]; then
+                echo "GPG keys already exist. No new key created."
+
+                # List the new keys
+                gpg --list-keys
+                exit 1
+            fi
+        fi
+
+        # Variables for key generation
+        NAME="$HOSTNAME"
+        EMAIL="$USER@$HOSTNAME"
+
+        # Batch file for automated key creation
+        cat <<EOF >gpg_batch_file
+        %no-protection
+        Key-Type: RSA
+        Key-Length: 4096
+        Name-Real: $NAME
+        Name-Email: $EMAIL
+        Expire-Date: 0
+        EOF
+
+        # Generate the GPG key
+        echo "No existing GPG keys found. Creating a new GPG key..."
+        gpg --batch --gen-key gpg_batch_file
+
+        # Cleanup
+        rm -f gpg_batch_file
+
+        # Output success message
+        echo "New GPG key created for $NAME <$EMAIL>."
+
+        # List the new keys
+        gpg --list-keys
+    register: create_gpg_raw
+    changed_when: create_gpg_raw.rc == 0
+    failed_when: create_gpg_raw.rc not in [0,1]
+
+  - debug: var=create_gpg_raw.stdout_lines
+
+- name: CREATE GPG PUBLICKEY
+  vars:
+    gpg_key_id: "{{ create_gpg_raw.stdout_lines[-2] | replace(' ','') }}"
+  block:
+  - debug: var=gpg_key_id
+
+  - name: Create GPG publickey
+    shell:
+      executable: /bin/bash
+      cmd: |
+        gpg --output {{ aptly_gpg_pubkey }} --armor --export {{ gpg_key_id }}
+    changed_when: false
+    

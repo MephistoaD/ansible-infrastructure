@@ -1,0 +1,27 @@
+---
+- name: Add aptly gpg-key
+  ansible.builtin.apt_key:
+    keyserver: keyserver.ubuntu.com
+    id: A0546A43624A8331
+    state: present
+
+- name: add aptly repository
+  apt_repository:
+    repo: "{{ item }}"
+    state: present
+    filename: pbs
+    update_cache: yes
+  loop:
+    - "deb http://repo.aptly.info/ squeeze main" # the repo is compatible with debian squeeze+ see http://repo.aptly.info/
+
+- name: Install aptly
+  apt:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - aptly
+
+- name: Create aptly root directory
+  file:
+    path: "{{ aptly_root_dir }}"
+    state: directory

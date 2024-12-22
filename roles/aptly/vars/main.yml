@@ -1,0 +1,12 @@
+---
+nginx_config:
+  - name: "_"
+    https: self-signed # false, self-signed, acme
+    custom_locations:
+      - location: "/"
+        alias: "{{ aptly_root_dir }}"
+        config_lines:
+          - "allow all;"
+    custom_config_lines:
+      - "allow all;"
+      - "autoindex on;"
