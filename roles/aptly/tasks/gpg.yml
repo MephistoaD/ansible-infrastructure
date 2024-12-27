@@ -60,9 +60,13 @@
   - debug: var=gpg_key_id
 
   - name: Create GPG publickey
+    vars:
+      tmp: "/tmp/pub.gpg"
     shell:
       executable: /bin/bash
       cmd: |
-        gpg --output {{ aptly_gpg_pubkey }} --armor --export {{ gpg_key_id }}
+        rm {{ tmp }}
+        gpg --output {{ tmp }} --armor --export {{ gpg_key_id }}
+        mv {{ tmp }} {{ aptly_gpg_pubkey }}
     changed_when: false
     
