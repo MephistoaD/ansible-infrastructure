@@ -6,7 +6,7 @@
   include_role: (device_role) Overwrites the device_role by including a custom role instead
   upgrade: (false, true) runs all upgrades defined in the various roles
   quick: (false, true) skipps installs, and most time costly operations (never interferes with upgrade)
-  deploy_guest: (false, "true", "redeploy", "purge", "backup", "only") deploys the vm or ct from the stats given in the netbox instance, purge ignores the status in netbox, if set to "only" the roles are skipped
+  deploy_guest: (false, "true", "redeploy", "purge", "backup", "only", "stop") deploys the vm or ct from the stats given in the netbox instance, purge ignores the status in netbox, if set to "only" the roles are skipped
   only_role: (undefined, role name) skipps non vital tasks from all other roles (useful for debugging)
   serial: (false, true): allows optional serial execution of the roles
   prohibit_restore: (false, true): prohibits the restauration of the guest on failures
