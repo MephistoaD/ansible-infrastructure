@@ -1,8 +1,5 @@
 ---
 - name: Ensure node_state = ACTIVE
-  ansible.builtin.lineinfile:
-    path: "/etc/pve/nodes/{{ inventory_hostname }}/config"
-    state: present
-    line: "#`node_state%3A ACTIVE`"
-    backrefs: yes
-    regexp: "^#`node_state%3A .*`$"
+  shell:
+    cmd: |
+      /usr/local/bin/node-state undrain
