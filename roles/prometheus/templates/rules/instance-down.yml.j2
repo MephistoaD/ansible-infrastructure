@@ -1,0 +1,17 @@
+---
+groups:
+- name: Alerts
+  rules:
+  - alert: InstanceDown
+    # Condition for alerting
+    expr: |
+      false
+{% for instance in groups.active %}
+      or up{instance="{{ instance }}"} == 0
+{% endfor %}
+    for: 1m
+    # Annotation - additional informational labels to store more information
+    annotations:
+        title: 'Instance is Down'
+    labels:
+      severity: 'critical'

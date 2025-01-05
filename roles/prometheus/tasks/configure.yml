@@ -37,11 +37,9 @@
 
   - name: Configure prometheus
     vars:
-      rules_files:
-        - rules-autoup.yml
-        - rules.yml
+      rules_templates: "{{ lookup('ansible.builtin.fileglob', 'templates/rules/*.j2') | split(',') | map('regex_replace','^.*/(.*)$','\\1') }}"
+      rules_files: "{{ lookup('ansible.builtin.fileglob', 'rules/*') | split(',') | map('regex_replace','^.*/(.*)$','\\1') }}"
     block:
-
     - name: Place prometheus configuration
       template:
         src: "prometheus.yml.j2"
@@ -51,10 +49,20 @@
         mode: '0644'
       register: prometheus_config
 
+    - name: Template prometheus rules
+      template:
+        src: "rules/{{ item }}"
+        dest: "/etc/prometheus/{{ item[:-3] }}"
+        owner: root
+        group: root
+        mode: '0644'
+      register: prometheus_rules_templates
+      loop: "{{ rules_templates }}"
+
     - name: Place prometheus rules
       copy:
-        src: "{{ item }}"
-        dest: "/etc/prometheus/{{ item }}"
+        src: "rules/{{ item }}"
+        dest: "/etc/prometheus/{{ item[:-3] }}"
         owner: root
         group: root
         mode: '0644'
@@ -77,4 +85,4 @@
     name: prometheus
     state: reloaded
   when: >
-    prometheus_config.changed or prometheus_rules.changed or args_file.changed
+    prometheus_config.changed or prometheus_rules_templates.changed or prometheus_rules.changed or args_file.changed

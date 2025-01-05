@@ -1,22 +1,5 @@
 ---
 groups:
-- name: Records
-  rules:
-  - record: european_summer_time_offset
-    expr: |
-        (vector(1) and (month() > 3 and month() < 10))
-        or
-        (vector(1) and (month() == 3 and (day_of_month() - day_of_week()) >= 25) and absent((day_of_month() >= 25) and (day_of_week() == 0)))
-        or
-        (vector(1) and (month() == 10 and (day_of_month() - day_of_week()) < 25) and absent((day_of_month() >= 25) and (day_of_week() == 0)))
-        or
-        (vector(1) and ((month() == 10 and hour() < 1) or (month() == 3 and hour() > 0)) and ((day_of_month() >= 25) and (day_of_week() == 0)))
-        or
-        vector(0)
-
-  - record: middle_european_time
-    expr: time() + 3600 * (1 + european_summer_time_offset)
-
 - name: Triggers
   rules:
   - alert: PendingAptUpgradeTrigger

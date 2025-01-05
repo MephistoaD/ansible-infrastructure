@@ -17,6 +17,9 @@ alerting:
 
 # Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
 rule_files:
+{% for rules_file in rules_templates %}
+  - {{ rules_file[:-3] }}
+{% endfor %}
 {% for rules_file in rules_files %}
   - {{ rules_file }}
 {% endfor %}
