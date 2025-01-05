@@ -1,0 +1,13 @@
+---
+- name: Load balance PVE Cluster
+  hosts: "{{ target | default('_pve') }}"
+  gather_facts: true
+  serial: true
+  ignore_unreachable: true
+  vars:
+    only_role: pve # prevent roles like baseline from being included indirectly
+
+  tasks:
+    - include_role:
+        name: pve
+        tasks_from: balance_cluster_load.yml

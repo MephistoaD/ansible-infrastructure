@@ -14,15 +14,13 @@
 
 - name: PREPARE MIGRATIONS
   vars:
-    guests_to_move: "{{ ansible_local.pve.guests_by_node[inventory_hostname].guests | rejectattr('template', 'equalto', '1') | sort(attribute='id', reverse=true) }}"
+    orig_node: "{{ inventory_hostname }}"
+    guests_to_move: "{{ ansible_local.pve.guests_by_node[orig_node].guests | rejectattr('template', 'equalto', '1') | sort(attribute='id', reverse=true) }}"
   block:
   - name: Ensure node_state = DRAIN
-    ansible.builtin.lineinfile:
-      path: "/etc/pve/nodes/{{ inventory_hostname }}/config"
-      state: present
-      line: "#`node_state%3A DRAIN`"
-      backrefs: yes
-      regexp: "^#`node_state%3A .*`$"
+    shell:
+    cmd: |
+      /usr/local/bin/node-state drain
 
   - set_fact:
       num_guests_to_move: "{{ guests_to_move | length }}"
@@ -30,7 +28,7 @@
   - name: Move guest away (ignoring templates)
     include_tasks: drain_node_move_guest.yml
     when:
-      - not (hostvars[guest_to_move.name].pinned_on_node.name is defined and hostvars[guest_to_move.name].pinned_on_node.name == ansible_hostname)
+      - not (hostvars[guest_to_move.name].pinned_on_node.name is defined and hostvars[guest_to_move.name].pinned_on_node.name == orig_node)
     loop_control:
       label: "{{ guest_to_move.id }}"
       loop_var: guest_to_move

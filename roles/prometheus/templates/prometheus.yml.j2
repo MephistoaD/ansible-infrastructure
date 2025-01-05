@@ -17,6 +17,9 @@ alerting:
 
 # Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
 rule_files:
+{% for rules_file in rules_templates %}
+  - {{ rules_file[:-3] }}
+{% endfor %}
 {% for rules_file in rules_files %}
   - {{ rules_file }}
 {% endfor %}
@@ -32,13 +35,15 @@ scrape_configs:
 {% if dependency_map[role].exporter_port %}
   - job_name: '{{ role }}'
     relabel_configs:
-      - source_labels: [__address__] # Add port to the address
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target] # make sure the port is not shown behind the address
+        target_label: instance
+      - source_labels: [__address__] # add the port 9100 behind the targets
         regex: (.*)
         replacement: $1:{{ dependency_map[role].exporter_port }}
         target_label: __address__
         action: replace
-      - source_labels: [__address__] # Set instance label without modifying URL parameters
-        target_label: instance
 {% if dependency_map[role].exporter_path %}
     metrics_path: '{{ dependency_map[role].exporter_path }}'
 {# defaults to /metrics #}
