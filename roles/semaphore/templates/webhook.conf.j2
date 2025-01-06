@@ -1,0 +1,5 @@
+{% for webhook in semaphore_webhooks %}
+- id: {{ webhook.name }}
+  execute-command: "/var/scripts/{{ webhook.name }}.sh"
+  command-working-directory: "/var/webhook"
+{% endfor %}

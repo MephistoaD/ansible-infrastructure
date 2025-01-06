@@ -17,6 +17,7 @@
   with_items:
     - ansible-core
     - python3-pip
+    - webhook
   when:
     - not quick
 
