@@ -17,8 +17,17 @@ route:
       group_interval: 1m
       repeat_interval: 1m
       receiver: 'autoup'
-      
+
+    - matchers:
+        - pve_balance="true"
+      repeat_interval: 10m
+      receiver: 'pve-balance'
 
 receivers:
   - name: 'default'
   - name: 'autoup'
+
+  - name: 'pve-balance'
+    webhook_configs:
+      - url: "{{ alertmanager_webhooks['pve-balance'] }}"
+        send_resolved: false
