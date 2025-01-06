@@ -94,4 +94,21 @@ semaphore_projects:
         environment:
           foo: bar
         schedule: "{{ '0 0 * * *' if pool == 'infra' else '' }}" # every midnight, only on prod instance
-    
+
+      - name: "Balance Cluster Load"
+        description: "Balance Cluster Load by migrating guests"
+        playbook_filename: "playbooks/balance_cluster_load.yml"
+        inventory: "netbox"
+        repository: "ansible-infrastructure"
+        view: "other"
+        environment:
+          foo: bar
+        #schedule: "{{ '0 0 * * *' if pool == 'infra' else '' }}" # every midnight, only on prod instance
+
+semaphore_webhooks:
+  - name: balance-pve-sample
+    script: |
+      curl 'http://localhost:3000/api/project/2/tasks' \
+        -X POST \
+        -H 'Authorization: Bearer {{ ansible_local.semaphore.users.webhook.api_token }}' \
+        --data-raw '{"template_id":22,"params":{},"message":"Triggered by webhook","environment":"{}","secret":"{}"}'

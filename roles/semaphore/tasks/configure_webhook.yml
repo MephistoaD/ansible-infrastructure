@@ -1,0 +1,31 @@
+---
+- name: Create dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+  loop:
+    - /var/scripts/
+    - /var/webhook/
+
+- name: Template webhook.conf
+  template:
+    src: "webhook.conf.j2"
+    dest: "/etc/webhook.conf"
+  register: webhook_conf
+
+- name: Template scripts
+  template:
+    src: "webhook_script.sh.j2"
+    dest: "/var/scripts/{{ item.name }}.sh"
+    mode: 0766
+  register: webhook_scripts
+  loop_control:
+    label: "{{ item.name }}"
+  loop: "{{ semaphore_webhooks }}"
+
+- name: Restart webhook service
+  systemd:
+    name: webhook
+    state: restarted
+  when: >
+    webhook_conf.changed or webhook_scripts.changed
