@@ -32,7 +32,7 @@ groups:
   rules:
   - alert: PVEClusterLoadBalancingNeeded
     expr: |
-      r_pve_node_eligibility_max_deviation > 0.5
+      r_pve_node_eligibility_max_deviation > 1
     annotations:
       title: 'PVE Cluster needs rebalancing'
       description: 'Needs rebalancing'
