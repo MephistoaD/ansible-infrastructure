@@ -86,11 +86,15 @@
 
   - name: Update hostname
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    vars:
+      fieldname:
+        vm: name
+        lxc: hostname
     shell:
       executable: /bin/bash
       cmd: |
         /usr/bin/pvesh set /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/config \
-          --name {{ inventory_hostname }}
+          --{{ fieldname[technology] }} {{ inventory_hostname }}
     register: update_hostname
     when: current_guest_config['name'] != inventory_hostname
     loop_control:
