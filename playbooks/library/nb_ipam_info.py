@@ -176,6 +176,8 @@ def run_module():
             'description': ip_address['description'],
             'dns_name': ip_address['dns_name'],
             'tags': ip_address['tags'],
+            'interface': None,
+            'instance': None,
         }
 
         if ip_address['assigned_object'] is not None:
@@ -192,16 +194,16 @@ def run_module():
         if len(ip_address['nat_outside']) > 0:
             addresses[ip_address['address']]['nat_outside'] = [ outside['address'] for outside in ip_address['nat_outside'] ]
 
-        host_type = f"{'virtual_machine' if 'virtual_machine' in ip_address['assigned_object'] else 'device'}"
-        if (ip_address['assigned_object'] is not None and 
-            host_type in ip_address['assigned_object']):
-            print(ip_address['assigned_object'][host_type]['name'])
-            if ip_address['assigned_object'][host_type]['name'] not in instances:
-                instances[ip_address['assigned_object'][host_type]['name']] = {}
-                print("added dict")
-            if ip_address['assigned_object']['name'] not in instances[ip_address['assigned_object'][host_type]['name']]:
-                instances[ip_address['assigned_object'][host_type]['name']][ip_address['assigned_object']['name']] = []
-            instances[ip_address['assigned_object'][host_type]['name']][ip_address['assigned_object']['name']].append(ip_address['address'])
+        if ip_address['assigned_object'] is not None:
+          host_type = f"{'virtual_machine' if 'virtual_machine' in ip_address['assigned_object'] else 'device'}"
+          if host_type in ip_address['assigned_object']:
+              print(ip_address['assigned_object'][host_type]['name'])
+              if ip_address['assigned_object'][host_type]['name'] not in instances:
+                  instances[ip_address['assigned_object'][host_type]['name']] = {}
+                  print("added dict")
+              if ip_address['assigned_object']['name'] not in instances[ip_address['assigned_object'][host_type]['name']]:
+                  instances[ip_address['assigned_object'][host_type]['name']][ip_address['assigned_object']['name']] = []
+              instances[ip_address['assigned_object'][host_type]['name']][ip_address['assigned_object']['name']].append(ip_address['address'])
 
     result['instances'] = instances
     result['addresses'] = addresses
@@ -230,7 +232,8 @@ def run_module():
     for range in ranges.values():
 
         for address in range['addresses']:
-            if 'wg' in addresses[address]['interface']:
+            if (addresses[address]['interface'] is not None and
+                'wg' in addresses[address]['interface']):
                 if address == addresses[address]['gateway']:
                     addresses[address]['peers'] = [
                             addr for addr in range['addresses'] if addr != address
