@@ -40,6 +40,8 @@
       rules_templates: "{{ lookup('ansible.builtin.fileglob', 'templates/rules/*.j2') | split(',') | map('regex_replace','^.*/(.*)$','\\1') }}"
       rules_files: "{{ lookup('ansible.builtin.fileglob', 'rules/*') | split(',') | map('regex_replace','^.*/(.*)$','\\1') }}"
     block:
+    - debug: var=rules_files
+
     - name: Place prometheus configuration
       template:
         src: "prometheus.yml.j2"
@@ -62,7 +64,7 @@
     - name: Place prometheus rules
       copy:
         src: "rules/{{ item }}"
-        dest: "/etc/prometheus/{{ item[:-3] }}"
+        dest: "/etc/prometheus/{{ item }}"
         owner: root
         group: root
         mode: '0644'
