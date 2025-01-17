@@ -68,14 +68,3 @@
       port: 22  # SSH port
       state: started
       timeout: 300  # Adjust the timeout as needed (in seconds)
-
-  - name: Locking instance for future automated upgrades
-    shell:
-      cmd: /usr/local/bin/autoup lock Last system upgrade failed
-    register: lock_autoup_raw
-  
-  - debug:
-      var: lock_autoup_raw.stdout_lines
-
-  - fail:
-      msg: "Job failed, previous state was restored"
