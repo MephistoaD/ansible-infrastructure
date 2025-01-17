@@ -9,6 +9,11 @@ global:
   external_labels:
       monitor: 'example'
 
+{# storage:
+  tsdb:
+    path: /  # Path to the storage directory
+    retention.size: {{ disk * 0.69 }}GB #}
+
 # Alertmanager configuration
 alerting:
   alertmanagers:
