@@ -43,7 +43,7 @@
   - name: End host if guest is offline
     meta: end_host
     when:
-      - status.value in ['offline', 'decommissioning'] or deploy_guest in ['purge', 'stop'] or (stop_guest is defined and stop_guest)
+      - status.value in ['offline', 'decommissioning'] or deploy_guest in ['purge', 'stop'] or (stop_guest is defined and stop_guest and deploy_guest != 'redeploy')
 
   - name: "Collect ansible_local on {{ delegate_to_pve_instance }}"
     delegate_to: "{{ delegate_to_pve_instance }}"
