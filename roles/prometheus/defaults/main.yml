@@ -1,3 +1,6 @@
 ---
 prometheus_role_exporter_port_prometheus: 9090
 configure_prometheus_job: false
+
+prometheus_monitor_sites:
+  - de-home
