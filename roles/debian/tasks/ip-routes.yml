@@ -2,6 +2,7 @@
 - name: Remove old ip routes in case they were removed
   file:
     path: "/etc/systemd/network/20-{{ ansible_default_ipv4.interface }}.network"
+    state: absent
   register: systemd_networkd_routes_removal
   when:
     - ip_routes is not defined
