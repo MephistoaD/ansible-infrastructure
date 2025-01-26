@@ -1,0 +1,14 @@
+---
+- name: Template routes for default network
+  template:
+    src: etc_systemd_network_20-interface.network.j2
+    dest: "/etc/systemd/network/20-{{ ansible_default_ipv4.interface }}.network"
+  register: systemd_networkd_routes
+  when:
+    - ip_routes is defined
+
+- name: Restart systemd-networkd
+  service:
+    name: systemd-networkd
+    state: restarted
+  when: systemd_networkd_routes.changed

@@ -1,0 +1,11 @@
+[Match]
+Name={{ ansible_default_ipv4.interface }}
+
+[Network]
+
+{% for route in ip_routes %}
+[Route]
+Destination={{ route.destination }}
+Gateway={{ route.gateway }}
+GatewayOnLink=yes
+{% endfor %}
