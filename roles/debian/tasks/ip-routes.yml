@@ -1,4 +1,11 @@
 ---
+- name: Remove old ip routes in case they were removed
+  file:
+    path: "/etc/systemd/network/20-{{ ansible_default_ipv4.interface }}.network"
+  register: systemd_networkd_routes_removal
+  when:
+    - ip_routes is not defined
+
 - name: Template routes for default network
   template:
     src: etc_systemd_network_20-interface.network.j2
@@ -11,4 +18,4 @@
   service:
     name: systemd-networkd
     state: restarted
-  when: systemd_networkd_routes.changed
+  when: systemd_networkd_routes.changed or systemd_networkd_routes_removal.changed

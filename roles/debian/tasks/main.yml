@@ -21,8 +21,6 @@
 
   - name: IP Routes
     include_tasks: ip-routes.yml
-    when:
-      - ip_routes is defined
 
   - name: Install prometheus_node_exporter
     include_tasks: install_prometheus_node_exporter.yml
