@@ -64,6 +64,13 @@
           - deploy_guest == "backup" or (upgrade and deploy_guest)
           - not prohibit_restore
 
+      - name: Locking instance for future automated upgrades
+        shell:
+          cmd: /usr/local/bin/autoup lock Last system upgrade failed
+        register: lock_autoup_raw
+      
+      - debug:
+          var: lock_autoup_raw.stdout_lines
+
       - fail:
-          msg: "rescue operation is not appropiate"
-        # only reaches this point if nothing was restored
+          msg: "Playbook failed, system is locked from upgrades"
