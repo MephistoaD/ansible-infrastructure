@@ -11,3 +11,4 @@
   service:
     name: openvpn-server@server.service
     state: restarted
+  when: block_in_server_conf.changed
