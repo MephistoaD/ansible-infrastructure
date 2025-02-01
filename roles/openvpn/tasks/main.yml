@@ -1,0 +1,25 @@
+---
+- name: "Role {{ role_name }}"
+  vars:
+    foo_: "{{ local_context_data[0]['foo'] | default(foo) }}"
+    
+  when:
+    - only_role is undefined or only_role == role_name
+  block:
+  # Tasks
+  - include_tasks: install.yml
+    when:
+      - not quick
+
+  - name: Check if OpenVPN is installed
+    stat:
+      path: /etc/openvpn/server/server.conf
+    register: openvpn_installed
+
+  - name: ADDITIONAL OPENVPN-SPECIFIC CONFIG
+    when: openvpn_installed.stat.exists
+    block:
+      - include_tasks: configure.yml
+      - vars:
+          plugin: openvpn
+        include_tasks: prometheus_exporter.yml

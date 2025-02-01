@@ -1,0 +1,10 @@
+[Unit]
+Description=Execute openvpn exporter script every minute
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/prometheus-node-exporter-openvpn-plugin.py
+StandardOutput=file:/var/lib/prometheus/node-exporter/openvpn.prom
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+---
+- name: Add configuration block to OpenVPN server.conf
+  blockinfile:
+    path: /etc/openvpn/server/server.conf
+    block: |
+      management 127.0.0.1 7505
+    marker: "# {mark} ANSIBLE MANAGED BLOCK"
+  register: block_in_server_conf
+
+- name: Restart openvpn service
+  service:
+    name: openvpn-server@server.service
+    state: restarted
