@@ -9,6 +9,7 @@ debian_global_packages:
   - iperf3
   - net-tools
   - dnsutils # needed for the dig command, not installed on vms
+  - tcpdump
 
   # http
   - wget
