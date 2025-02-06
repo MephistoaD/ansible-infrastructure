@@ -6,7 +6,6 @@ import re
 import os
 from typing import List, Dict, Any, Optional, Union
 
-
 def run_command(command: List[str]) -> str:
     """Runs a shell command and returns the output as a string."""
     try:
@@ -15,13 +14,16 @@ def run_command(command: List[str]) -> str:
         print(f"Error running command {' '.join(command)}: {e}")
         exit(1)
 
-
-def get_all_cluster_resources() -> List[Dict[str, Any]]:
-    """Fetches all cluster resources using the pvesh command."""
+def get_cluster_resources() -> List[Dict[str, Any]]:
+    """Fetches all cluster resources."""
     return json.loads(run_command(["pvesh", "get", "/cluster/resources", "--output-format", "json"]))
 
+def get_ha_status() -> Dict[str, str]:
+    """Fetches HA status for all guests in the cluster."""
+    ha_data = json.loads(run_command(["pvesh", "get", "/cluster/ha/resources/", "--output-format", "json"]))
+    return {entry["sid"].split(":")[1]: entry for entry in ha_data}  # Extract VMID and HA state
 
-def get_config_path(vmid: str) -> Optional[str]:
+def get_vm_config_path(vmid: str) -> Optional[str]:
     """Finds the configuration file path for a given VM ID."""
     try:
         config_path = run_command(["find", "/etc/pve/nodes", "-type", "f", "-name", f"{vmid}.conf"])
@@ -29,18 +31,11 @@ def get_config_path(vmid: str) -> Optional[str]:
     except subprocess.CalledProcessError:
         return None
 
-
-def parse_config(config_path: str) -> Dict[str, Any]:
-    """Parses a VM or container configuration file and extracts relevant settings."""
-    parsed_config = {
-        "net": {},
-        "storage": {},
-        "onboot": False,
-        "privileged": True  # Default to privileged
-    }
-
+def parse_vm_config(config_path: str) -> Dict[str, Any]:
+    """Parses a VM/container config file and extracts relevant settings."""
+    config = {"net": {}, "storage": {}, "onboot": False, "privileged": True}
+    
     if not os.path.exists(config_path):
-        print(f"Config file not found at {config_path}")
         return {}
 
     with open(config_path, 'r') as file:
@@ -50,22 +45,19 @@ def parse_config(config_path: str) -> Dict[str, Any]:
                 continue
             if line.startswith('['):
                 break
-
             key, value = map(str.strip, line.split(":", 1))
             if key == "onboot":
-                parsed_config['onboot'] = value == "1"
+                config['onboot'] = value == "1"
             elif key == "unprivileged":
-                parsed_config['privileged'] = value != "1"  # Set to False if unprivileged is 1
+                config['privileged'] = value != "1"
             elif 'net' in key:
-                parsed_config["net"][key] = dict(field.split("=") for field in value.split(","))
+                config["net"][key] = dict(field.split("=") for field in value.split(","))
             elif key.startswith(("mp", "rootfs", "scsi")) and "scsihw" not in key:
-                parsed_config["storage"][key] = parse_storage(value)
-
-    return parsed_config
-
+                config["storage"][key] = parse_storage(value)
+    return config
 
 def parse_storage(value: str) -> Dict[str, Union[str, int]]:
-    """Parses storage configuration from the config line."""
+    """Parses storage configuration."""
     fields = value.split(",")
     prefix = fields.pop(0)
     properties = {field.split("=")[0]: field.split("=")[1] for field in fields}
@@ -74,21 +66,19 @@ def parse_storage(value: str) -> Dict[str, Union[str, int]]:
     properties["size"] = int(size_raw.strip("G")) if "G" in size_raw else int(size_raw.strip("T")) * 1024
     return properties
 
-# the status from the api endpoint
-def get_node_status(node_name: str) -> dict:
+def get_node_status(node_name: str) -> Dict[str, Any]:
+    """Fetches status of a cluster node."""
     status = json.loads(run_command(["pvesh", "get", f"/nodes/{node_name}/status", "--output-format", "json"]))
     loadavg = list(map(float, status['loadavg']))
     status['eligibility'] = sum(loadavg) / len(loadavg) / status['cpuinfo']['cpus']
     return status
 
-
 def parse_nodes_status(nodes_status: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Parses node status information and retrieves the node state from configuration files."""
+    """Parses cluster nodes and retrieves their status."""
     nodes = {}
     for node in nodes_status:
         if node["status"] != "online":
             continue
-
         node_name = node["node"]
         node["guests"] = []
         node["used_mem"] = node["mem"] / node["maxmem"]
@@ -96,31 +86,26 @@ def parse_nodes_status(nodes_status: List[Dict[str, Any]]) -> Dict[str, Any]:
         nodes[node_name] = node
     return nodes
 
-# the custom status set by ansible
 def get_node_state(node_name: str) -> str:
-    """Retrieves the node state from the node's configuration file."""
+    """Retrieves custom node state."""
     config_path = f"/etc/pve/nodes/{node_name}/config"
     if not os.path.exists(config_path):
         return "UNKNOWN"
-
     with open(config_path, 'r') as file:
         content = file.read()
         match = re.search(r'`node_state%3A\s*(\w+)`', content)
         return match.group(1) if match else "ACTIVE"
 
-
 def get_cluster_resources_by_type(resources: List[Dict[str, Any]], resource_type: str) -> List[Dict[str, Any]]:
-    """Filters cluster resources by a specific type."""
+    """Filters cluster resources by type."""
     return [resource for resource in resources if resource["type"] == resource_type]
 
-
 def get_tokens() -> Dict[str, Dict[str, str]]:
-    """Reads and parses the token configuration file."""
+    """Reads API tokens from the config file."""
     tokens = {}
     token_path = '/etc/pve/priv/token.cfg'
     if not os.path.exists(token_path):
         return tokens
-
     with open(token_path, 'r') as file:
         for line in file:
             parts = line.strip().split()
@@ -131,45 +116,34 @@ def get_tokens() -> Dict[str, Dict[str, str]]:
             tokens[token_name] = {"user": user, "tokenname": tokenname, "token": token_value}
     return tokens
 
-
 def get_facts() -> Dict[str, Any]:
-    """Collects various facts about the cluster, including guests, nodes, pools, and tokens."""
-    all_cluster_resources = get_all_cluster_resources()
-    cluster_guests = get_cluster_resources_by_type(all_cluster_resources, "qemu")
-    cluster_guests.extend(get_cluster_resources_by_type(all_cluster_resources, "lxc"))
-    cluster_nodes = get_cluster_resources_by_type(all_cluster_resources, "node")
-    cluster_pools = get_cluster_resources_by_type(all_cluster_resources, "pool")
+    """Collects cluster details including HA status."""
+    ha_status = get_ha_status()
+    cluster_resources = get_cluster_resources()
+    guests = get_cluster_resources_by_type(cluster_resources, "qemu") + get_cluster_resources_by_type(cluster_resources, "lxc")
+    nodes = get_cluster_resources_by_type(cluster_resources, "node")
+    pools = get_cluster_resources_by_type(cluster_resources, "pool")
 
     guests_by_id = {}
-    guests_by_node = parse_nodes_status(cluster_nodes)
+    guests_by_node = parse_nodes_status(nodes)
 
     for node_name in guests_by_node:
         guests_by_node[node_name].update(get_node_status(node_name))
 
-    for guest in cluster_guests:
-        vmid = guest["vmid"]
+    for guest in guests:
+        vmid = str(guest["vmid"])  # Convert to string to match HA status keys
         node = guest["node"]
+        guest["ha_status"] = ha_status.get(vmid, "unknown")
         guests_by_id[vmid] = guest
         guests_by_node[node]["guests"].append(guest)
-
-        config_file_path = get_config_path(vmid)
+        config_file_path = get_vm_config_path(vmid)
         if config_file_path:
-            guest["config_path"] = config_file_path
-            guest.update(parse_config(config_file_path))
+            guest.update(parse_vm_config(config_file_path))
 
-    return {
-        "guests_by_id": guests_by_id,
-        "guests_by_node": guests_by_node,
-        "pools": cluster_pools,
-        "tokens": get_tokens(),
-    }
-
+    return {"guests_by_id": guests_by_id, "guests_by_node": guests_by_node, "pools": pools, "tokens": get_tokens()}
 
 def main() -> None:
-    """Main function to print the cluster facts."""
-    facts = get_facts()
-    print(json.dumps(facts, indent=4))
-
+    print(json.dumps(get_facts(), indent=4))
 
 if __name__ == "__main__":
     main()

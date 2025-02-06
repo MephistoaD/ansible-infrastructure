@@ -1,16 +1,20 @@
 ---
 - name: STOP OR REMOVE GUEST
   block:
-  - name: Stop guest
-    vars:
-      current_vm_config: "{{ ansible_local.pve['guests_by_id'][vmid | string] }}"
+  - name: Set ha-status to stopped
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
-    shell:
+    vars:
+      ha_status: "{{ current_guest_config.ha_status }}"
+      ha_guest_type_naming:
+        vm: vm
+        lxc: ct
+    shell: 
       executable: /bin/bash
       cmd: |
-        /usr/bin/pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/stop
-    register: stop_guest
-    when: current_vm_config.status == 'running'
+        /usr/bin/pvesh delete /cluster/ha/resources/{{ ha_guest_type_naming[technology] }}:{{ vmid }}
+    when:
+      - status.value != 'active'
+      - ha_status != 'unknown'
 
   - name: Update onboot status
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
@@ -27,6 +31,17 @@
       label: "{{ 'onboot' in current_guest_config and current_guest_config.onboot }} -> {{ new_onboot }}"
     loop:
       - once
+  
+  - name: Stop guest
+    vars:
+      current_vm_config: "{{ ansible_local.pve['guests_by_id'][vmid | string] }}"
+    delegate_to: "{{ delegate_to_guest_pve_instance }}"
+    shell:
+      executable: /bin/bash
+      cmd: |
+        /usr/bin/pvesh create /nodes/{{ delegate_to_guest_pve_instance }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/stop
+    register: stop_guest
+    when: current_vm_config.status == 'running'
 
   - name: Remove guest
     vars:
