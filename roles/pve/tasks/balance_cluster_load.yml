@@ -5,8 +5,9 @@
     orig_node: "{{ 
         (ansible_local.pve.guests_by_node 
         | dict2items 
-        | selectattr('value.node_state', 'equalto', 'ACTIVE') 
-        | map(attribute='value') 
+        | selectattr('value.node_state', 'defined')
+        | selectattr('value.node_state', 'equalto', 'ACTIVE')
+        | map(attribute='value')
         | sort(attribute='eligibility') | last).node
       }}"
 

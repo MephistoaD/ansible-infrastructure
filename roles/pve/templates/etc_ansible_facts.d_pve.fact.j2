@@ -77,12 +77,11 @@ def parse_nodes_status(nodes_status: List[Dict[str, Any]]) -> Dict[str, Any]:
     """Parses cluster nodes and retrieves their status."""
     nodes = {}
     for node in nodes_status:
-        if node["status"] != "online":
-            continue
         node_name = node["node"]
         node["guests"] = []
-        node["used_mem"] = node["mem"] / node["maxmem"]
-        node["node_state"] = get_node_state(node_name)
+        if node["status"] == "online":
+            node["used_mem"] = node["mem"] / node["maxmem"]
+            node["node_state"] = get_node_state(node_name)
         nodes[node_name] = node
     return nodes
 
@@ -128,7 +127,8 @@ def get_facts() -> Dict[str, Any]:
     guests_by_node = parse_nodes_status(nodes)
 
     for node_name in guests_by_node:
-        guests_by_node[node_name].update(get_node_status(node_name))
+        if guests_by_node[node_name]["status"] == "online":
+          guests_by_node[node_name].update(get_node_status(node_name))
 
     for guest in guests:
         vmid = str(guest["vmid"])  # Convert to string to match HA status keys
