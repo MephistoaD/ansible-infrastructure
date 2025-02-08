@@ -91,7 +91,6 @@ groups:
       (openvpn_active_client_connection > 0)
     annotations:
       title: "System was upgraded recently"
-      count: "{{ printf \"%.4f\" $value }}h cooldown"
+      count: "{{ $value }}"
     labels:
       autoup: inhibitor
-      origin: "A client is still connected to the openvpn server"
