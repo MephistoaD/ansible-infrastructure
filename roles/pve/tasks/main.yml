@@ -73,6 +73,9 @@
       - not is_virtual
 
   - include_tasks: prometheus_exporter.yml
+  - include_tasks: install_prometheus_exporter_plugin.yml
+    vars:
+      plugin: pve
 
   - include_role: # install and setup of ceph
       name: pveceph
