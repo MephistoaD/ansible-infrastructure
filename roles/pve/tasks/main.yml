@@ -1,8 +1,5 @@
 ---
 - name: "Role {{ role_name }}"
-  vars:
-    foo_: "{{ local_context_data[0]['foo'] | default(foo) }}"
-    
   when:
     - only_role is undefined or only_role == role_name
   block:
@@ -73,18 +70,25 @@
       - not is_virtual
 
   - include_tasks: prometheus_exporter.yml
+  - include_tasks: install_prometheus_exporter_plugin.yml
+    vars:
+      plugin: pve
 
-  - include_role: # install and setup of ceph
-      name: pveceph
-    when: pveceph_enabled
+- include_role: # install and setup of ceph
+    name: pveceph
+  when: pveceph_enabled
 
+- name: "Role {{ role_name }}"
+  when:
+    - only_role is undefined or only_role == role_name
+  block:
   # Post Upgrade
   - include_role: # reenable ceph self-healing
       name: pveceph
       tasks_from: post_upgrade
     when:
       - pveceph_enabled
-      - upgrade
+      - (undrain_node or upgrade)
 
   - include_tasks: undrain_node.yml
     when:

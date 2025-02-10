@@ -94,3 +94,21 @@ groups:
       count: "{{ $value }}"
     labels:
       autoup: inhibitor
+
+  - alert: PVECephClusterUnhealthyInhibitor
+    expr: |
+      (pve_ceph_health_status != 1)
+    annotations:
+      title: "Ceph cluster is unhealthy"
+      count: "{{ $value }}" # is not shown in autoup since it resolves to 0
+    labels:
+      autoup: inhibitor
+
+  - alert: PVECephClusterHealthAlertInhibitor
+    expr: |
+      (pve_ceph_health_checks > 0)
+    annotations:
+      title: "Ceph cluster is unhealthy"
+      count: "{{ $value }}"
+    labels:
+      autoup: inhibitor

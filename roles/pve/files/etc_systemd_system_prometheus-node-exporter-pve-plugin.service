@@ -1,0 +1,10 @@
+[Unit]
+Description=Execute pve exporter script every minute
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/prometheus-node-exporter-pve-plugin.py
+StandardOutput=file:/var/lib/prometheus/node-exporter/pve.prom
+
+[Install]
+WantedBy=multi-user.target

@@ -1,8 +1,5 @@
 ---
 - name: "Role {{ role_name }}"
-  vars:
-    foo_: "{{ local_context_data[0]['foo'] | default(foo) }}"
-    
   when:
     - only_role is undefined or only_role == role_name
   block:

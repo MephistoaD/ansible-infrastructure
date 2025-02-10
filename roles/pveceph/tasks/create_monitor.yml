@@ -2,7 +2,12 @@
 
 - name: CREATE MONITOR
   vars:
-    local_mons: "{{ pveceph_ceph_mons.stdout | from_json | selectattr('host', 'equalto', inventory_hostname) }}"
+    local_mons: "{{ 
+        pveceph_ceph_mons.stdout 
+        | from_json 
+        | selectattr('host', 'defined') 
+        | selectattr('host', 'equalto', inventory_hostname) 
+      }}"
   block:
   - name: Get current ceph monitors
     shell:

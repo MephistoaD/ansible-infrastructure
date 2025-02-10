@@ -22,7 +22,7 @@ groups:
 
   - record: r_pve_node_eligibility
     expr: |
-      (pve_node_state_active * on (instance) group_left () ((node_load15 + node_load5 + node_load1) / 3  / on(instance) r_machine_cpu_cores))
+      (pve_node_state_active{state="ACTIVE"} * on (instance) group_left () ((node_load15 + node_load5 + node_load1) / 3  / on(instance) r_machine_cpu_cores))
   
   - record: r_pve_node_eligibility_max_deviation
     expr: |

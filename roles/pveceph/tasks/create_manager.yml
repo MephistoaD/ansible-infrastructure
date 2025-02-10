@@ -2,7 +2,12 @@
 
 - name: CREATE MANAGER
   vars:
-    local_mgrs: "{{ pveceph_ceph_mgrs.stdout | from_json | selectattr('host', 'equalto', inventory_hostname) }}"
+    local_mgrs: "{{ 
+        pveceph_ceph_mgrs.stdout 
+        | from_json 
+        | selectattr('host', 'defined') 
+        | selectattr('host', 'equalto', inventory_hostname) 
+      }}"
   block:
   - name: Get current ceph managers
     shell:
