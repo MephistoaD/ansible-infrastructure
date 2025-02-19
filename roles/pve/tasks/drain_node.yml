@@ -20,7 +20,8 @@
   - name: Ensure node_state = DRAIN
     shell:
       cmd: |
-        /usr/local/bin/node-state drain
+        /usr/local/bin/node-state set drain.vm true
+        /usr/local/bin/node-state set drain.lxc true
 
   - set_fact:
       num_guests_to_move: "{{ guests_to_move | length }}"
