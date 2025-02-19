@@ -169,9 +169,15 @@
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
     vars:
       ha_status: "{{ current_guest_config.ha_status }}"
+      ha_guest_type_naming:
+        vm: vm
+        lxc: ct
     shell: 
       executable: /bin/bash
       cmd: |
+        {% if ha_status != 'unknown' %}
+        /usr/bin/pvesh delete /cluster/ha/resources/{{ ha_guest_type_naming[technology] }}:{{ vmid }}
+        {% endif %}
         /usr/bin/pvesh create /cluster/ha/resources \
           --sid {{ vmid }} \
           --state started \
