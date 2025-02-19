@@ -165,28 +165,30 @@
     register: start_guest
     when: current_guest_config['status'] == 'stopped' and status.value in ['active', 'staged']
 
-  - name: Set ha-status to started
-    delegate_to: "{{ delegate_to_guest_pve_instance }}"
-    vars:
-      ha_status: "{{ current_guest_config.ha_status }}"
-      ha_guest_type_naming:
-        vm: vm
-        lxc: ct
-    shell: 
-      executable: /bin/bash
-      cmd: |
-        {% if ha_status != 'unknown' %}
-        /usr/bin/pvesh delete /cluster/ha/resources/{{ ha_guest_type_naming[technology] }}:{{ vmid }}
-        {% endif %}
-        /usr/bin/pvesh create /cluster/ha/resources \
-          --sid {{ vmid }} \
-          --state started \
-          --max_restart 2 \
-          --max_relocate 5 \
-          --comment "Created by ansible"
-    when:
-      - status.value == "active"
-      - ha_status == 'unknown' or ha_status.state != 'started'
+  # Commented: for the drain process to work efficiently, it is required that a migration command returns AFTER the migration 
+  # is completed. The HA-Agent circumvents this process.
+  # - name: Set ha-status to started
+  #   delegate_to: "{{ delegate_to_guest_pve_instance }}"
+  #   vars:
+  #     ha_status: "{{ current_guest_config.ha_status }}"
+  #     ha_guest_type_naming:
+  #       vm: vm
+  #       lxc: ct
+  #   shell: 
+  #     executable: /bin/bash
+  #     cmd: |
+  #       {% if ha_status != 'unknown' %}
+  #       /usr/bin/pvesh delete /cluster/ha/resources/{{ ha_guest_type_naming[technology] }}:{{ vmid }}
+  #       {% endif %}
+  #       /usr/bin/pvesh create /cluster/ha/resources \
+  #         --sid {{ vmid }} \
+  #         --state started \
+  #         --max_restart 2 \
+  #         --max_relocate 5 \
+  #         --comment "Created by ansible"
+  #   when:
+  #     - status.value == "active"
+  #     - ha_status == 'unknown' or ha_status.state != 'started'
 
   - name: Update onboot status
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
