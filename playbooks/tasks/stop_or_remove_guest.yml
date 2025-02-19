@@ -12,7 +12,6 @@
       cmd: |
         /usr/bin/pvesh delete /cluster/ha/resources/{{ ha_guest_type_naming[technology] }}:{{ vmid }}
     when:
-      - status.value != 'active'
       - "'hastate' in current_guest_config"
 
   - name: Update onboot status
