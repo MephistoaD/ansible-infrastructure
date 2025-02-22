@@ -20,7 +20,7 @@
     when: 
       - vmid_str in ansible_local.pve.guests_by_id
       - deploy_guest in ["redeploy", "purge", "backup"] or upgrade
-      - supress_backup is undefined and supress_backup
+      - supress_backup is undefined and not supress_backup
     include_tasks: backup_guest.yml
 
 

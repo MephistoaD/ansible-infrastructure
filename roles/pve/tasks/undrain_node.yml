@@ -2,4 +2,5 @@
 - name: Ensure node_state = ACTIVE
   shell:
     cmd: |
-      /usr/local/bin/node-state undrain
+      /usr/local/bin/node-state set drain.vm false
+      /usr/local/bin/node-state set drain.lxc false

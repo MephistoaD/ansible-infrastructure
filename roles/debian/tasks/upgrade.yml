@@ -31,7 +31,9 @@
 
 - include_role: 
     name: baseline
-    tasks_from: "{{ item }}"
+    tasks_from: "{{ tasks_from }}"
+  loop_control:
+    loop_var: tasks_from
   loop:
   - reboot_system
   - export_last_system_upgrade

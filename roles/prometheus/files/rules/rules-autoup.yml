@@ -112,3 +112,16 @@ groups:
       count: "{{ $value }}"
     labels:
       autoup: inhibitor
+
+  - alert: PVEMinimumQuorumNodesReachedInhibitor
+    expr: |
+        round((pve_quorum_expected_votes + 1) / 2) 
+        >= on(instance)
+          sum by(instance) (
+            pve_quorum_votes
+          )
+    annotations:
+      title: "The minimum number of nodes for maintaining quorum is reached. Consider setting 'pvecm expected <nr>' lower if you think this is a mistake."
+      count: "{{ $value }}"
+    labels:
+      autoup: inhibitor

@@ -4,6 +4,28 @@ import subprocess
 import json
 import re
 import socket
+import os
+
+CONFIG_PATH = "/etc/pve/nodes/{}/config"
+METRIC_PATH = "/var/lib/prometheus/node-exporter/pve.prom"
+
+def load_node_state(hostname):
+    """Loads the node state from the config file, tolerating '# ' prefixes."""
+    config_path = CONFIG_PATH.format(hostname)
+    if not os.path.exists(config_path):
+        return None
+    
+    try:
+        with open(config_path, 'r') as file:
+            content = file.readlines()
+            cleaned_content = "\n".join(line.lstrip('# ').rstrip() for line in content)
+            match = re.search(r"```node-state\n(.*?)\n```", cleaned_content, re.DOTALL)
+            if match:
+                return json.loads(match.group(1))
+    except Exception as e:
+        print(f"Error reading node state: {e}")
+    
+    return None
 
 def run_command(command):
     """Runs a shell command and returns the output as a string."""
@@ -57,7 +79,7 @@ def get_ceph_status():
         return None
     return json.loads(output)
 
-def format_prometheus(cluster_status, quorum_info, membership_info, ceph_status):
+def format_prometheus(cluster_status, quorum_info, membership_info, ceph_status, node_states):
     """Formats the data in Prometheus syntax."""
     cluster_name = next(item["name"] for item in cluster_status if item["type"] == "cluster")
     nodes = [item for item in cluster_status if item["type"] == "node"]
@@ -86,13 +108,25 @@ def format_prometheus(cluster_status, quorum_info, membership_info, ceph_status)
             count = details.get("summary", {}).get("count", 0)
             output.append(f'pve_ceph_health_checks{{cluster="{cluster_name}", check="{check}", severity="{severity}", origin="{check}({severity}): {message}"}} {count}')
     
+    if node_states:
+        for node, state in node_states.items():
+            if state is not None:
+                for key1, value in state.items():
+                    for key2, value in value.items():
+                        output.append(f'pve_node_state_{key1}_{key2}{{cluster="{cluster_name}", node="{node}", origin="{key1}.{key2}={value}"}} {int(value)}')
+    
     return "\n".join(output)
 
 def main():
     cluster_status = get_cluster_status()
     quorum_info, membership_info = get_votequorum_status()
     ceph_status = get_ceph_status()
-    print(format_prometheus(cluster_status, quorum_info, membership_info, ceph_status))
+    nodes = [node["name"] for node in cluster_status if node["type"] == "node"]
+    node_states = {node: load_node_state(node) for node in nodes}
+    metrics = format_prometheus(cluster_status, quorum_info, membership_info, ceph_status, node_states)
+    
+    with open(METRIC_PATH, "w") as file:
+        file.write(metrics + "\n")
 
 if __name__ == "__main__":
     main()

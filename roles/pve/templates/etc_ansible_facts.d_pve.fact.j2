@@ -85,15 +85,24 @@ def parse_nodes_status(nodes_status: List[Dict[str, Any]]) -> Dict[str, Any]:
         nodes[node_name] = node
     return nodes
 
-def get_node_state(node_name: str) -> str:
-    """Retrieves custom node state."""
-    config_path = f"/etc/pve/nodes/{node_name}/config"
-    if not os.path.exists(config_path):
-        return "UNKNOWN"
-    with open(config_path, 'r') as file:
-        content = file.read()
-        match = re.search(r'`node_state%3A\s*(\w+)`', content)
-        return match.group(1) if match else "ACTIVE"
+def get_node_state(node_name: str) -> dict:
+    """Fetches the node state by executing 'node-state show' for a given node."""
+    try:
+        result = subprocess.run(
+            ["/usr/local/bin/node-state", "--node", node_name, "show"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return json.loads(result.stdout)
+    except subprocess.CalledProcessError as e:
+#        print(f"Error executing node-state for {node_name}: {e}")
+        pass
+    except json.JSONDecodeError:
+#        print(f"Failed to parse node state JSON for {node_name}.")
+        pass
+    
+    return {}
 
 def get_cluster_resources_by_type(resources: List[Dict[str, Any]], resource_type: str) -> List[Dict[str, Any]]:
     """Filters cluster resources by type."""
