@@ -14,18 +14,11 @@
           | selectattr('node_state', 'defined') 
           | selectattr('node_state', 'equalto', 'ACTIVE') 
           | length 
-        }}"
+        }}" # FIXME: replace this logic
     assert:
       that:
-        - "{{ item.check }}"
-      fail_msg: "{{ item.msg }}"
-    loop_control:
-      label: "{{ item.msg }}"
-    loop:
-      - check: "{{ not is_virtual or technology == 'vm' }}"
-        msg: "Assert that the PVE host is either a phisical device or a vm."
-      - check: "{{ not upgrade or nr_other_active_nodes | int >= 1 }}"
-        msg: "Assert that on an upgrade other nodes are 'ACTIVE'"
+        - "not is_virtual or technology == 'vm'"
+        - "not upgrade or nr_other_active_nodes | int >= 1"
   # Scripts
 
   # Tasks
@@ -54,7 +47,7 @@
       tasks_from: pre_upgrade
     when:
       - pveceph_enabled
-      - upgrade
+      - (drain_node or upgrade)
 
   # Actual Upgrade
   - include_role:
