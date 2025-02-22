@@ -77,3 +77,6 @@
 
         - fail:
             msg: "Playbook failed, system is locked from upgrades"
+
+      - fail:
+          msg: "Playbook failed"
