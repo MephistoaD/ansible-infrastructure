@@ -1,18 +1,18 @@
 ---
 - name: STOP OR REMOVE GUEST
   block:
-  - name: Set ha-status to stopped
-    delegate_to: "{{ delegate_to_guest_pve_instance }}"
-    vars:
-      ha_guest_type_naming:
-        vm: vm
-        lxc: ct
-    shell: 
-      executable: /bin/bash
-      cmd: |
-        /usr/bin/pvesh delete /cluster/ha/resources/{{ ha_guest_type_naming[technology] }}:{{ vmid }}
-    when:
-      - "'hastate' in current_guest_config"
+  # - name: Set ha-status to stopped
+  #   delegate_to: "{{ delegate_to_guest_pve_instance }}"
+  #   vars:
+  #     ha_guest_type_naming:
+  #       vm: vm
+  #       lxc: ct
+  #   shell: 
+  #     executable: /bin/bash
+  #     cmd: |
+  #       /usr/bin/pvesh delete /cluster/ha/resources/{{ ha_guest_type_naming[technology] }}:{{ vmid }}
+  #   when:
+  #     - "'hastate' in current_guest_config"
 
   - name: Update onboot status
     delegate_to: "{{ delegate_to_guest_pve_instance }}"
