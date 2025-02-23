@@ -1,0 +1,155 @@
+---
+# assumed vars:
+# current_pve_host -> hostname as string
+# guest -> inventory_hostname of the guest as string
+# assumed to be run against the guest
+
+
+- name: REBOOT GUEST
+  vars:
+    dest_nodes: "{{ dest_nodes_raw.stdout_lines | last | from_json }}"
+  block:
+  - name: Get ansible_local.pve
+    delegate_to: "{{ current_pve_host }}"
+    setup:
+      filter: ansible_local
+
+  - name: Get destination nodes
+    become: false
+    local_action: 
+      module: shell
+      executable: /usr/bin/python3
+      cmd: |
+        import json
+
+        current_pve_host = "{{ current_pve_host }}"
+        technology = "{{ technology }}"
+        guests_by_node = {{ ansible_local.pve.guests_by_node }}
+        {% if hostvars[inventory_hostname].cluster_device is defined %}
+        pinned_on = "{{ hostvars[inventory_hostname].cluster_device.name }}"
+        {% else %}
+        pinned_on = None
+        {% endif %}
+
+        nodes_by_eligibility = list(filter(lambda x: x['status']=='online', map(lambda x: x[1], guests_by_node.items())))
+        nodes_by_eligibility.sort(key=lambda n : n['eligibility'])
+        
+        for n in nodes_by_eligibility:
+          print(f"{n['node']} : {n['eligibility']}")
+        print("current: ", current_pve_host)
+
+        nodes_by_eligibility = [ dict(node=node['node'], eligibility=node['eligibility'], node_state=node['node_state']) for node in nodes_by_eligibility ]
+        
+        
+        eligible_nodes = [ node for node in nodes_by_eligibility ]
+
+        for node in nodes_by_eligibility:
+          node_state = node['node_state']
+          if not node_state['accept_guests'][technology]:
+            print(f"Removing {node['node']} from selection: accept_guests.{technology} == false")
+            eligible_nodes.remove(node)
+          elif node_state['drain'][technology]:
+            print(f"Removing {node['node']} from selection: drain.{technology} == true")
+            eligible_nodes.remove(node)
+
+        move_guest=None
+
+        if pinned_on:
+          print("pinned on ", pinned_on)
+          cluster_device = list(filter(lambda n : n['node'] == pinned_on, nodes_by_eligibility))[0]
+          if (not cluster_device['node_state']['drain'][technology] and 
+              cluster_device['node_state']['accept_guests'][technology]):
+            print(f"Pinned on node {pinned_on}, which accepts guests and is not drained for technology {technology}. Suggesting node {pinned_on}...")
+            eligible_nodes = [cluster_device]
+          elif (not cluster_device['node_state']['accept_guests'][technology] and 
+                not cluster_device['node_state']['drain']['eject_pinned']):
+            print(f"Pinned on node {pinned_on}, which does not accept guests for technology {technology}, but does not eject. Checking if it's already there...")
+            if cluster_device['node'] == current_pve_host:
+              print(f"Pinned on node {pinned_on}, which does not accept guests right now, but already present there. Suggesting to do nothing.")
+              eligible_nodes = [cluster_device]
+            else:
+              print(f"Pinned on node {pinned_on}, which does not accept guests right now, but not already present there. Moving it somewhere else...")
+          elif (cluster_device['node_state']['drain'][technology] and 
+                not cluster_device['node_state']['drain']['eject_pinned']):
+            if cluster_device['node_state']['accept_guests'][technology]:
+              print(f"Pinned on node {pinned_on}, which is drained for technology {technology}, but does not eject and accepts guests for {technology}. Suggesting node {pinned_on}...")
+              eligible_nodes = [cluster_device]
+            elif (not cluster_device['node_state']['accept_guests'][technology] and 
+                cluster_device['node'] == current_pve_host):
+              print(f"Pinned on node {pinned_on}, which is drained and does not accept guests right now, but already present there. Suggesting to do nothing.")
+              eligible_nodes = [cluster_device]
+            else:
+              print(f"Pinned on node {pinned_on}, which is drained and does not accept guests right now, but not already present there. Moving it somewhere else...")
+
+        move_guest=eligible_nodes[0]['node'] != current_pve_host
+
+        result = dict(
+          move_guest=move_guest,
+          destinations=eligible_nodes
+        )
+        
+        print(json.dumps(result))
+    register: dest_nodes_raw
+    changed_when: false
+  
+  - debug:
+      var: dest_nodes_raw.stdout_lines
+
+  - name: MIGRATE GUEST WHILE REBOOT
+    when:
+      - dest_nodes.move_guest
+      - technology == 'lxc'
+    vars:
+      orig_node: "{{ current_pve_host }}"
+      guest_to_move:
+        name: "{{ inventory_hostname }}"
+        vmid: "{{ vmid }}"
+        type: "{{ proxmox_guest_technology[technology] }}"
+        status: running
+      reboot_guest: true
+    include_tasks: migrate.yml
+
+  - name: REBOOT GUEST WITHOUT migration
+    when: not dest_nodes.move_guest or technology == 'vm'
+    block:
+    - name: Stop pve-guest
+      delegate_to: "{{ current_pve_host }}"
+      shell:
+        executable: /bin/bash
+        cmd: |
+          /usr/bin/pvesh create /nodes/{{ current_pve_host }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/stop
+
+    - name: Check VM status
+      delegate_to: "{{ current_pve_host }}"
+      shell:
+        executable: /bin/bash
+        cmd: |
+          /usr/bin/pvesh get /nodes/{{ current_pve_host }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/current --output-format json
+      register: vm_status
+      until: (vm_status.stdout | from_json).status == "stopped"
+      retries: 10
+      delay: 2
+      changed_when: false
+
+    - name: Start pve-guest
+      delegate_to: "{{ current_pve_host }}"
+      shell:
+        executable: /bin/bash
+        cmd: |
+          /usr/bin/pvesh create /nodes/{{ current_pve_host }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/start
+
+
+  - name: Wait until the guest is online and sshd started
+    become: false
+    local_action:
+      module: wait_for
+      host: "{{ primary_ip4 }}"  # Replace with your target host
+      port: 22  # SSH port
+      state: started
+      timeout: 300  # Adjust the timeout as needed (in seconds)
+
+  - name: Get facts again
+    setup:
+
+  - debug:
+      var: ansible_local
