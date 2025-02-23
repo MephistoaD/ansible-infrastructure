@@ -114,7 +114,16 @@ def format_prometheus(cluster_status, quorum_info, membership_info, ceph_status,
                 for key1, value in state.items():
                     for key2, value in value.items():
                         output.append(f'pve_node_state_{key1}_{key2}{{cluster="{cluster_name}", node="{node}", origin="{key1}.{key2}={value}"}} {int(value)}')
-    
+                if (state['accept_guests']['lxc'] and not state['drain']['lxc']) or (state['accept_guests']['vm'] and not state['drain']['vm']): # node accepts guest
+                    accepted_types = []
+                    if state['accept_guests']['lxc'] and not state['drain']['lxc']:
+                        accepted_types.append('lxc')
+                    if state['accept_guests']['vm'] and not state['drain']['vm']:
+                        accepted_types.append('vm')
+                    output.append(f'pve_node_state_active{{cluster="{cluster_name}", node="{node}", state="ACTIVE", origin="Node accepts guests of the type {json.dumps(accepted_types)}"}} {int(value)}')
+                else: # node does not accept guest
+                    output.append(f'pve_node_state_active{{cluster="{cluster_name}", node="{node}", state="DRAIN", origin="Node is drained"}} {int(value)}')
+
     return "\n".join(output)
 
 def main():
