@@ -1,0 +1,116 @@
+---
+- name: MIGRATE GUEST
+  vars:
+    dest_nodes: "{{ dest_nodes_raw.stdout_lines | last | from_json }}"
+    dest_node: "{{ dest_nodes.destinations[0].node }}"
+  block:
+  - name: Get destination nodes
+    become: false
+    local_action: 
+      module: shell
+      executable: /usr/bin/python3
+      cmd: |
+        import json
+
+        current_pve_host = "{{ current_pve_host }}"
+        print(f"current_pve_host = {current_pve_host}")
+
+        technology = "{{ technology }}"
+        guests_by_node = {{ ansible_local.pve.guests_by_node }}
+        {% if hostvars[guest_to_move.name].cluster_device is defined %}
+        pinned_on = "{{ hostvars[guest_to_move.name].cluster_device.name }}"
+        {% else %}
+        pinned_on = None
+        {% endif %}
+
+        nodes_by_eligibility = list(filter(lambda x: x['status']=='online', map(lambda x: x[1], guests_by_node.items())))
+        nodes_by_eligibility.sort(key=lambda n : n['eligibility'])
+        
+        for n in nodes_by_eligibility:
+          print(f"{n['node']} : {n['eligibility']}")
+        print("current: ", current_pve_host)
+
+        nodes_by_eligibility = [ dict(node=node['node'], eligibility=node['eligibility'], node_state=node['node_state']) for node in nodes_by_eligibility ]
+        
+        
+        eligible_nodes = [ node for node in nodes_by_eligibility ]
+
+        for node in nodes_by_eligibility:
+          node_state = node['node_state']
+          if not node_state['accept_guests'][technology]:
+            print(f"Removing {node['node']} from selection: accept_guests.{technology} == false")
+            eligible_nodes.remove(node)
+          elif node_state['drain'][technology]:
+            print(f"Removing {node['node']} from selection: drain.{technology} == true")
+            eligible_nodes.remove(node)
+
+        move_guest=None
+
+        if pinned_on:
+          print("pinned on ", pinned_on)
+          cluster_device = list(filter(lambda n : n['node'] == pinned_on, nodes_by_eligibility))[0]
+          if (not cluster_device['node_state']['drain'][technology] and 
+              cluster_device['node_state']['accept_guests'][technology]):
+            print(f"Pinned on node {pinned_on}, which accepts guests and is not drained for technology {technology}. Suggesting node {pinned_on}...")
+            eligible_nodes = [cluster_device]
+          elif (not cluster_device['node_state']['accept_guests'][technology] and 
+                not cluster_device['node_state']['drain']['eject_pinned']):
+            print(f"Pinned on node {pinned_on}, which does not accept guests for technology {technology}, but does not eject. Checking if it's already there...")
+            if cluster_device['node'] == current_pve_host:
+              print(f"Pinned on node {pinned_on}, which does not accept guests right now, but already present there. Suggesting to do nothing.")
+              eligible_nodes = [cluster_device]
+            else:
+              print(f"Pinned on node {pinned_on}, which does not accept guests right now, but not already present there. Moving it somewhere else...")
+          elif (cluster_device['node_state']['drain'][technology] and 
+                not cluster_device['node_state']['drain']['eject_pinned']):
+            if cluster_device['node_state']['accept_guests'][technology]:
+              print(f"Pinned on node {pinned_on}, which is drained for technology {technology}, but does not eject and accepts guests for {technology}. Suggesting node {pinned_on}...")
+              eligible_nodes = [cluster_device]
+            elif (not cluster_device['node_state']['accept_guests'][technology] and 
+                pinned_on_node['node'] == current_pve_host):
+              print(f"Pinned on node {pinned_on}, which is drained and does not accept guests right now, but already present there. Suggesting to do nothing.")
+              eligible_nodes = [pinned_on_node]
+            else:
+              print(f"Pinned on node {pinned_on}, which is drained and does not accept guests right now, but not already present there. Moving it somewhere else...")
+
+        move_guest=eligible_nodes[0]['node'] != current_pve_host
+
+        result = dict(
+          move_guest=move_guest,
+          destinations=eligible_nodes
+        )
+        
+        print(json.dumps(result))
+    register: dest_nodes_raw
+    changed_when: false
+
+  - debug:
+      var: dest_nodes_raw.stdout_lines
+
+  - debug:
+      msg: "--online {{ '1' if guest_to_move.status == 'running' and not reboot_guest_ else '0' }}"
+
+  - name: "Migration {{ num_current_migration | default(0) + 1 }}/{{ num_migrations | default(1) }}: {{ guest_to_move.type }}/{{ vmid }} {{ orig_node }} -> {{ dest_node }} ({{ guest_to_move.name }})"
+    delegate_to: "{{ orig_node }}"
+    shell:
+      executable: /bin/bash
+      cmd: |
+        /usr/bin/pvesh create /nodes/{{ orig_node }}/{{ guest_to_move.type }}/{{ guest_to_move.vmid }}/migrate \
+        {% if guest_to_move.type == 'qemu' %}
+          --online {{ '1' if guest_to_move.status == 'running' else '0' }} \
+          --with-local-disks 1 \
+        {% elif guest_to_move.type == 'lxc' %}
+          --restart {{ '1' if guest_to_move.status == 'running' else '0' }} \
+        {% endif %}
+          --target {{ dest_node }}
+    register: migration_output
+    failed_when: false
+
+  - debug:
+      var: migration_output
+    when: migration_output.rc != 0
+
+  - name: Fail if migration failed
+    fail:
+      msg: "MIGRATION FAILED"
+    when: migration_output.rc != 0

@@ -8,6 +8,7 @@ import os
 
 CONFIG_PATH = "/etc/pve/nodes/{}/config"
 METRIC_PATH = "/var/lib/prometheus/node-exporter/pve.prom"
+LOCALHOST = socket.gethostname()
 
 def load_node_state(hostname):
     """Loads the node state from the config file, tolerating '# ' prefixes."""
@@ -73,7 +74,7 @@ def parse_votequorum_status(output):
 
 def get_ceph_status():
     """Fetches Ceph cluster health status."""
-    hostname = socket.gethostname()
+    hostname = LOCALHOST
     output = run_command(["pvesh", "get", f"/nodes/{hostname}/ceph/status", "--output-format", "json"])
     if not output:
         return None
@@ -114,7 +115,21 @@ def format_prometheus(cluster_status, quorum_info, membership_info, ceph_status,
                 for key1, value in state.items():
                     for key2, value in value.items():
                         output.append(f'pve_node_state_{key1}_{key2}{{cluster="{cluster_name}", node="{node}", origin="{key1}.{key2}={value}"}} {int(value)}')
-    
+        if node_states[LOCALHOST]:
+            state = node_states[LOCALHOST]
+            accept_lxc = state['accept_guests']['lxc'] and not state['drain']['lxc']
+            accept_vm = state['accept_guests']['vm'] and not state['drain']['vm']
+            if (accept_lxc or accept_vm): # node accepts guest
+                accepted_types = []
+                if accept_lxc:
+                    accepted_types.append('lxc')
+                if accept_vm:
+                    accepted_types.append('vm')
+                accepted_types = json.dumps(accepted_types).replace('"', '')
+                output.append(f'pve_node_state_active{{cluster="{cluster_name}", node="{LOCALHOST}", state="ACTIVE", origin="Node accepts guests of the type {accepted_types}"}} 1')
+            else: # node does not accept guest
+                output.append(f'pve_node_state_active{{cluster="{cluster_name}", node="{LOCALHOST}", state="DRAIN", origin="Node is drained"}} 0')
+
     return "\n".join(output)
 
 def main():

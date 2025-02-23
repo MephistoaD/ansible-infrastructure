@@ -1,33 +1,9 @@
 ---
-- name: REBOOT GUEST
-  when:
-    - current_pve_host is defined
-  block:
-  - name: Stop pve-guest
-    delegate_to: "{{ current_pve_host }}"
-    shell:
-      executable: /bin/bash
-      cmd: |
-        pvesh create /nodes/{{ current_pve_host }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/stop
-
-  - name: Check VM status
-    delegate_to: "{{ current_pve_host }}"
-    shell:
-      executable: /bin/bash
-      cmd: |
-        pvesh get /nodes/{{ current_pve_host }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/current --output-format json
-    register: vm_status
-    until: (vm_status.stdout | from_json).status == "stopped"
-    retries: 10
-    delay: 2
-    changed_when: false
-
-  - name: Start pve-guest
-    delegate_to: "{{ current_pve_host }}"
-    shell:
-      executable: /bin/bash
-      cmd: |
-        pvesh create /nodes/{{ current_pve_host }}/{{ proxmox_guest_technology[technology] }}/{{ vmid }}/status/start
+- name: Reboot guest
+  when: current_pve_host is defined
+  include_role:
+    role: pve-guest
+    tasks_from: reboot
 
 - name: Reboot the system
   reboot:
