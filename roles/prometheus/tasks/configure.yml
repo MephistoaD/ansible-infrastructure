@@ -1,9 +1,8 @@
 ---
 - name: "Configure prometheus data retention"
   vars:
-    retention_gb_80_percent: "{{ disk | int * 0.8 }}"
-    retention_gb_2_free: "{{ disk - 2 }}"
-    retention_gb: "{{ [retention_gb_80_percent, retention_gb_2_free] | min | int }}"
+    retention_gb_8_free: "{{ disk - 8 }}" # ~ the size of an empty debian install
+    retention_gb: "{{ retention_gb_8_free | int }}"
   ansible.builtin.lineinfile:
     path: /etc/default/prometheus
     regexp: '^ARGS='
