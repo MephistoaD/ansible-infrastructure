@@ -35,6 +35,11 @@
       msg: updater_output.stderr
     when: updater_output.rc != 0
 
+  - name: Remove obsolete backups
+    shell:
+      cmd: |
+        rm -rf {{ nextcloud_data }}/updater*
+    
 - name: Perfom repair operations / file conversions
   block:
   - name: Run databse migration nextcloud/occ maintenance:repair

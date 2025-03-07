@@ -87,9 +87,6 @@
   - debug:
       var: dest_nodes_raw.stdout_lines
 
-  - debug:
-      msg: "--online {{ '1' if guest_to_move.status == 'running' and not reboot_guest_ else '0' }}"
-
   - name: "Migration {{ num_current_migration | default(0) + 1 }}/{{ num_migrations | default(1) }}: {{ guest_to_move.type }}/{{ vmid }} {{ orig_node }} -> {{ dest_node }} ({{ guest_to_move.name }})"
     delegate_to: "{{ orig_node }}"
     shell:
