@@ -1,6 +1,9 @@
 ---
 - name: MIGRATE GUEST WHILE REBOOT
-  when: dest_nodes.move_guest
+  vars:
+    current_pve_host: "{{ inventory_hostname }}"
+    technology: "{{ hostvars[guest_to_move.name].technology }}"
+
   include_role: 
     name: pve-guest
     tasks_from: migrate.yml
