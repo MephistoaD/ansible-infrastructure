@@ -5,20 +5,9 @@
   block:
   # Assertions
   - name: "Preventive assertions of role {{ role_name }}"
-    vars:
-      nr_other_active_nodes: "{{ 
-          ansible_local.pve.guests_by_node 
-          | dict2items 
-          | map(attribute='value') 
-          | rejectattr('node', 'equalto', inventory_hostname) 
-          | selectattr('node_state', 'defined') 
-          | selectattr('node_state', 'equalto', 'ACTIVE') 
-          | length 
-        }}" # FIXME: replace this logic
     assert:
       that:
         - "not is_virtual or technology == 'vm'"
-        - "not upgrade or nr_other_active_nodes | int >= 1"
   # Scripts
 
   # Tasks
