@@ -87,7 +87,7 @@
   - debug:
       var: dest_nodes_raw.stdout_lines
 
-  - name: "Migration {{ num_current_migration | default(0) + 1 }}/{{ num_migrations | default(1) }}: {{ guest_to_move.type }}/{{ vmid }} {{ orig_node }} -> {{ dest_node }} ({{ guest_to_move.name }})"
+  - name: "Migration {{ num_current_migration | default(0) + 1 }}/{{ num_migrations | default(1) }}: {{ guest_to_move.type }}/{{ guest_to_move.vmid }} {{ orig_node }} -> {{ dest_node }} ({{ guest_to_move.name }})"
     delegate_to: "{{ orig_node }}"
     shell:
       executable: /bin/bash
