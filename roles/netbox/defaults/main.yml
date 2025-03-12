@@ -55,15 +55,6 @@ netbox_custom_fields:
       - vm
     default: lxc
 
-  pinned_on_node:
-    group_name: PVE
-    content_types:
-      - "virtualization.virtualmachine"
-    type: object
-    object_type: "dcim.device"
-    description: "Used to pin a vm to a virtualization node"
-    required: false
-
   # Ansible
   auto_deploy:
     group_name: Ansible

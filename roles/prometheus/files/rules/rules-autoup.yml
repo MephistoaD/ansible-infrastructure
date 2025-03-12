@@ -1,6 +1,6 @@
 ---
 groups:
-- name: Triggers
+- name: MaintenanceTriggers
   rules:
   - alert: PendingAptUpgradeTrigger
     expr: |
@@ -9,7 +9,7 @@ groups:
       title: "Pending upgrade"
       count: "{{ $value }}"
     labels:
-      autoup: trigger
+      autoup: MaintenanceTrigger
 
   - alert: PendingFlakeUpgradeTrigger
     expr: |
@@ -18,16 +18,7 @@ groups:
       title: "Pending flake upgrade"
       count: "{{ $value }}"
     labels:
-      autoup: trigger
-
-  - alert: PendingRebootTrigger
-    expr: |
-      (node_reboot_required > 0)
-    annotations:
-      title: "The instance requires a reboot"
-      count: "{{ $value }}"
-    labels:
-      autoup: trigger
+      autoup: MaintenanceTrigger
 
   - alert: PendingNextcloudUpgradeTrigger
     expr: |
@@ -36,7 +27,18 @@ groups:
       title: "A new nextcloud upgrade is available"
       count: "{{ $value }}"
     labels:
-      autoup: trigger
+      autoup: MaintenanceTrigger
+
+- name: RebootTriggers
+  rules:
+  - alert: PendingRebootTrigger
+    expr: |
+      (node_reboot_required > 0)
+    annotations:
+      title: "The instance requires a reboot"
+      count: "{{ $value }}"
+    labels:
+      autoup: RebootTrigger
 
 - name: Inhibitors
   rules:
@@ -45,9 +47,9 @@ groups:
       (48 - ((time() - last_system_upgrade) / 60 / 60) > 0)
     annotations:
       title: "System was upgraded recently"
-      count: "{{ printf \"%.4f\" $value }}h cooldown"
+      count: "{{ printf \"%.4f\" $value }}"
     labels:
-      autoup: inhibitor
+      autoup: Inhibitor
       origin: "System was upgraded within the last 48h"
 
   - alert: OpenUserSessionsInhibitor
@@ -57,7 +59,7 @@ groups:
       title: "User is logged in on the system"
       count: "{{ $value }}"
     labels:
-      autoup: inhibitor
+      autoup: Inhibitor
 
   - alert: AutoUpLockedInhibitor
     expr: |
@@ -66,7 +68,7 @@ groups:
       title: "AutoUp is manually locked on that system"
       count: "{{ $value }}"
     labels:
-      autoup: inhibitor
+      autoup: Inhibitor
 
   - alert: CephHealingInhibitor
     expr: |
@@ -75,7 +77,7 @@ groups:
       title: "Ceph is actively healing placement groups"
       count: "{{ $value }}"
     labels:
-      autoup: inhibitor
+      autoup: Inhibitor
 
   - alert: CephUnhealtyInhibitor
     expr: |
@@ -84,7 +86,7 @@ groups:
       title: "Ceph is currently unhealthy"
       count: "{{ $value }}"
     labels:
-      autoup: inhibitor
+      autoup: Inhibitor
 
   - alert: OpenvpnOpenUserConnectionsInhibitor
     expr: |
@@ -93,16 +95,16 @@ groups:
       title: "System was upgraded recently"
       count: "{{ $value }}"
     labels:
-      autoup: inhibitor
+      autoup: Inhibitor
 
   - alert: PVECephClusterUnhealthyInhibitor
     expr: |
       (pve_ceph_health_status != 1)
     annotations:
       title: "Ceph cluster is unhealthy"
-      count: "{{ $value }}" # is not shown in autoup since it resolves to 0
+      count: "1" # is not shown in autoup since it resolves to 0
     labels:
-      autoup: inhibitor
+      autoup: Inhibitor
 
   - alert: PVECephClusterHealthAlertInhibitor
     expr: |
@@ -111,7 +113,7 @@ groups:
       title: "Ceph cluster is unhealthy"
       count: "{{ $value }}"
     labels:
-      autoup: inhibitor
+      autoup: Inhibitor
 
   - alert: PVEMinimumQuorumNodesReachedInhibitor
     expr: |
@@ -124,4 +126,10 @@ groups:
       title: "The minimum number of nodes for maintaining quorum is reached. Consider setting 'pvecm expected <nr>' lower if you think this is a mistake."
       count: "{{ $value }}"
     labels:
-      autoup: inhibitor
+      autoup: Inhibitor
+
+- name: Obstacles
+  rules:
+  - alert: LXCRunningOnPVENodeObstacle
+    expr: |
+      pve_guest_infopve_guest_info{type="lxc", template="0"}
