@@ -1,5 +1,12 @@
 ---
 role_name: gitlab
 
+#prometheus_role_exporter_port_pgbouncer: 9188
+prometheus_role_exporter_port_gitlab: 9168
+
+prometheus_roles:
+  - postgres
+  - redis
+
 gitlab_keyring_file: /usr/share/keyrings/gitlab_gitlab-ce-archive-keyring.gpg
 gitlab_external_url: "http://{{ inventory_hostname }}.{{ pool }}.{{ dns_local_tld }}"

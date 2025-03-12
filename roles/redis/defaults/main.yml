@@ -1,0 +1,5 @@
+---
+role_name: redis
+
+prometheus_role_exporter_port_redis: 9121
+# TODO: implement exporter 

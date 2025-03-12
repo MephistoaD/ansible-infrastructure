@@ -2,6 +2,7 @@
 - name: "Role {{ role_name }}"    
   when:
     - only_role is undefined or only_role == role_name
+    - false
   block:
   # prepare
   - include_tasks: create_secret_key.yml
@@ -14,13 +15,12 @@
 
 # seemingly this doesn't work with the usage of the only_role parameter
 - name: APPLY CONFIG
+  when: false # FIXME: nixos rebuild not working in prod
   block:
   - include_role:
       name: "nixos"
       tasks_from: apply_config
   rescue: # in case the netbox-housekeeping.service fails on start
-  
-
   - include_role:
       name: "nixos"
       tasks_from: apply_config

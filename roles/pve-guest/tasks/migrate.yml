@@ -88,6 +88,8 @@
       var: dest_nodes_raw.stdout_lines
 
   - name: "Migration {{ num_current_migration | default(0) + 1 }}/{{ num_migrations | default(1) }}: {{ guest_to_move.type }}/{{ guest_to_move.vmid }} {{ orig_node }} -> {{ dest_node }} ({{ guest_to_move.name }})"
+    vars:
+      dest_nodes: "{{ dest_nodes_raw.stdout_lines | last | from_json }}"
     delegate_to: "{{ orig_node }}"
     shell:
       executable: /bin/bash
@@ -102,12 +104,17 @@
           --target {{ dest_node }}
     register: migration_output
     failed_when: false
+    when: dest_nodes.move_guest
 
   - debug:
       var: migration_output
-    when: migration_output.rc != 0
+    when:
+    - dest_nodes.move_guest 
+    - migration_output.rc != 0
 
   - name: Fail if migration failed
     fail:
       msg: "MIGRATION FAILED"
-    when: migration_output.rc != 0
+    when: 
+    - dest_nodes.move_guest
+    - migration_output.rc != 0

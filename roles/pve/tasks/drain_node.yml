@@ -24,7 +24,7 @@
         /usr/local/bin/node-state set drain.lxc true
 
   - set_fact:
-      num_guests_to_move: "{{ guests_to_move | length }}"
+      num_migrations: "{{ guests_to_move | length }}"
       
   - name: Move guest away (ignoring templates)
     include_tasks: drain_node_move_guest.yml

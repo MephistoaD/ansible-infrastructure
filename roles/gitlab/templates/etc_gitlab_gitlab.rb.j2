@@ -2482,7 +2482,7 @@ external_url '{{ gitlab_external_url }}'
 ##! Docs: https://docs.gitlab.com/ee/administration/monitoring/prometheus/redis_exporter.html
 ################################################################################
 
-# redis_exporter['enable'] = true
+redis_exporter['enable'] = true
 # redis_exporter['log_directory'] = '/var/log/gitlab/redis-exporter'
 # redis_exporter['log_group'] = nil
 # redis_exporter['flags'] = {
@@ -2494,7 +2494,7 @@ external_url '{{ gitlab_external_url }}'
 # }
 
 ##! Advanced settings. Should be changed only if absolutely needed.
-# redis_exporter['listen_address'] = 'localhost:9121'
+redis_exporter['listen_address'] = '0.0.0.0:9121'
 
 ##! Service name used to register Redis Exporter as a Consul service
 # redis_exporter['consul_service_name'] = 'redis-exporter'
@@ -2506,7 +2506,7 @@ external_url '{{ gitlab_external_url }}'
 ##! Docs: https://docs.gitlab.com/ee/administration/monitoring/prometheus/postgres_exporter.html
 ################################################################################
 
-# postgres_exporter['enable'] = true
+postgres_exporter['enable'] = true
 # postgres_exporter['home'] = '/var/opt/gitlab/postgres-exporter'
 # postgres_exporter['log_directory'] = '/var/log/gitlab/postgres-exporter'
 # postgres_exporter['log_group'] = nil
@@ -2514,7 +2514,7 @@ external_url '{{ gitlab_external_url }}'
 #  'collector.stat_user_tables' => false,
 #  'collector.postmaster' => true
 # }
-# postgres_exporter['listen_address'] = 'localhost:9187'
+postgres_exporter['listen_address'] = '0.0.0.0:9187'
 # postgres_exporter['env_directory'] = '/opt/gitlab/etc/postgres-exporter/env'
 # postgres_exporter['env'] = {
 #   'SSL_CERT_DIR' => "/opt/gitlab/embedded/ssl/certs/"
@@ -2531,10 +2531,10 @@ external_url '{{ gitlab_external_url }}'
 ##! Docs: https://docs.gitlab.com/ee/administration/monitoring/prometheus/pgbouncer_exporter.html
 ################################################################################
 
-# pgbouncer_exporter['enable'] = false
+pgbouncer_exporter['enable'] = false
 # pgbouncer_exporter['log_directory'] = "/var/log/gitlab/pgbouncer-exporter"
 # pgbouncer_exporter['log_group'] = nil
-# pgbouncer_exporter['listen_address'] = 'localhost:9188'
+pgbouncer_exporter['listen_address'] = '0.0.0.0:9188'
 # pgbouncer_exporter['env_directory'] = '/opt/gitlab/etc/pgbouncer-exporter/env'
 # pgbouncer_exporter['env'] = {
 #   'SSL_CERT_DIR' => "/opt/gitlab/embedded/ssl/certs/"
@@ -2546,15 +2546,15 @@ external_url '{{ gitlab_external_url }}'
 ################################################################################
 
 
-# gitlab_exporter['enable'] = true
+gitlab_exporter['enable'] = true
 # gitlab_exporter['log_directory'] = "/var/log/gitlab/gitlab-exporter"
 # gitlab_exporter['log_group'] = nil
 # gitlab_exporter['home'] = "/var/opt/gitlab/gitlab-exporter"
 
 ##! Advanced settings. Should be changed only if absolutely needed.
 # gitlab_exporter['server_name'] = 'webrick'
-# gitlab_exporter['listen_address'] = 'localhost'
-# gitlab_exporter['listen_port'] = '9168'
+gitlab_exporter['listen_address'] = '0.0.0.0'
+gitlab_exporter['listen_port'] = '9168'
 
 ##! TLS settings.
 # gitlab_exporter['tls_enabled'] = false

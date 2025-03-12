@@ -1,3 +1,7 @@
+---
+prometheus_role_exporter_port_postgres: 9187
+# TODO: implement exporter
+
 postgres_users:
   - name: user1
     password: mypass1

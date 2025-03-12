@@ -72,6 +72,8 @@
     var: reload_gravity.stdout_lines
   when: reload_gravity.changed
 
+- debug: var=pihole_whitelisted_domains_
+
 - name: Get current whitelisted domains
   shell:
     executable: /usr/bin/python3
