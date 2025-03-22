@@ -20,9 +20,13 @@ groups:
     expr: |
       (count(node_cooling_device_max_state{type="Processor",job="node_exporter"}) by (instance))
 
-  - record: r_pve_node_eligibility
+  - record: r_eligibility
     expr: |
-      (pve_node_state_active{state="ACTIVE"} * on (instance) group_left () ((node_load15 + node_load5 + node_load1) / 3  / on(instance) r_machine_cpu_cores))
+      ((node_load15 + node_load5 + node_load1) / 3  / on(instance) r_machine_cpu_cores)
+
+  - record: r_pve_node_active_eligibility
+    expr: |
+      (pve_node_state_active{state="ACTIVE"} * on (instance) group_left () r_eligibility)
   
   - record: r_pve_node_eligibility_max_deviation
     expr: |
