@@ -2,7 +2,7 @@
 - name: MIGRATE GUEST WHILE REBOOT
   vars:
     current_pve_host: "{{ inventory_hostname }}"
-    technology: "{{ hostvars[guest_to_move.name].technology }}"
+    technology: "{{ hostvars[guest_to_move.name].technology | default('lxc') }}"
 
   include_role: 
     name: pve-guest

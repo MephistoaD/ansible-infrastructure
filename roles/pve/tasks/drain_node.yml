@@ -33,5 +33,5 @@
     loop_control:
       label: "{{ guest_to_move.id }}"
       loop_var: guest_to_move
-      index_var: index
+      index_var: num_current_migration
     loop: "{{ guests_to_move }}"
