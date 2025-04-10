@@ -1,38 +1,63 @@
-# Ansible Infrastructure
+= Ansible Infrastructure
 
-## Arguments:
+== Arguments:
 
-  target: a hostname, a list of hostnames or a group the playbook is run agains
-  include_role: (device_role) Overwrites the device_role by including a custom role instead
-  upgrade: (false, true) runs all upgrades defined in the various roles
-  quick: (false, true) skipps installs, and most time costly operations (never interferes with upgrade)
-  deploy_guest: (false, "true", "redeploy", "purge", "backup", "only", "stop") deploys the vm or ct from the stats given in the netbox instance, purge ignores the status in netbox, if set to "only" the roles are skipped
-  only_role: (undefined, role name) skipps non vital tasks from all other roles (useful for debugging)
-  serial: (false, true): allows optional serial execution of the roles
-  prohibit_restore: (false, true): prohibits the restauration of the guest on failures
+[cols="1,2,1"]
+|===
+| Argument          | Description                                                                                                     | Values
 
-## Prometheus:
+| `target`          | A hostname, a list of hostnames, or a group the playbook is run against.                                      | Hostname, list of hostnames, or group
+| `include_role`    | (device_role) Overwrites the `device_role` by including a custom role instead.                                | Device role name
+| `upgrade`         | (false, true) Runs all upgrades defined in the various roles.                                                 | `false`, `true`
+| `quick`           | (false, true) Skips installs and most time-costly operations (never interferes with `upgrade`).               | `false`, `true`
+| `deploy_guest`    | (false, "true", "redeploy", "purge", "backup", "only", "stop") Deploys the VM or CT from the stats given in NetBox. If `purge` is used, it ignores the status in NetBox. If set to `only`, the roles are skipped. | `false`, `true`, `redeploy`, `purge`, `backup`, `only`, `stop`
+| `only_role`       | (undefined, role name) Skips non-vital tasks from all other roles (useful for debugging).                      | `undefined`, role name
+| `serial`          | (false, true) Allows optional serial execution of the roles.                                                   | `false`, `true`
+| `prohibit_restore`| (false, true) Prohibits the restoration of the guest on failures.                                               | `false`, `true`
+|===
 
-  prometheus_role_exporter_port_{role_name}: (false, int) set for each role in its vars, this determines the port of the roles dedicated promethtus exporter
+== Prometheus:
 
-  configure_promeetheus_job: (false, true) skips the guests setup and only updates the prometheus configuration on the target host
+[cols="1,2,1"]
+|===
+| Argument                                    | Description                                                                                   | Values
 
-## PVE Nodes:
+| `prometheus_role_exporter_port_{role_name}` | (false, int) Set for each role in its vars; determines the port of the role's dedicated Prometheus exporter. | `false`, integer value
+| `configure_prometheus_job`                  | (false, true) Skips the guest setup and only updates the Prometheus configuration on the target host. | `false`, `true`
+|===
 
-  drain_node (false, true): weather the node should be drained or not
-  undrain_node (false, true): weather the node should be undrained or not
-  join_password: (string) if set, allows to join the node to the cluster defined in netbox
+== PVE Nodes:
 
-## Semaphore
+[cols="1,2,1"]
+|===
+| Argument         | Description                                                | Values
 
-  semaphore_add_local_ssh_key: (false, true) adds the local ssh key from ~/.ssh/id_rsa to the semaphore by the name "ansible-ssh-key"
+| `drain_node`     | (false, true) Whether the node should be drained or not.    | `false`, `true`
+| `undrain_node`   | (false, true) Whether the node should be undrained or not.  | `false`, `true`
+| `join_password`  | (string) If set, allows the node to join the cluster defined in NetBox. | String value
+|===
 
-## examples:
+== Semaphore:
 
-  ansible-playbook playbooks/generic-playbook.yml -e "target=semaphore"
-  ansible-playbook playbooks/generic-playbook.yml -e "target=semaphore upgrade=true"
+[cols="1,2,1"]
+|===
+| Argument                    | Description                                                                             | Values
 
+| `semaphore_add_local_ssh_key`| (false, true) Adds the local SSH key from `~/.ssh/id_rsa` to Semaphore as `ansible-ssh-key`. | `false`, `true`
+|===
 
-## installed collections
+== examples:
 
-  ansible-galaxy collection install -r requirements.yml
+[source,bash]
+----
+ansible-playbook playbooks/generic-playbook.yml -e "target=semaphore"
+ansible-playbook playbooks/generic-playbook.yml -e "target=semaphore upgrade=true"
+----
+
+== installed collections:
+
+[source,bash]
+----
+ansible-galaxy collection install -r requirements.yml
+----
+
