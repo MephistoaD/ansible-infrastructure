@@ -1,0 +1,10 @@
+---
+- name: "Role {{ role_name }}"    
+  when:
+    - only_role is undefined or only_role == role_name
+  block:
+  # Tasks
+  - include_tasks: install.yml
+    when:
+      - not quick
+

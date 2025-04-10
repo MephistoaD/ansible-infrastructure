@@ -1,0 +1,15 @@
+---
+- name: Install podman
+  apt:
+    name: "{{ item }}"
+    state: present
+  register: podman_install
+  loop:
+    - podman
+    - podman-docker
+
+- name: loginctl enable-linger
+  shell:
+    cmd: loginctl enable-linger
+    executable: /bin/bash
+  when: podman_install.changed
