@@ -11,8 +11,3 @@
     loop:
       - docker.io
       - docker-compose
-
-  - name: Ensure /opt/docker-deployments exists
-    file:
-      path: /opt/docker-deployments
-      state: directory
