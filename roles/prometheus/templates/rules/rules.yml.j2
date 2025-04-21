@@ -30,7 +30,7 @@ groups:
   
   - record: r_pve_node_eligibility_max_deviation
     expr: |
-      (max(r_pve_node_eligibility) - min(r_pve_node_eligibility))
+      (max(r_pve_node_active_eligibility) - min(r_pve_node_active_eligibility))
 
 - name: Alerts
   rules:
