@@ -29,7 +29,7 @@
   - name: Move guest away (ignoring templates)
     include_tasks: drain_node_move_guest.yml
     when:
-      - not (hostvars[guest_to_move.name].cluster_device.name is defined and hostvars[guest_to_move.name].pinned_on_node.name == orig_node)
+      - not (hostvars[guest_to_move.name].cluster_device.name is defined and hostvars[guest_to_move.name].cluster_device.name == orig_node)
     loop_control:
       label: "{{ guest_to_move.id }}"
       loop_var: guest_to_move
