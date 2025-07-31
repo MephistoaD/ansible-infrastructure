@@ -41,7 +41,7 @@ server {
     ssl_certificate           {{ ssl_cert_path }};
     ssl_certificate_key       {{ ssl_key_path }};
 
-    access_log  /var/log/nginx/{{ ansible_hostname }}.access.log;
+    access_log  /var/log/nginx/{{ inventory_hostname }}.access.log;
 
   	# Include SSL configuration
 	  #include /etc/nginx/snippets/ssl.conf;

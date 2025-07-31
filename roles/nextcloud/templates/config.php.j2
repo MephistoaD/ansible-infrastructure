@@ -18,13 +18,12 @@ $CONFIG = array (
     '{{ nextcloud_domain }}',
 {% endfor %}
 {% endif %}
-    '{{ ansible_default_ipv4.address }}',
-    '{{ ansible_fqdn }}'
+    '{{ ansible_host }}'
   ],
   'datadirectory' => '{{ nextcloud_data }}',
   'dbtype' => 'pgsql',
   'version' => '{{ nextcloud_version }}',
-  'overwrite.cli.url' => 'https://{{ ansible_default_ipv4.address }}',
+  'overwrite.cli.url' => 'https://{{ ansible_host }}',
   'dbname' => '{{ ansible_local.postgres.databases[0].name }}',
   'dbhost' => '{{ postgres_listen_address }}',
   'dbport' => '',
